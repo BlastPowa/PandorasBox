@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { BottomNav } from "@/components/shell/bottom-nav";
+import { CommandPalette } from "@/components/shell/command-palette";
 import { getProfile, getCurrentUser } from "@/lib/auth";
 import { LibraryProvider } from "@/lib/library/use-library";
 
@@ -17,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <main className="flex-1 pb-24 md:pb-10">{children}</main>
           <BottomNav />
         </div>
+        <CommandPalette />
       </div>
     </LibraryProvider>
   );

@@ -8,6 +8,7 @@ import {
 } from "@/lib/discovery";
 import { Hero } from "@/components/discovery/hero";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
+import { MyPanel } from "@/components/home/my-panel";
 
 export const revalidate = 1800;
 
@@ -24,6 +25,7 @@ async function HomeContent() {
 
   return (
     <div className="space-y-8">
+      <MyPanel />
       <Hero items={heroPool.length > 0 ? heroPool : anime} />
       <PosterRow title="Trending Anime" subtitle="What everyone's watching right now" items={anime} />
       {movies.length > 0 && <PosterRow title="Trending Movies" items={movies} />}

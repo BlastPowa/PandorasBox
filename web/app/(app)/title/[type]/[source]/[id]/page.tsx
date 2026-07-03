@@ -10,6 +10,7 @@ import { TypeBadge } from "@/components/ui-fx/badge";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { AddToLibrary, type LibrarySeed } from "@/components/library/add-to-library";
 import { TrailerButton } from "@/components/detail/trailer-button";
+import { EpisodesSection } from "@/components/detail/episodes-section";
 import { AddToCollection } from "@/components/collections/add-to-collection";
 import { getTrailerKey } from "@/lib/trailers";
 import { WhereToWatch } from "@/components/detail/where-to-watch";
@@ -168,32 +169,12 @@ export default async function TitlePage({
               </section>
             )}
 
-            {detail.episodes.length > 0 && (
-              <section>
-                <h2 className="mb-3 font-display text-xl font-bold">Episodes · Season 1</h2>
-                <div className="space-y-2">
-                  {detail.episodes.map((ep) => (
-                    <div key={ep.id} className="glass flex gap-3 rounded-[var(--radius-md)] p-2.5">
-                      <div className="relative h-[62px] w-[110px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--bg-elevated)]">
-                        {ep.still_path ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={`https://image.tmdb.org/t/p/w300${ep.still_path}`} alt="" className="size-full object-cover" />
-                        ) : (
-                          <div className="grid size-full place-items-center font-mono text-xs text-[var(--text-muted)]">E{ep.episode_number}</div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-mono text-xs text-[var(--accent)]">E{ep.episode_number}</span>
-                          <h3 className="truncate text-sm font-semibold">{ep.name}</h3>
-                        </div>
-                        {ep.air_date && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(ep.air_date)}</span>}
-                        {ep.overview && <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">{ep.overview}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+            {detail.type === "series" && detail.tmdbId !== null && (detail.episodes.length > 0 || (detail.totalSeasons ?? 0) > 0) && (
+              <EpisodesSection
+                tmdbId={detail.tmdbId}
+                totalSeasons={detail.totalSeasons ?? 1}
+                initialEpisodes={detail.episodes}
+              />
             )}
 
             {detail.chapters.length > 0 && (
