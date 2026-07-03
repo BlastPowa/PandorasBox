@@ -1,0 +1,6 @@
+{
+  "name": "@pandoras-box/core",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared platform-agnostic business logic for Pandora's Box (API wrappers, list/progress managers, watch links, sync, notifications)."
+}

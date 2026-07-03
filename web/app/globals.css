@@ -1,0 +1,365 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Pandora's Box — design tokens (penumbra base + halo glass + forbidden glow)
+   ========================================================================== */
+
+:root {
+  --bg-base: #0a0a0f;
+  --bg-surface: #12121a;
+  --bg-elevated: #1a1a24;
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-strong: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --text: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.35);
+
+  --accent: #a855f7;
+  --accent-2: #ec4899;
+  --gold: #f5a524;
+
+  --watching: #22d3ee;
+  --reading: #34d399;
+  --completed: #22c55e;
+  --onhold: #f59e0b;
+  --dropped: #ef4444;
+  --planned: #a855f7;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+@theme inline {
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-border-subtle: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-fg: var(--text);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-gold: var(--gold);
+
+  --color-watching: var(--watching);
+  --color-reading: var(--reading);
+  --color-completed: var(--completed);
+  --color-onhold: var(--onhold);
+  --color-dropped: var(--dropped);
+  --color-planned: var(--planned);
+
+  --font-display: var(--font-fredoka);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+
+  --radius: var(--radius-md);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* Ambient penumbra background glow */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 60rem at 15% -10%, rgba(168, 85, 247, 0.14), transparent 60%),
+    radial-gradient(50rem 50rem at 100% 0%, rgba(236, 72, 153, 0.1), transparent 55%),
+    radial-gradient(40rem 40rem at 50% 120%, rgba(245, 165, 36, 0.06), transparent 60%);
+}
+
+::selection {
+  background: rgba(168, 85, 247, 0.35);
+  color: #fff;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: content-box;
+}
+
+/* ==========================================================================
+   Reusable theme utilities
+   ========================================================================== */
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--border);
+}
+
+.glass-strong {
+  background: var(--glass-strong);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--border-strong);
+}
+
+.text-gradient {
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glow-ring {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+.glow-ring:hover {
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.35), 0 12px 40px rgba(168, 85, 247, 0.18);
+}
+
+.hairline {
+  border: 1px solid var(--border);
+}
+
+@keyframes pb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pb-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 200% 100%;
+  animation: pb-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes pb-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: pb-fade-up 0.4s ease both;
+}
+
+/* ==========================================================================
+   Animated gradient "color-movement" border (search bar + box containers)
+   ========================================================================== */
+
+@property --pb-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes pb-rotate {
+  to {
+    --pb-angle: 360deg;
+  }
+}
+
+/* Rotating conic border that traces the edge of any rounded box. */
+.fx-glow-border {
+  position: relative;
+  border-radius: inherit;
+  isolation: isolate;
+}
+.fx-glow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--pb-angle),
+    var(--accent),
+    var(--accent-2),
+    var(--gold),
+    var(--accent-2),
+    var(--accent)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  transition: opacity 0.25s ease;
+  animation: pb-rotate 6s linear infinite;
+}
+.fx-glow-border:hover::before,
+.fx-glow-border:focus-within::before {
+  opacity: 1;
+}
+/* Soft outer bloom that also drifts with the border */
+.fx-glow-border::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -2;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--pb-angle),
+    var(--accent),
+    var(--accent-2),
+    var(--gold),
+    var(--accent-2),
+    var(--accent)
+  );
+  filter: blur(14px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: pb-rotate 6s linear infinite;
+}
+.fx-glow-border:focus-within::after {
+  opacity: 0.4;
+}
+
+/* ==========================================================================
+   Themed loader (Randomize / "Open the Box") — orbiting glow
+   ========================================================================== */
+
+@keyframes pb-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pb-pulse-core {
+  0%, 100% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.pb-loader {
+  position: relative;
+  width: 84px;
+  height: 84px;
+}
+.pb-loader__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: pb-orbit 1.4s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+}
+.pb-loader__ring::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 14px 2px var(--accent);
+}
+.pb-loader__ring:nth-child(2) {
+  inset: 12px;
+  animation-duration: 1.9s;
+  animation-direction: reverse;
+}
+.pb-loader__ring:nth-child(2)::before {
+  background: var(--accent-2);
+  box-shadow: 0 0 14px 2px var(--accent-2);
+}
+.pb-loader__ring:nth-child(3) {
+  inset: 24px;
+  animation-duration: 2.4s;
+}
+.pb-loader__ring:nth-child(3)::before {
+  background: var(--gold);
+  box-shadow: 0 0 14px 2px var(--gold);
+}
+.pb-loader__core {
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent), var(--accent-2));
+  box-shadow: 0 0 24px 4px rgba(168, 85, 247, 0.5);
+  animation: pb-pulse-core 1.6s ease-in-out infinite;
+}
+
+/* Decorative "collector rank" card accent (profile) */
+.fx-rank-card {
+  position: relative;
+  overflow: hidden;
+}
+.fx-rank-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 100% 0%, rgba(245, 165, 36, 0.22), transparent 60%),
+    radial-gradient(120% 80% at 0% 100%, rgba(168, 85, 247, 0.22), transparent 60%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

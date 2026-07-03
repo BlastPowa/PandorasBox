@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">REEL</span>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="home">Home</button>
+      <button class="tab" data-tab="search">Search</button>
+      <button class="tab" data-tab="list">List</button>
+    </nav>
+    <button class="icon-btn" id="profileBtn" title="Profile &amp; settings">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    </button>
+  </header>
+
+  <main class="content">
+    <section class="panel active" id="panel-home">
+      <div id="continueSection" class="section hidden">
+        <div class="section-head">
+          <h2>Continue Watching</h2>
+        </div>
+        <div class="continue-list" id="continueList"></div>
+      </div>
+      <div id="airingSection" class="section hidden">
+        <div class="section-head">
+          <h2>Airing Today</h2>
+        </div>
+        <div class="airing-list" id="airingList"></div>
+      </div>
+      <div id="homeEmpty" class="empty-state hidden">
+        <div class="empty-art">🎬</div>
+        <p class="empty-title">Nothing playing yet</p>
+        <p class="empty-sub">Search for a movie, series, anime or manga and add it to your list.</p>
+      </div>
+      <div class="stats-row" id="statsRow"></div>
+    </section>
+
+    <section class="panel" id="panel-search">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="searchInput" type="text" placeholder="Movies, series, anime, manga..." autocomplete="off" />
+        <div class="spinner hidden" id="searchSpinner"></div>
+      </div>
+      <div class="search-results" id="searchResults">
+        <div class="search-hint">
+          <div class="empty-art">🔎</div>
+          <p class="empty-title">Search everything</p>
+          <p class="empty-sub">One search across TMDB and AniList — movies, shows, anime and manga together.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-list">
+      <div class="filter-row" id="statusFilters">
+        <button class="pill active" data-status="all">All</button>
+        <button class="pill" data-status="watching">Watching</button>
+        <button class="pill" data-status="reading">Reading</button>
+        <button class="pill" data-status="completed">Completed</button>
+        <button class="pill" data-status="planned">Planned</button>
+        <button class="pill" data-status="dropped">Dropped</button>
+      </div>
+      <div class="list-items" id="listItems"></div>
+    </section>
+  </main>
+
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-inner" id="detailInner"></div>
+  </div>
+
+  <footer class="bottombar">
+    <button class="sidebar-btn" id="openSidebarBtn">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg>
+      Open Sidebar
+    </button>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

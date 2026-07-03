@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reel — Library</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header class="panel-head">
+    <span class="brand-mark">REEL</span>
+    <span class="head-sub">Library</span>
+  </header>
+
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="filterInput" type="text" placeholder="Filter your library..." autocomplete="off" />
+  </div>
+
+  <div class="filter-row" id="typeFilters">
+    <button class="pill active" data-type="all">All</button>
+    <button class="pill" data-type="movie">Movies</button>
+    <button class="pill" data-type="series">Series</button>
+    <button class="pill" data-type="anime">Anime</button>
+    <button class="pill" data-type="manga">Manga</button>
+    <button class="pill" data-type="manhwa">Manhwa</button>
+  </div>
+
+  <div class="filter-row" id="statusFilters">
+    <button class="pill active" data-status="all">All</button>
+    <button class="pill" data-status="watching">Watching</button>
+    <button class="pill" data-status="reading">Reading</button>
+    <button class="pill" data-status="completed">Completed</button>
+    <button class="pill" data-status="planned">Planned</button>
+    <button class="pill" data-status="dropped">Dropped</button>
+  </div>
+
+  <main class="library" id="library"></main>
+
+  <div class="detail-overlay" id="detailOverlay">
+    <div class="detail-inner" id="detailInner"></div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

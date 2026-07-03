@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reel — Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="page-head">
+      <span class="brand-mark">REEL</span>
+      <span class="head-sub">Your Profile</span>
+    </header>
+
+    <section class="overview-grid" id="overviewGrid"></section>
+
+    <section class="card">
+      <h2>Top Genres</h2>
+      <div id="genreBars" class="genre-bars"></div>
+    </section>
+
+    <section class="card">
+      <h2>Recently Completed</h2>
+      <div id="recentList" class="recent-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Settings</h2>
+      <form id="settingsForm" class="settings-form">
+        <label class="field">
+          <span>TMDB API Key</span>
+          <input type="password" id="tmdbApiKey" placeholder="Paste your TMDB API key" autocomplete="off" />
+          <small>Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">themoviedb.org/settings/api</a></small>
+        </label>
+        <label class="field">
+          <span>Country</span>
+          <select id="country">
+            <option value="IE">Ireland (IE)</option>
+            <option value="GB">United Kingdom (GB)</option>
+            <option value="US">United States (US)</option>
+            <option value="CA">Canada (CA)</option>
+            <option value="AU">Australia (AU)</option>
+            <option value="DE">Germany (DE)</option>
+            <option value="FR">France (FR)</option>
+            <option value="ES">Spain (ES)</option>
+            <option value="IT">Italy (IT)</option>
+            <option value="NL">Netherlands (NL)</option>
+            <option value="JP">Japan (JP)</option>
+            <option value="BR">Brazil (BR)</option>
+            <option value="IN">India (IN)</option>
+          </select>
+        </label>
+        <label class="field toggle-field">
+          <span>Notifications</span>
+          <input type="checkbox" id="notificationsEnabled" />
+        </label>
+        <label class="field toggle-field">
+          <span>Auto-track playback</span>
+          <input type="checkbox" id="autoTrack" />
+        </label>
+        <label class="field toggle-field">
+          <span>Supabase sync</span>
+          <input type="checkbox" id="syncEnabled" />
+        </label>
+        <div id="syncFields" class="sync-fields hidden">
+          <label class="field">
+            <span>Supabase URL</span>
+            <input type="text" id="supabaseUrl" placeholder="https://xxxx.supabase.co" autocomplete="off" />
+          </label>
+          <label class="field">
+            <span>Supabase anon key</span>
+            <input type="password" id="supabaseAnonKey" placeholder="anon public key" autocomplete="off" />
+          </label>
+          <button type="button" class="btn" id="syncNowBtn">Sync Now</button>
+        </div>
+        <button type="submit" class="btn primary">Save Settings</button>
+        <div id="saveNote" class="save-note hidden"></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Data</h2>
+      <div class="data-actions">
+        <button class="btn" id="exportBtn">Export List as JSON</button>
+        <button class="btn" id="importBtn">Import List from JSON</button>
+        <input type="file" id="importFile" accept="application/json" class="hidden" />
+      </div>
+      <div id="dataNote" class="save-note hidden"></div>
+    </section>
+  </div>
+  <script src="profile.js"></script>
+</body>
+</html>

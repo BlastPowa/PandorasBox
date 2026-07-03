@@ -1,0 +1,183 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { Plus, Check, ChevronDown, Trash2 } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";
+import { createDefaultProgress } from "@core/storage/schema";
+import { getStatusLabel } from "@core/utils/formatters";
+import { useLibrary } from "@/lib/library/use-library";
+import { RatingStars } from "@/components/ui-fx/rating-stars";
+import { StatusBadge } from "@/components/ui-fx/badge";
+import { cn } from "@/lib/utils";
+
+export interface LibrarySeed {
+  id: string;
+  source: "tmdb" | "anilist" | "mangadex";
+  type: ReelItemType;
+  title: string;
+  posterUrl: string | null;
+  backdropUrl: string | null;
+  synopsis: string | null;
+  genres: string[];
+  year: number | null;
+  totalEpisodes: number | null;
+  totalChapters: number | null;
+  totalSeasons: number | null;
+  anilistId: number | null;
+  tmdbId: number | null;
+  mangadexId: string | null;
+  malId: number | null;
+}
+
+const STATUSES: ReelItemStatus[] = ["watching", "reading", "completed", "on_hold", "planned", "dropped"];
+
+function seedToItem(seed: LibrarySeed, status: ReelItemStatus): Omit<ReelItem, "addedAt" | "updatedAt"> {
+  const progress = createDefaultProgress();
+  progress.totalEpisodes = seed.totalEpisodes;
+  progress.totalChapters = seed.totalChapters;
+  progress.totalSeasons = seed.totalSeasons;
+  return {
+    id: seed.id,
+    source: seed.source,
+    type: seed.type,
+    title: seed.title,
+    posterUrl: seed.posterUrl,
+    backdropUrl: seed.backdropUrl,
+    synopsis: seed.synopsis,
+    status,
+    progress,
+    rating: null,
+    genres: seed.genres,
+    totalEpisodes: seed.totalEpisodes,
+    totalChapters: seed.totalChapters,
+    totalSeasons: seed.totalSeasons,
+    year: seed.year,
+    anilistId: seed.anilistId,
+    tmdbId: seed.tmdbId,
+    mangadexId: seed.mangadexId,
+    malId: seed.malId,
+    completedAt: null,
+    lastWatchedSite: null,
+  };
+}
+
+export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
+  const { signedIn, getById, add, setStatus, setRating, remove } = useLibrary();
+  const [busy, setBusy] = useState(false);
+  const existing = getById(seed.id);
+  const isReading = seed.type === "manga" || seed.type === "manhwa";
+  const defaultStatus: ReelItemStatus = isReading ? "reading" : "watching";
+
+  async function onAdd(status: ReelItemStatus) {
+    setBusy(true);
+    try {
+      await add(seedToItem(seed, status));
+      toast.success(`Added to ${getStatusLabel(status)}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not add");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSetStatus(status: ReelItemStatus) {
+    setBusy(true);
+    try {
+      await setStatus(seed.id, status);
+      toast.success(`Moved to ${getStatusLabel(status)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!signedIn) {
+    return (
+      <a
+        href={`/login?next=/title/${seed.type}/${seed.source}/${seed.anilistId ?? seed.tmdbId ?? seed.mangadexId}`}
+        className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-5 text-sm font-semibold text-[#0a0a0f]"
+      >
+        <Plus className="size-4" /> Sign in to track
+      </a>
+    );
+  }
+
+  if (!existing) {
+    return (
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onAdd(defaultStatus)}
+          disabled={busy}
+          className="inline-flex h-11 items-center gap-2 rounded-l-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-5 text-sm font-semibold text-[#0a0a0f] disabled:opacity-60"
+        >
+          <Plus className="size-4" /> Add to Library
+        </button>
+        <StatusDropdown onSelect={onAdd} trigger={
+          <button className="inline-flex h-11 items-center rounded-r-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] pr-3 pl-1 text-[#0a0a0f]">
+            <ChevronDown className="size-4" />
+          </button>
+        } />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <StatusDropdown
+        onSelect={onSetStatus}
+        trigger={
+          <button className="glass inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] px-4 text-sm font-semibold">
+            <Check className="size-4 text-[var(--completed)]" />
+            <StatusBadge status={existing.status} />
+            <ChevronDown className="size-4 opacity-60" />
+          </button>
+        }
+      />
+      <div className="glass flex h-11 items-center gap-2 rounded-[var(--radius-md)] px-3">
+        <RatingStars value={existing.rating} onChange={(v) => void setRating(seed.id, v)} size={16} />
+      </div>
+      <button
+        onClick={() => void remove(seed.id)}
+        className="glass inline-flex size-11 items-center justify-center rounded-[var(--radius-md)] text-[var(--dropped)] hover:bg-[rgba(239,68,68,0.12)]"
+        aria-label="Remove from library"
+      >
+        <Trash2 className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+function StatusDropdown({
+  onSelect,
+  trigger,
+}: {
+  onSelect: (s: ReelItemStatus) => void;
+  trigger: React.ReactNode;
+}) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={6}
+          className="z-50 min-w-[180px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] p-1 shadow-2xl"
+        >
+          {STATUSES.map((s) => (
+            <DropdownMenu.Item
+              key={s}
+              onSelect={() => onSelect(s)}
+              className={cn(
+                "cursor-pointer rounded-[8px] px-3 py-2 text-sm outline-none transition-colors",
+                "text-[var(--text-secondary)] focus:bg-[var(--glass)] focus:text-[var(--text)]"
+              )}
+            >
+              {getStatusLabel(s)}
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
