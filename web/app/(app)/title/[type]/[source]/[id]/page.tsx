@@ -9,6 +9,9 @@ import { getProfile } from "@/lib/auth";
 import { TypeBadge } from "@/components/ui-fx/badge";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { AddToLibrary, type LibrarySeed } from "@/components/library/add-to-library";
+import { TrailerButton } from "@/components/detail/trailer-button";
+import { AddToCollection } from "@/components/collections/add-to-collection";
+import { getTrailerKey } from "@/lib/trailers";
 import { WhereToWatch } from "@/components/detail/where-to-watch";
 import { PosterRow } from "@/components/discovery/poster-row";
 import { ExpandableText } from "@/components/detail/expandable-text";
@@ -28,9 +31,10 @@ export default async function TitlePage({
   const detail = await getDetail(type as ReelItemType, source, decodeURIComponent(id), country);
   if (!detail) notFound();
 
-  const [curated, availability] = await Promise.all([
+  const [curated, availability, trailerKey] = await Promise.all([
     getCuratedLinks(detail.id),
     getAvailability(detail.id),
+    getTrailerKey(detail.type, detail.source, decodeURIComponent(id)),
   ]);
 
   const watchOptions = [...curatedToWatchOptions(curated), ...detail.autoWatchOptions];
@@ -139,8 +143,17 @@ export default async function TitlePage({
               </div>
             )}
 
-            <div className="mt-5">
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <AddToLibrary seed={seed} />
+              <TrailerButton
+                type={detail.type}
+                source={detail.source}
+                id={decodeURIComponent(id)}
+                initialKey={trailerKey}
+                totalSeasons={detail.totalSeasons}
+                title={detail.title}
+              />
+              <AddToCollection itemId={detail.id} />
             </div>
           </div>
         </div>

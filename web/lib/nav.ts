@@ -9,6 +9,7 @@ import {
   Shield,
   Globe,
   Dices,
+  FolderHeart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/randomize", label: "Randomize", icon: Dices, bottom: true },
   { href: "/search", label: "Search", icon: Search },
   { href: "/library", label: "My Library", icon: Library, bottom: true },
+  { href: "/collections", label: "Collections", icon: FolderHeart },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/sites", label: "Sites", icon: Globe },
   { href: "/stats", label: "Stats", icon: BarChart3, bottom: true },
