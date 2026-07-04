@@ -12,6 +12,7 @@ import {
   FolderHeart,
   HelpCircle,
   Trophy,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/library", label: "My Library", icon: Library, bottom: true },
   { href: "/collections", label: "Collections", icon: FolderHeart },
   { href: "/rankings", label: "My Rankings", icon: Trophy },
+  { href: "/episode-ratings", label: "Episode Ratings", icon: Star },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/sites", label: "Sites", icon: Globe },
   { href: "/stats", label: "Stats", icon: BarChart3, bottom: true },
