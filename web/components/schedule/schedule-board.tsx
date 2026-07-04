@@ -3,18 +3,18 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { CalendarDays, Film, Tv, Sparkles, Bookmark } from "lucide-react";
+import { CalendarDays, Film, Tv, Sparkles, Bookmark, Rocket } from "lucide-react";
 import type { ScheduleEntry } from "@/lib/schedule";
 import { useLibrary } from "@/lib/library/use-library";
-import { Pill } from "@/components/ui-fx/badge";
 import { EmptyState } from "@/components/ui-fx/feedback";
 
-type Tab = "anime" | "movie" | "series" | "mylist";
+type Tab = "anime" | "movie" | "series" | "upcoming" | "mylist";
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "anime", label: "Anime", icon: <Sparkles className="size-4" /> },
   { key: "movie", label: "Movies", icon: <Film className="size-4" /> },
   { key: "series", label: "TV", icon: <Tv className="size-4" /> },
+  { key: "upcoming", label: "Upcoming", icon: <Rocket className="size-4" /> },
   { key: "mylist", label: "My List", icon: <Bookmark className="size-4" /> },
 ];
 
@@ -29,10 +29,12 @@ export function ScheduleBoard({
   anime,
   movies,
   tv,
+  upcoming,
 }: {
   anime: ScheduleEntry[];
   movies: ScheduleEntry[];
   tv: ScheduleEntry[];
+  upcoming: ScheduleEntry[];
 }) {
   const { items, signedIn } = useLibrary();
   const [tab, setTab] = useState<Tab>("anime");
@@ -57,9 +59,25 @@ export function ScheduleBoard({
     if (tab === "anime") return anime;
     if (tab === "movie") return movies;
     if (tab === "series") return tv;
-    // mylist: everything releasing that's in the user's library
-    return [...anime, ...movies, ...tv].filter((e) => libraryIds.has(e.id));
-  }, [tab, anime, movies, tv, libraryIds]);
+    if (tab === "upcoming") return upcoming;
+    // mylist: everything releasing/upcoming that's in the user's library
+    return [...anime, ...movies, ...tv, ...upcoming].filter((e) => libraryIds.has(e.id));
+  }, [tab, anime, movies, tv, upcoming, libraryIds]);
+
+  // Upcoming view: group by month (far-future, no day picker)
+  const byMonth = useMemo(() => {
+    const map = new Map<string, ScheduleEntry[]>();
+    const list = tab === "upcoming" ? upcoming : source;
+    for (const e of list) {
+      const d = new Date(e.timestamp * 1000);
+      const k = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+      const arr = map.get(k) ?? [];
+      arr.push(e);
+      map.set(k, arr);
+    }
+    for (const arr of map.values()) arr.sort((a, b) => a.timestamp - b.timestamp);
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [tab, upcoming, source]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, ScheduleEntry[]>();
@@ -100,6 +118,8 @@ export function ScheduleBoard({
           title="Track titles to build your calendar"
           description="Sign in and add shows, anime and movies to your library — their upcoming releases will collect here."
         />
+      ) : tab === "upcoming" ? (
+        <UpcomingView groups={byMonth} />
       ) : (
         <>
           {/* Day picker */}
@@ -173,6 +193,59 @@ export function ScheduleBoard({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function UpcomingView({ groups }: { groups: [string, ScheduleEntry[]][] }) {
+  if (groups.length === 0) {
+    return (
+      <EmptyState
+        icon={<Rocket className="size-10" />}
+        title="Nothing announced yet"
+        description="Newly announced anime, upcoming movies and TV premieres will appear here."
+      />
+    );
+  }
+  return (
+    <div className="space-y-6">
+      {groups.map(([key, entries]) => {
+        const [year, monthIdx] = key.split("-");
+        return (
+          <div key={key}>
+            <h2 className="mb-3 font-display text-lg font-bold">
+              {MONTHS[Number.parseInt(monthIdx, 10)]} {year}
+            </h2>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+              {entries.map((e) => (
+                <Link
+                  key={`${e.id}-${e.label}`}
+                  href={`/title/${e.detailType}/${e.source}/${e.refId}`}
+                  className="group"
+                >
+                  <div className="relative aspect-[2/3] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-elevated)]">
+                    {e.posterUrl && (
+                      <Image src={e.posterUrl} alt={e.title} fill sizes="160px" className="object-cover transition-transform group-hover:scale-105" />
+                    )}
+                    <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--accent)]">
+                      {e.label}
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-1 text-xs font-medium">{e.title}</p>
+                  <p className="font-mono text-[10px] text-[var(--text-muted)]">
+                    {new Date(e.timestamp * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

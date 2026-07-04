@@ -1,10 +1,16 @@
 import "server-only";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { getPosterUrl } from "@core/api/tmdb";
-import { GENRE_MAP, type RandomFilters, type RandomType } from "./random-shared";
+import {
+  movieGenreId,
+  tvGenreId,
+  anilistGenre,
+  type RandomFilters,
+  type RandomType,
+} from "./random-shared";
 
 export type { RandomType, RandomFilters } from "./random-shared";
-export { GENRE_MAP, GENRE_OPTIONS } from "./random-shared";
+export { genresForType } from "./random-shared";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -26,14 +32,20 @@ interface TMDBResult {
   vote_average: number;
 }
 
-async function tmdbRandom(kind: "movie" | "tv", genreId?: number): Promise<UnifiedSearchResult[]> {
+async function tmdbRandom(
+  kind: "movie" | "tv",
+  genreId: number | null,
+  extra?: string
+): Promise<UnifiedSearchResult[]> {
   const key = process.env.TMDB_API_KEY ?? "";
   if (!key) return [];
-  const page = 1 + Math.floor(Math.random() * 12);
-  const genreParam = genreId ? `&with_genres=${genreId}` : "";
+  const page = 1 + Math.floor(Math.random() * 10);
+  const voteFloor = kind === "movie" ? 150 : 40;
+  const genreParam = genreId !== null ? `&with_genres=${genreId}` : "";
+  const extraParam = extra ? `&${extra}` : "";
   try {
     const res = await fetch(
-      `https://api.themoviedb.org/3/discover/${kind}?api_key=${key}&sort_by=popularity.desc&vote_count.gte=200&page=${page}${genreParam}`,
+      `https://api.themoviedb.org/3/discover/${kind}?api_key=${key}&sort_by=popularity.desc&vote_count.gte=${voteFloor}&page=${page}${genreParam}${extraParam}`,
       { cache: "no-store" }
     );
     if (!res.ok) return [];
@@ -74,8 +86,8 @@ interface AniListRandomNode {
   format: string | null;
 }
 
-async function anilistRandom(mediaType: "ANIME" | "MANGA", genre?: string): Promise<UnifiedSearchResult[]> {
-  const page = 1 + Math.floor(Math.random() * 10);
+async function anilistRandom(mediaType: "ANIME" | "MANGA", genre: string | null): Promise<UnifiedSearchResult[]> {
+  const page = 1 + Math.floor(Math.random() * 8);
   const query = `
     query ($type: MediaType, $genre: String, $page: Int) {
       Page(page: $page, perPage: 20) {
@@ -124,24 +136,40 @@ async function anilistRandom(mediaType: "ANIME" | "MANGA", genre?: string): Prom
 }
 
 export async function getRandomTitles(filters: RandomFilters): Promise<UnifiedSearchResult[]> {
-  const g = filters.genre ? GENRE_MAP[filters.genre] : undefined;
+  const want = filters.genre && filters.genre.length > 0 ? filters.genre : null;
   let pool: UnifiedSearchResult[] = [];
 
   if (filters.type === "movie") {
-    pool = await tmdbRandom("movie", g?.movie);
+    const id = movieGenreId(want);
+    if (want && id === null) return [];
+    pool = await tmdbRandom("movie", id);
   } else if (filters.type === "series") {
-    pool = await tmdbRandom("tv", g?.tv);
+    const id = tvGenreId(want);
+    if (want && id === null) return [];
+    pool = await tmdbRandom("tv", id);
+  } else if (filters.type === "kdrama") {
+    const id = tvGenreId(want);
+    if (want && id === null) return [];
+    pool = await tmdbRandom("tv", id, "with_origin_country=KR&with_original_language=ko");
   } else if (filters.type === "anime") {
-    pool = await anilistRandom("ANIME", g?.anilist);
+    const g = anilistGenre(want);
+    if (want && g === null) return [];
+    pool = await anilistRandom("ANIME", g);
   } else if (filters.type === "manga") {
-    pool = await anilistRandom("MANGA", g?.anilist);
+    const g = anilistGenre(want);
+    if (want && g === null) return [];
+    pool = await anilistRandom("MANGA", g);
   } else {
-    const [movies, series, anime] = await Promise.all([
-      tmdbRandom("movie", g?.movie),
-      tmdbRandom("tv", g?.tv),
-      anilistRandom("ANIME", g?.anilist),
-    ]);
-    pool = [...movies, ...series, ...anime];
+    // "any" — mix sources, but only include a source if the genre maps to it
+    const tasks: Promise<UnifiedSearchResult[]>[] = [];
+    const mId = movieGenreId(want);
+    if (!want || mId !== null) tasks.push(tmdbRandom("movie", mId));
+    const tId = tvGenreId(want);
+    if (!want || tId !== null) tasks.push(tmdbRandom("tv", tId));
+    const aG = anilistGenre(want);
+    if (!want || aG !== null) tasks.push(anilistRandom("ANIME", aG));
+    const results = await Promise.all(tasks);
+    pool = results.flat();
   }
 
   return shuffle(pool.filter((r) => r.posterUrl)).slice(0, 18);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Dices, Sparkles } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
-import { GENRE_OPTIONS, type RandomType } from "@/lib/random-shared";
+import { genresForType, type RandomType } from "@/lib/random-shared";
 import { Pill } from "@/components/ui-fx/badge";
 import { Button } from "@/components/ui-fx/button";
 import { BoxLoader } from "@/components/ui-fx/box-loader";
@@ -15,6 +15,7 @@ const TYPES: { key: RandomType; label: string }[] = [
   { key: "any", label: "Surprise Me" },
   { key: "movie", label: "Movies" },
   { key: "series", label: "TV & Series" },
+  { key: "kdrama", label: "K-Drama" },
   { key: "anime", label: "Anime" },
   { key: "manga", label: "Manga" },
 ];
@@ -29,6 +30,13 @@ const LOADING_LINES = [
 export function Randomizer() {
   const [type, setType] = useState<RandomType>("any");
   const [genre, setGenre] = useState<string | null>(null);
+  const genreOptions = genresForType(type);
+
+  function changeType(next: RandomType) {
+    setType(next);
+    // drop the selected genre if it isn't valid for the new type
+    if (genre && !genresForType(next).includes(genre)) setGenre(null);
+  }
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<UnifiedSearchResult[] | null>(null);
   const [line, setLine] = useState(LOADING_LINES[0]);
@@ -64,14 +72,14 @@ export function Randomizer() {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Type</p>
         <div className="mb-5 flex flex-wrap gap-2">
           {TYPES.map((t) => (
-            <Pill key={t.key} active={type === t.key} onClick={() => setType(t.key)}>{t.label}</Pill>
+            <Pill key={t.key} active={type === t.key} onClick={() => changeType(t.key)}>{t.label}</Pill>
           ))}
         </div>
 
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Genre (optional)</p>
         <div className="mb-6 flex flex-wrap gap-2">
           <Pill active={genre === null} onClick={() => setGenre(null)}>Any</Pill>
-          {GENRE_OPTIONS.map((g) => (
+          {genreOptions.map((g) => (
             <Pill key={g} active={genre === g} onClick={() => setGenre(g)}>{g}</Pill>
           ))}
         </div>

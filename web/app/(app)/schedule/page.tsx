@@ -1,5 +1,12 @@
 import { CalendarDays } from "lucide-react";
-import { getAnimeWeek, getMovieReleasesWindow, getTvWindow } from "@/lib/schedule";
+import {
+  getAnimeWeek,
+  getMovieReleasesWindow,
+  getTvWindow,
+  getUpcomingAnime,
+  getUpcomingMovies,
+  getUpcomingTv,
+} from "@/lib/schedule";
 import { getProfile } from "@/lib/auth";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
 
@@ -8,11 +15,15 @@ export const revalidate = 1800;
 export default async function SchedulePage() {
   const profile = await getProfile();
   const region = profile?.country ?? "US";
-  const [anime, movies, tv] = await Promise.all([
+  const [anime, movies, tv, upAnime, upMovies, upTv] = await Promise.all([
     getAnimeWeek(7),
     getMovieReleasesWindow(region, 21),
     getTvWindow(14),
+    getUpcomingAnime(),
+    getUpcomingMovies(region),
+    getUpcomingTv(),
   ]);
+  const upcoming = [...upAnime, ...upMovies, ...upTv];
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
@@ -24,7 +35,7 @@ export default async function SchedulePage() {
         Upcoming anime episodes, movie releases and TV premieres — switch tabs, pick a day, or check
         <span className="text-[var(--text)]"> My List</span> for just the titles you track.
       </p>
-      <ScheduleBoard anime={anime} movies={movies} tv={tv} />
+      <ScheduleBoard anime={anime} movies={movies} tv={tv} upcoming={upcoming} />
     </div>
   );
 }

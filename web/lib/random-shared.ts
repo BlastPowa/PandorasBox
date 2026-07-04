@@ -1,27 +1,107 @@
-export type RandomType = "any" | "movie" | "series" | "anime" | "manga";
+export type RandomType = "any" | "movie" | "series" | "kdrama" | "anime" | "manga";
 
 export interface RandomFilters {
   type: RandomType;
   genre: string | null;
 }
 
-/** Genre → { tmdbMovie, tmdbTv, anilist } id/name mapping so one picker works across all sources. */
-export const GENRE_MAP: Record<string, { movie?: number; tv?: number; anilist?: string }> = {
-  Action: { movie: 28, tv: 10759, anilist: "Action" },
-  Adventure: { movie: 12, tv: 10759, anilist: "Adventure" },
-  Comedy: { movie: 35, tv: 35, anilist: "Comedy" },
-  Drama: { movie: 18, tv: 18, anilist: "Drama" },
-  Fantasy: { movie: 14, tv: 10765, anilist: "Fantasy" },
-  Horror: { movie: 27, anilist: "Horror" },
-  Romance: { movie: 10749, anilist: "Romance" },
-  "Sci-Fi": { movie: 878, tv: 10765, anilist: "Sci-Fi" },
-  Thriller: { movie: 53, tv: 9648, anilist: "Thriller" },
-  Mystery: { movie: 9648, tv: 9648, anilist: "Mystery" },
-  Animation: { movie: 16, tv: 16 },
-  "Slice of Life": { anilist: "Slice of Life" },
-  Supernatural: { anilist: "Supernatural" },
-  Sports: { anilist: "Sports" },
-  Psychological: { anilist: "Psychological" },
+/** TMDB movie genre ids (real, so filtering actually works). */
+export const MOVIE_GENRES: Record<string, number> = {
+  Action: 28,
+  Adventure: 12,
+  Animation: 16,
+  Comedy: 35,
+  Crime: 80,
+  Documentary: 99,
+  Drama: 18,
+  Family: 10751,
+  Fantasy: 14,
+  History: 36,
+  Horror: 27,
+  Music: 10402,
+  Mystery: 9648,
+  Romance: 10749,
+  "Sci-Fi": 878,
+  Thriller: 53,
+  War: 10752,
+  Western: 37,
 };
 
-export const GENRE_OPTIONS = Object.keys(GENRE_MAP);
+/** TMDB TV genre ids (note TV uses combined buckets like Action & Adventure). */
+export const TV_GENRES: Record<string, number> = {
+  Action: 10759,
+  Animation: 16,
+  Comedy: 35,
+  Crime: 80,
+  Documentary: 99,
+  Drama: 18,
+  Family: 10751,
+  Fantasy: 10765,
+  Kids: 10762,
+  Mystery: 9648,
+  Reality: 10764,
+  "Sci-Fi": 10765,
+  War: 10768,
+  Western: 37,
+};
+
+/** Valid AniList genre names. */
+export const ANILIST_GENRES: string[] = [
+  "Action",
+  "Adventure",
+  "Comedy",
+  "Drama",
+  "Ecchi",
+  "Fantasy",
+  "Horror",
+  "Mahou Shoujo",
+  "Mecha",
+  "Music",
+  "Mystery",
+  "Psychological",
+  "Romance",
+  "Sci-Fi",
+  "Slice of Life",
+  "Sports",
+  "Supernatural",
+  "Thriller",
+];
+
+const ANY_GENRES = [
+  "Action",
+  "Comedy",
+  "Drama",
+  "Fantasy",
+  "Sci-Fi",
+  "Mystery",
+  "Romance",
+  "Thriller",
+  "Horror",
+  "Animation",
+];
+
+/** Genres valid for a given type — the UI only shows these so filters always apply. */
+export function genresForType(type: RandomType): string[] {
+  switch (type) {
+    case "movie":
+      return Object.keys(MOVIE_GENRES);
+    case "series":
+    case "kdrama":
+      return Object.keys(TV_GENRES);
+    case "anime":
+    case "manga":
+      return ANILIST_GENRES;
+    default:
+      return ANY_GENRES;
+  }
+}
+
+export function movieGenreId(genre: string | null): number | null {
+  return genre && MOVIE_GENRES[genre] !== undefined ? MOVIE_GENRES[genre] : null;
+}
+export function tvGenreId(genre: string | null): number | null {
+  return genre && TV_GENRES[genre] !== undefined ? TV_GENRES[genre] : null;
+}
+export function anilistGenre(genre: string | null): string | null {
+  return genre && ANILIST_GENRES.includes(genre) ? genre : null;
+}

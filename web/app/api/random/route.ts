@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getRandomTitles, type RandomType } from "@/lib/random";
 
-const TYPES: RandomType[] = ["any", "movie", "series", "anime", "manga"];
+const TYPES: RandomType[] = ["any", "movie", "series", "kdrama", "anime", "manga"];
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
