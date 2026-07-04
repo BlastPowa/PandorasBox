@@ -100,6 +100,16 @@ export default async function TitlePage({
                   <Star className="size-3.5 fill-current" /> {detail.score.toFixed(1)}
                 </span>
               )}
+              {(detail.ratings ?? []).map((r) => (
+                <span
+                  key={r.source}
+                  className="flex items-center gap-1 rounded-full bg-[var(--glass)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)]"
+                  title={r.source}
+                >
+                  {r.source === "Rotten Tomatoes" ? "🍅" : r.source === "Internet Movie Database" ? "IMDb" : r.source === "Metacritic" ? "Metacritic" : r.source}{" "}
+                  <span className="font-semibold text-[var(--text)]">{r.value}</span>
+                </span>
+              ))}
             </div>
             <h1 className="font-display text-3xl font-extrabold leading-tight sm:text-4xl">{detail.title}</h1>
 
@@ -163,6 +173,30 @@ export default async function TitlePage({
         {/* Body */}
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="space-y-8">
+            {(detail.cast ?? []).length > 0 && (
+              <section>
+                <h2 className="mb-3 font-display text-xl font-bold">Cast</h2>
+                <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
+                  {(detail.cast ?? []).map((c, i) => (
+                    <div key={`${c.name}-${i}`} className="w-24 shrink-0 text-center">
+                      <div className="relative mx-auto aspect-square w-20 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+                        {c.profileUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.profileUrl} alt={c.name} className="size-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="grid size-full place-items-center font-display text-lg text-[var(--text-muted)]">
+                            {c.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{c.name}</div>
+                      {c.character && <div className="line-clamp-1 text-[10px] text-[var(--text-muted)]">{c.character}</div>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {detail.synopsis && (
               <section>
                 <h2 className="mb-2 font-display text-xl font-bold">Story</h2>

@@ -35,11 +35,18 @@ export function Topbar({ profile }: { profile: Profile | null }) {
       {profile ? (
         <Link
           href="/settings"
-          className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)] text-sm font-bold text-[var(--text)] transition-colors hover:border-[var(--accent)]"
+          className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-[var(--glass)] text-sm font-bold text-[var(--text)] transition-colors hover:border-[var(--accent)]"
           aria-label="Profile and settings"
           title={profile.username ?? "Profile"}
         >
-          {profile.username ? profile.username.charAt(0).toUpperCase() : <UserIcon className="size-4" />}
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="size-full object-cover" />
+          ) : profile.username ? (
+            profile.username.charAt(0).toUpperCase()
+          ) : (
+            <UserIcon className="size-4" />
+          )}
         </Link>
       ) : (
         <Link

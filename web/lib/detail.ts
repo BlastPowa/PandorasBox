@@ -43,6 +43,60 @@ export interface DetailData {
   related: UnifiedSearchResult[];
   tmdbProviders: TMDBWatchProviders | null;
   autoWatchOptions: WatchOption[];
+  cast?: CastMember[];
+  ratings?: Rating[];
+}
+
+export interface CastMember {
+  name: string;
+  character: string;
+  profileUrl: string | null;
+}
+
+export interface Rating {
+  source: string;
+  value: string;
+}
+
+interface TMDBCredits {
+  cast?: { name: string; character: string; profile_path: string | null; order: number }[];
+}
+
+async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promise<CastMember[]> {
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/${kind}/${id}/credits?api_key=${key}`, {
+      next: { revalidate: 60 * 60 * 24 },
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as TMDBCredits;
+    return (json.cast ?? [])
+      .slice(0, 16)
+      .map((c) => ({
+        name: c.name,
+        character: c.character,
+        profileUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/** Rotten Tomatoes / IMDb ratings via OMDb — only runs if OMDB_API_KEY is set. */
+async function getOmdbRatings(title: string, year: number | null): Promise<Rating[]> {
+  const key = process.env.OMDB_API_KEY ?? "";
+  if (!key) return [];
+  try {
+    const yearParam = year ? `&y=${year}` : "";
+    const res = await fetch(
+      `https://www.omdbapi.com/?apikey=${key}&t=${encodeURIComponent(title)}${yearParam}`,
+      { next: { revalidate: 60 * 60 * 24 } }
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { Ratings?: { Source: string; Value: string }[] };
+    return (json.Ratings ?? []).map((r) => ({ source: r.Source, value: r.Value }));
+  } catch {
+    return [];
+  }
 }
 
 function key(type: ReelItemType, id: string): string {
@@ -70,6 +124,10 @@ export async function getDetail(
         } catch {
           providers = null;
         }
+        const [cast, ratings] = await Promise.all([
+          getTmdbCast("movie", numId, tmdbKey),
+          getOmdbRatings(m.title, m.release_date ? Number.parseInt(m.release_date.slice(0, 4), 10) || null : null),
+        ]);
         return {
           id: `tmdb-${numId}`,
           type: "movie",
@@ -96,6 +154,8 @@ export async function getDetail(
           related: [],
           tmdbProviders: providers,
           autoWatchOptions: getAllWatchOptions({ type: "movie", title: m.title, tmdbProviders: providers }),
+          cast,
+          ratings,
         };
       }
       const s = await getSeriesDetails(numId, tmdbKey);
@@ -112,6 +172,10 @@ export async function getDetail(
       } catch {
         episodes = [];
       }
+      const [seriesCast, seriesRatings] = await Promise.all([
+        getTmdbCast("tv", numId, tmdbKey),
+        getOmdbRatings(s.name, s.first_air_date ? Number.parseInt(s.first_air_date.slice(0, 4), 10) || null : null),
+      ]);
       return {
         id: `tmdb-${numId}`,
         type: "series",
@@ -138,6 +202,8 @@ export async function getDetail(
         related: [],
         tmdbProviders: providers,
         autoWatchOptions: getAllWatchOptions({ type: "series", title: s.name, tmdbProviders: providers }),
+        cast: seriesCast,
+        ratings: seriesRatings,
       };
     }
 

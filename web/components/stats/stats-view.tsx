@@ -18,7 +18,7 @@ const GROUPS: { key: ReelItemType[]; label: string; unit: "episodes" | "chapters
   { key: ["manga", "manhwa"], label: "Manga & Manhwa", unit: "chapters", minutes: 0 },
 ];
 
-export function StatsView({ username }: { username: string | null }) {
+export function StatsView({ username, avatarUrl }: { username: string | null; avatarUrl?: string | null }) {
   const { items, signedIn, loading } = useLibrary();
 
   const recent = useMemo(
@@ -50,7 +50,7 @@ export function StatsView({ username }: { username: string | null }) {
 
   return (
     <div className="space-y-6">
-      <RankCard username={username} total={items.length} completed={items.filter((i) => i.status === "completed").length} />
+      <RankCard username={username} avatarUrl={avatarUrl ?? null} total={items.length} completed={items.filter((i) => i.status === "completed").length} />
 
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -118,7 +118,17 @@ const RANKS = [
   { min: 300, name: "Box Keeper" },
 ];
 
-function RankCard({ username, total, completed }: { username: string | null; total: number; completed: number }) {
+function RankCard({
+  username,
+  avatarUrl,
+  total,
+  completed,
+}: {
+  username: string | null;
+  avatarUrl: string | null;
+  total: number;
+  completed: number;
+}) {
   const idx = RANKS.reduce((acc, r, i) => (total >= r.min ? i : acc), 0);
   const current = RANKS[idx];
   const next = RANKS[idx + 1] ?? null;
@@ -126,9 +136,16 @@ function RankCard({ username, total, completed }: { username: string | null; tot
 
   return (
     <div className="fx-rank-card glass-strong flex flex-col gap-4 rounded-[var(--radius-xl)] p-5 sm:flex-row sm:items-center">
-      <div className="grid size-16 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,var(--accent),var(--accent-2))] font-display text-2xl font-bold text-[#0a0a0f]">
-        {(username ?? "U").charAt(0).toUpperCase()}
-      </div>
+      {avatarUrl ? (
+        <div className="size-16 shrink-0 overflow-hidden rounded-full border border-[var(--border)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={avatarUrl} alt="" className="size-full object-cover" />
+        </div>
+      ) : (
+        <div className="grid size-16 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,var(--accent),var(--accent-2))] font-display text-2xl font-bold text-[#0a0a0f]">
+          {(username ?? "U").charAt(0).toUpperCase()}
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <h1 className="truncate font-display text-2xl font-bold">{username ?? "Your profile"}</h1>

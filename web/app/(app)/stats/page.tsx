@@ -5,7 +5,7 @@ export default async function StatsPage() {
   const profile = await getProfile();
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
-      <StatsView username={profile?.username ?? null} />
+      <StatsView username={profile?.username ?? null} avatarUrl={profile?.avatar_url ?? null} />
     </div>
   );
 }

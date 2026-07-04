@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, FolderOpen } from "lucide-react";
+import { ArrowLeft, FolderOpen, Share2 } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import {
   getCollection,
@@ -72,10 +72,26 @@ export function CollectionDetail({ id }: { id: string }) {
       <Link href="/collections" className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]">
         <ArrowLeft className="size-4" /> Collections
       </Link>
-      <div>
-        <h1 className="font-display text-2xl font-bold">{collection.name}</h1>
-        {collection.description && <p className="mt-1 text-sm text-[var(--text-secondary)]">{collection.description}</p>}
-        <p className="mt-1 text-xs text-[var(--text-muted)]">{resolved.length} of {itemIds.length} titles shown (only titles in your library resolve)</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold">{collection.name}</h1>
+          {collection.description && <p className="mt-1 text-sm text-[var(--text-secondary)]">{collection.description}</p>}
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            {resolved.length} of {itemIds.length} titles shown
+            {collection.is_public ? " · Public" : " · Private"}
+          </p>
+        </div>
+        <Button
+          variant="glass"
+          size="sm"
+          onClick={() => {
+            void navigator.clipboard
+              .writeText(window.location.href)
+              .then(() => toast.success(collection.is_public ? "Share link copied" : "Link copied (make it public to share)"));
+          }}
+        >
+          <Share2 className="size-4" /> Share
+        </Button>
       </div>
 
       {resolved.length === 0 ? (
