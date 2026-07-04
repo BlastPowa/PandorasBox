@@ -5,14 +5,15 @@ import { toast } from "sonner";
 import { Download, Upload, LogOut, QrCode, ClipboardList, Sparkles } from "lucide-react";
 import { encodeListToQR, decodeListFromQR, validateDecodedList } from "@core/sync/qrSync";
 import type { UnifiedSearchResult } from "@core/utils/search";
-import { createDefaultProgress, type ReelItem } from "@core/storage/schema";
+import { createDefaultProgress, type ReelItem, type ReelItemStatus } from "@core/storage/schema";
 import { useLibrary } from "@/lib/library/use-library";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { Input } from "@/components/ui-fx/input";
 import { AvatarUpload } from "@/components/settings/avatar-upload";
+import { BulkImportModal } from "@/components/settings/bulk-import-modal";
 
-function resultToItem(r: UnifiedSearchResult): Omit<ReelItem, "addedAt" | "updatedAt"> {
+function resultToItem(r: UnifiedSearchResult, status: ReelItemStatus): Omit<ReelItem, "addedAt" | "updatedAt"> {
   const progress = createDefaultProgress();
   progress.totalEpisodes = r.totalEpisodes;
   progress.totalChapters = r.totalChapters;
@@ -24,7 +25,7 @@ function resultToItem(r: UnifiedSearchResult): Omit<ReelItem, "addedAt" | "updat
     posterUrl: r.posterUrl,
     backdropUrl: null,
     synopsis: r.synopsis,
-    status: "planned",
+    status,
     progress,
     rating: null,
     genres: [],
@@ -55,6 +56,8 @@ export function SettingsView({
   const [pasteText, setPasteText] = useState("");
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [pendingMatches, setPendingMatches] = useState<UnifiedSearchResult[]>([]);
+  const [missedCount, setMissedCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function exportJson() {
@@ -98,6 +101,8 @@ export function SettingsView({
   }
 
   // Paste-import: one title per line, matched via unified search (works from MAL, Notes, anywhere).
+  // Matches are collected first, then the user picks a status for each (or all at once)
+  // in a popup before anything is actually added — no need to fix statuses one by one after.
   async function importFromText() {
     const lines = Array.from(
       new Set(
@@ -114,7 +119,7 @@ export function SettingsView({
     setImporting(true);
     setProgress({ done: 0, total: lines.length });
     const existing = new Set(items.map((i) => i.id));
-    let added = 0;
+    const matches: UnifiedSearchResult[] = [];
     let missed = 0;
     for (let i = 0; i < lines.length; i += 1) {
       try {
@@ -122,9 +127,8 @@ export function SettingsView({
         const json = (await res.json()) as { results: UnifiedSearchResult[] };
         const best = json.results?.[0];
         if (best && !existing.has(best.id)) {
-          await add(resultToItem(best));
+          matches.push(best);
           existing.add(best.id);
-          added += 1;
         } else if (!best) {
           missed += 1;
         }
@@ -135,8 +139,28 @@ export function SettingsView({
     }
     setImporting(false);
     setProgress(null);
+    setMissedCount(missed);
+    if (matches.length === 0) {
+      toast.error(missed > 0 ? `No matches found for ${missed} title(s).` : "Nothing new to import.");
+      return;
+    }
+    setPendingMatches(matches);
+  }
+
+  async function confirmBulkImport(statuses: Map<string, ReelItemStatus>) {
+    const toAdd = pendingMatches;
+    setPendingMatches([]);
     setPasteText("");
-    toast.success(`Imported ${added} titles${missed > 0 ? ` · ${missed} not found` : ""}`);
+    let added = 0;
+    for (const item of toAdd) {
+      try {
+        await add(resultToItem(item, statuses.get(item.id) ?? "planned"));
+        added += 1;
+      } catch {
+        // skip failures silently, report the count below
+      }
+    }
+    toast.success(`Added ${added} title${added === 1 ? "" : "s"}${missedCount > 0 ? ` · ${missedCount} not found` : ""}`);
   }
 
   return (
@@ -168,8 +192,9 @@ export function SettingsView({
             <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
             <span>
               New here? Paste a list of titles from MyAnimeList, Letterboxd, iPhone Notes, a spreadsheet — anywhere —
-              one per line. We&apos;ll find each one and add it to your <span className="text-[var(--text)]">Planned</span> list.
-              Or use a Pandora&apos;s Box JSON/code export below.
+              one per line. We&apos;ll find each one, then let you set the status for every match (or all at once)
+              before anything&apos;s added — no need to fix them one by one after. Or use a Pandora&apos;s Box
+              JSON/code export below.
             </span>
           </div>
           <textarea
@@ -242,6 +267,13 @@ export function SettingsView({
           </p>
         </div>
       </GlassCard>
+
+      <BulkImportModal
+        items={pendingMatches}
+        open={pendingMatches.length > 0}
+        onCancel={() => setPendingMatches([])}
+        onConfirm={(statuses) => void confirmBulkImport(statuses)}
+      />
     </div>
   );
 }

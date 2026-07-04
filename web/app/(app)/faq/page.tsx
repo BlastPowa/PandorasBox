@@ -15,7 +15,9 @@ const ENTRIES: FaqEntry[] = [
           <li>
             <span className="text-[var(--text)]">Paste a list.</span> Copy titles from MyAnimeList, Letterboxd,
             iPhone Notes, a spreadsheet, anywhere — one title per line — and paste them into the box. We search each
-            line and add the best match to your <span className="text-[var(--text)]">Planned</span> list automatically.
+            line, then show a popup where you set the status for every match — or use{" "}
+            <span className="text-[var(--text)]">&quot;Set all to&quot;</span> to apply one status to the whole batch
+            — before anything&apos;s added, so you never have to fix them one by one afterward.
           </li>
           <li>
             <span className="text-[var(--text)]">Import a file.</span> If you exported a Pandora&apos;s Box JSON
@@ -115,6 +117,49 @@ const ENTRIES: FaqEntry[] = [
         Yes, it&apos;s private by default. Your library, ratings and progress are only visible to you — every
         account&apos;s data is isolated at the database level. Collections are private unless you explicitly mark
         one &quot;Public&quot; to share it.
+      </p>
+    ),
+  },
+  {
+    question: "What's the difference between star ratings and My Rankings?",
+    answer: (
+      <p>
+        Star ratings are a quick 1–5 score you leave on any title. <span className="text-[var(--text)]">My Rankings</span>{" "}
+        (in the sidebar) is a separate, ordered &quot;which is better&quot; list you build yourself — a personal
+        Top 10 style ranking, split into its own tab per type (Movies, TV, Anime, Manga, Manhwa). Add titles from
+        your library and reorder them with the up/down arrows.
+      </p>
+    ),
+  },
+  {
+    question: "What is the Episode Ratings tab?",
+    answer: (
+      <p>
+        A separate tool (in the sidebar) for checking how a show&apos;s episodes were actually received — search or
+        pick a popular title, and it shows a table of every episode with its real IMDb rating, season by season.
+        It pulls live data directly from IMDb (via OMDb), so it only works for titles with an IMDb listing — most
+        Western/K-drama TV and popular anime have one.
+      </p>
+    ),
+  },
+  {
+    question: "Can I write a review, or see what other users thought?",
+    answer: (
+      <p>
+        Yes — every title page has a <span className="text-[var(--text)]">Reviews</span> section near the bottom
+        where you can leave a star rating and written review that everyone can see (edit or delete your own anytime).
+        Individual episodes have their own reviews too — open an episode from the Episodes list and scroll down
+        inside the pop-up.
+      </p>
+    ),
+  },
+  {
+    question: "Where do I find Marvel, DC, Disney, or old 2000s Nickelodeon/Disney shows?",
+    answer: (
+      <p>
+        Head to <span className="text-[var(--text)]">Browse</span> — it has dedicated rows for Marvel, DC, Disney
+        Movies, and an &quot;OG TV Shows&quot; row of 2000s-era Nickelodeon, Disney Channel and Disney XD nostalgia
+        picks, alongside K-drama, western animation, and the usual trending/popular rows.
       </p>
     ),
   },

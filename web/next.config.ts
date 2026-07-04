@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, ".."),
   poweredByHeader: false,
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "image.tmdb.org" },
       { protocol: "https", hostname: "s4.anilist.co" },
@@ -39,6 +40,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "mangadex.org" },
       { protocol: "https", hostname: "cdn.myanimelist.net" },
     ],
+  },
+  // Tree-shakes barrel-style imports from these packages so pages only ship
+  // the icons/primitives they actually use instead of the whole library.
+  experimental: {
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
