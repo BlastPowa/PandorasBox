@@ -11,16 +11,20 @@ import { GlassCard } from "@/components/ui-fx/glass-card";
 export function MyPanel() {
   const { items, signedIn, loading } = useLibrary();
 
+  // "Continue" = everything you're currently watching or reading (in progress first),
+  // so it populates as soon as you set something to Watching/Reading.
   const inProgress = useMemo(
     () =>
       items
         .filter(
-          (i) =>
-            (i.status === "watching" || i.status === "reading") &&
-            i.progress.percentComplete > 0 &&
-            i.progress.percentComplete < 100
+          (i) => (i.status === "watching" || i.status === "reading") && i.progress.percentComplete < 100
         )
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+        .sort((a, b) => {
+          const ap = a.progress.percentComplete > 0 ? 1 : 0;
+          const bp = b.progress.percentComplete > 0 ? 1 : 0;
+          if (ap !== bp) return bp - ap; // started items first
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        })
         .slice(0, 6),
     [items]
   );
@@ -59,7 +63,7 @@ export function MyPanel() {
         <div className="p-4">
           {inProgress.length === 0 ? (
             <p className="py-6 text-center text-sm text-[var(--text-muted)]">
-              Nothing in progress — start something and it&apos;ll show up here.
+              Set a title to Watching or Reading and it&apos;ll show up here to continue.
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">

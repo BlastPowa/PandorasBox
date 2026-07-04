@@ -19,11 +19,11 @@ export function Topbar({ profile }: { profile: Profile | null }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-base)]/80 px-4 py-3 backdrop-blur-xl md:px-6">
-      <div className="md:hidden">
+    <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-base)]/80 px-3 py-2.5 backdrop-blur-xl md:gap-3 md:px-6 md:py-3">
+      <div className="shrink-0 md:hidden">
         <Brand compact />
       </div>
-      <form onSubmit={onSubmit} className="mx-auto w-full max-w-xl">
+      <form onSubmit={onSubmit} className="mx-auto w-full min-w-0 max-w-xl">
         <SearchInput
           icon={<Search className="size-4" />}
           placeholder="Search movies, series, anime, manga..."
