@@ -3,16 +3,20 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
 import type { TMDBEpisode } from "@core/api/tmdb";
 import { formatAirDate, formatRuntime } from "@core/utils/formatters";
 import { Spinner } from "@/components/ui-fx/feedback";
+import { Button } from "@/components/ui-fx/button";
+import { useLibrary } from "@/lib/library/use-library";
 
 export function EpisodesSection({
+  itemId,
   tmdbId,
   totalSeasons,
   initialEpisodes,
 }: {
+  itemId: string;
   tmdbId: number;
   totalSeasons: number;
   initialEpisodes: TMDBEpisode[];
@@ -21,6 +25,16 @@ export function EpisodesSection({
   const [episodes, setEpisodes] = useState<TMDBEpisode[]>(initialEpisodes);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<TMDBEpisode | null>(null);
+  const { getById, markEpisode } = useLibrary();
+  const item = getById(itemId);
+
+  function isWatched(ep: TMDBEpisode): boolean {
+    if (!item) return false;
+    const currentSeason = item.progress.currentSeason ?? 1;
+    const currentEpisode = item.progress.currentEpisode ?? 0;
+    if (season !== currentSeason) return season < currentSeason;
+    return ep.episode_number <= currentEpisode;
+  }
 
   async function changeSeason(next: number) {
     setSeason(next);
@@ -62,30 +76,42 @@ export function EpisodesSection({
         <p className="text-sm text-[var(--text-muted)]">No episode data for this season.</p>
       ) : (
         <div className="space-y-2">
-          {episodes.map((ep) => (
-            <button
-              key={ep.id}
-              onClick={() => setSelected(ep)}
-              className="glass glow-ring flex w-full gap-3 rounded-[var(--radius-md)] p-2.5 text-left"
-            >
-              <div className="relative h-[62px] w-[110px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--bg-elevated)]">
-                {ep.still_path ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`https://image.tmdb.org/t/p/w300${ep.still_path}`} alt="" className="size-full object-cover" />
-                ) : (
-                  <div className="grid size-full place-items-center font-mono text-xs text-[var(--text-muted)]">E{ep.episode_number}</div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-xs text-[var(--accent)]">E{ep.episode_number}</span>
-                  <h3 className="truncate text-sm font-semibold">{ep.name}</h3>
+          {episodes.map((ep) => {
+            const watched = isWatched(ep);
+            return (
+              <button
+                key={ep.id}
+                onClick={() => setSelected(ep)}
+                className={`glass glow-ring relative flex w-full gap-3 rounded-[var(--radius-md)] p-2.5 pr-9 text-left ${watched ? "opacity-70" : ""}`}
+              >
+                <div className="relative h-[62px] w-[110px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--bg-elevated)]">
+                  {ep.still_path ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`https://image.tmdb.org/t/p/w300${ep.still_path}`} alt="" className="size-full object-cover" />
+                  ) : (
+                    <div className="grid size-full place-items-center font-mono text-xs text-[var(--text-muted)]">E{ep.episode_number}</div>
+                  )}
                 </div>
-                {ep.air_date && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(ep.air_date)}</span>}
-                {ep.overview && <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">{ep.overview}</p>}
-              </div>
-            </button>
-          ))}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-xs text-[var(--accent)]">E{ep.episode_number}</span>
+                    <h3 className="truncate text-sm font-semibold">{ep.name}</h3>
+                  </div>
+                  {ep.air_date && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(ep.air_date)}</span>}
+                  {ep.overview && <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">{ep.overview}</p>}
+                </div>
+                {watched && (
+                  <span
+                    className="absolute right-2.5 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-full bg-[var(--completed)]"
+                    title="Watched"
+                    aria-label="Watched"
+                  >
+                    <Check className="size-3.5 text-[#04180b]" strokeWidth={3} />
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -121,6 +147,22 @@ export function EpisodesSection({
                       {selected.overview || "No synopsis available for this episode yet."}
                     </p>
                   </Dialog.Description>
+                  {item && (
+                    <Button
+                      size="sm"
+                      variant="glass"
+                      className="mt-4"
+                      disabled={isWatched(selected)}
+                      onClick={() => {
+                        void markEpisode(itemId, selected.episode_number, season).then(() =>
+                          toast.success(`Episode ${selected.episode_number} marked watched`)
+                        );
+                      }}
+                    >
+                      <Check className="size-4 text-[var(--completed)]" />
+                      {isWatched(selected) ? "Watched" : "Mark as watched"}
+                    </Button>
+                  )}
                 </div>
               </>
             )}

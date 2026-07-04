@@ -128,6 +128,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
           </div>
+          {mode === "login" && (
+            <div className="text-right">
+              <Link href="/forgot-password" className="text-xs font-semibold text-[var(--accent)]">
+                Forgot password?
+              </Link>
+            </div>
+          )}
           <Button type="submit" className="w-full" loading={loading} disabled={!configured}>
             {mode === "login" ? "Sign in" : "Create account"}
           </Button>

@@ -64,11 +64,36 @@ function seedToItem(seed: LibrarySeed, status: ReelItemStatus): Omit<ReelItem, "
 }
 
 export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
-  const { signedIn, getById, add, setStatus, setRating, remove } = useLibrary();
+  const { signedIn, getById, add, setStatus, setRating, remove, markEpisode, markChapter, markComplete } =
+    useLibrary();
   const [busy, setBusy] = useState(false);
   const existing = getById(seed.id);
   const isReading = seed.type === "manga" || seed.type === "manhwa";
+  const isMovie = seed.type === "movie";
   const defaultStatus: ReelItemStatus = isReading ? "reading" : "watching";
+
+  async function onMarkNext() {
+    if (!existing) return;
+    setBusy(true);
+    try {
+      if (isMovie) {
+        await markComplete(seed.id);
+        toast.success("Marked as watched");
+      } else if (isReading) {
+        const next = (existing.progress.currentChapter ?? 0) + 1;
+        await markChapter(seed.id, next);
+        toast.success(`Chapter ${next} read`);
+      } else {
+        const next = (existing.progress.currentEpisode ?? 0) + 1;
+        await markEpisode(seed.id, next);
+        toast.success(`Episode ${next} watched`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onAdd(status: ReelItemStatus) {
     setBusy(true);
@@ -134,6 +159,20 @@ export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
           </button>
         }
       />
+      {existing.status !== "completed" && (
+        <button
+          onClick={onMarkNext}
+          disabled={busy}
+          className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-4 text-sm font-semibold text-[#0a0a0f] disabled:opacity-60"
+        >
+          <Plus className="size-4" />
+          {isMovie
+            ? "Mark watched"
+            : isReading
+              ? `Ch ${(existing.progress.currentChapter ?? 0) + 1}`
+              : `Ep ${(existing.progress.currentEpisode ?? 0) + 1}`}
+        </button>
+      )}
       <div className="glass flex h-11 items-center gap-2 rounded-[var(--radius-md)] px-3">
         <RatingStars value={existing.rating} onChange={(v) => void setRating(seed.id, v)} size={16} />
       </div>
@@ -144,6 +183,13 @@ export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
       >
         <Trash2 className="size-4" />
       </button>
+      {!isMovie && (
+        <span className="w-full font-mono text-xs text-[var(--text-muted)]">
+          {isReading
+            ? `Chapter ${existing.progress.currentChapter ?? 0}${existing.totalChapters ? ` / ${existing.totalChapters}` : ""}`
+            : `Episode ${existing.progress.currentEpisode ?? 0}${existing.totalEpisodes ? ` / ${existing.totalEpisodes}` : ""}`}
+        </span>
+      )}
     </div>
   );
 }

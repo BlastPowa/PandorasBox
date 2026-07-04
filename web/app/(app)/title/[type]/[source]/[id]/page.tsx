@@ -206,6 +206,7 @@ export default async function TitlePage({
 
             {detail.type === "series" && detail.tmdbId !== null && (detail.episodes.length > 0 || (detail.totalSeasons ?? 0) > 0) && (
               <EpisodesSection
+                itemId={detail.id}
                 tmdbId={detail.tmdbId}
                 totalSeasons={detail.totalSeasons ?? 1}
                 initialEpisodes={detail.episodes}
