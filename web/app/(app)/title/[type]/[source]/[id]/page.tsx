@@ -18,6 +18,7 @@ import { getTrailerKey } from "@/lib/trailers";
 import { WhereToWatch } from "@/components/detail/where-to-watch";
 import { PosterRow } from "@/components/discovery/poster-row";
 import { ExpandableText } from "@/components/detail/expandable-text";
+import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 
 const VALID_TYPES: ReelItemType[] = ["movie", "series", "anime", "manga", "manhwa"];
 
@@ -173,7 +174,7 @@ export default async function TitlePage({
 
         {/* Body */}
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-8">
+          <div className="min-w-0 space-y-8">
             {(detail.cast ?? []).length > 0 && (
               <section>
                 <h2 className="mb-3 font-display text-xl font-bold">Cast</h2>
@@ -243,6 +244,10 @@ export default async function TitlePage({
             )}
 
             {detail.related.length > 0 && <PosterRow title="Related" items={detail.related} />}
+
+            <section>
+              <ReviewsPanel mediaKey={detail.id} />
+            </section>
           </div>
 
           {/* Where to watch */}

@@ -9,6 +9,8 @@ import { formatAirDate } from "@core/utils/formatters";
 import { Spinner } from "@/components/ui-fx/feedback";
 import { Button } from "@/components/ui-fx/button";
 import { useLibrary } from "@/lib/library/use-library";
+import { ReviewsPanel } from "@/components/reviews/reviews-panel";
+import { episodeMediaKey } from "@/lib/reviews/reviews";
 
 export function AnimeEpisodesSection({
   itemId,
@@ -205,6 +207,10 @@ export function AnimeEpisodesSection({
                     <Undo2 className="size-4" /> Unmark
                   </Button>
                 )}
+
+                <div className="mt-5 border-t border-[var(--border)] pt-4">
+                  <ReviewsPanel mediaKey={episodeMediaKey(itemId, selected.mal_id)} scrollable />
+                </div>
               </>
             )}
           </Dialog.Content>
