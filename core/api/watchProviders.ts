@@ -51,15 +51,8 @@ export function buildFreeMovieLinks(title: string): WatchOption[] {
       isPaid: false,
     },
     {
-      name: "Pluto TV",
-      url: `https://pluto.tv/search#filter=vod&query=${encoded}`,
-      type: "free",
-      logoUrl: null,
-      isPaid: false,
-    },
-    {
-      name: "Tubi",
-      url: `https://tubitv.com/search/${encoded}`,
+      name: "Nepu",
+      url: `https://nepu.to/search?q=${encoded}`,
       type: "free",
       logoUrl: null,
       isPaid: false,

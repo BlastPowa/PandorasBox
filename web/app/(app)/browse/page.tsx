@@ -8,13 +8,34 @@ import {
   getKdrama,
   getWesternAnimation,
   getTopRatedMovies,
+  getMarvelMovies,
+  getMarvelTv,
+  getDcMovies,
+  getDcTv,
+  getDisneyMovies,
+  getNostalgiaShows,
 } from "@/lib/discovery";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
 
 export const revalidate = 3600;
 
 async function BrowseContent() {
-  const [movies, series, kdrama, cartoons, topMovies, anime, popAnime, manga] = await Promise.all([
+  const [
+    movies,
+    series,
+    kdrama,
+    cartoons,
+    topMovies,
+    anime,
+    popAnime,
+    manga,
+    marvelMovies,
+    marvelTv,
+    dcMovies,
+    dcTv,
+    disneyMovies,
+    nostalgia,
+  ] = await Promise.all([
     getPopularMovies(),
     getPopularSeries(),
     getKdrama(),
@@ -23,9 +44,17 @@ async function BrowseContent() {
     getTrendingAnime(),
     getPopularAnime(),
     getTrendingManga(),
+    getMarvelMovies(),
+    getMarvelTv(),
+    getDcMovies(),
+    getDcTv(),
+    getDisneyMovies(),
+    getNostalgiaShows(),
   ]);
 
   const hasTmdb = movies.length > 0 || series.length > 0;
+  const marvel = [...marvelMovies, ...marvelTv];
+  const dc = [...dcMovies, ...dcTv];
 
   return (
     <div className="space-y-8">
@@ -39,6 +68,10 @@ async function BrowseContent() {
       <PosterRow title="Popular TV & Series" items={series} />
       <PosterRow title="K-Drama" subtitle="Trending from Korea" items={kdrama} />
       <PosterRow title="Animation & Cartoons" subtitle="Western & all-ages" items={cartoons} />
+      <PosterRow title="Marvel" subtitle="Movies & TV" items={marvel} />
+      <PosterRow title="DC" subtitle="Movies & TV" items={dc} />
+      <PosterRow title="Disney Movies" items={disneyMovies} />
+      <PosterRow title="OG TV Shows" subtitle="2000s Nickelodeon, Disney Channel & Disney XD" items={nostalgia} />
       <PosterRow title="Trending Anime" items={anime} />
       <PosterRow title="Popular Anime" items={popAnime} />
       <PosterRow title="Trending Manga" items={manga} />

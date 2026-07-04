@@ -12,6 +12,8 @@ import {
 } from "@core/api/tmdb";
 import type { TMDBEpisode, TMDBWatchProviders } from "@core/api/tmdb";
 import { getAniListMedia, formatAniListDescription } from "@core/api/anilist";
+import { getJikanAnimeEpisodes } from "@core/api/jikan";
+import type { JikanEpisode } from "@core/api/jikan";
 import { getMangaDexManga, getMangaDexChapters, getMangaDexCoverUrl } from "@core/api/mangadex";
 import type { MangaDexChapter } from "@core/api/mangadex";
 import { getAllWatchOptions } from "@core/api/watchProviders";
@@ -45,6 +47,7 @@ export interface DetailData {
   autoWatchOptions: WatchOption[];
   cast?: CastMember[];
   ratings?: Rating[];
+  animeEpisodes?: JikanEpisode[];
 }
 
 export interface CastMember {
@@ -62,15 +65,65 @@ interface TMDBCredits {
   cast?: { name: string; character: string; profile_path: string | null; order: number }[];
 }
 
+interface TMDBAggregateCredits {
+  cast?: {
+    name: string;
+    profile_path: string | null;
+    order: number;
+    roles?: { character: string }[];
+  }[];
+}
+
+const MAX_CAST = 20;
+
 async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promise<CastMember[]> {
   try {
-    const res = await fetch(`https://api.themoviedb.org/3/${kind}/${id}/credits?api_key=${key}`, {
+    if (kind === "movie") {
+      const res = await fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${key}`, {
+        next: { revalidate: 60 * 60 * 24 },
+      });
+      if (!res.ok) return [];
+      const json = (await res.json()) as TMDBCredits;
+      return (json.cast ?? [])
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .slice(0, MAX_CAST)
+        .map((c) => ({
+          name: c.name,
+          character: c.character,
+          profileUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+        }));
+    }
+
+    // TV: aggregate_credits merges cast across every season/episode, so shows
+    // with sparse per-season credit data (common for newer/foreign series) still
+    // return a full main-cast list. Falls back to plain credits if that's empty.
+    const aggRes = await fetch(`https://api.themoviedb.org/3/tv/${id}/aggregate_credits?api_key=${key}`, {
+      next: { revalidate: 60 * 60 * 24 },
+    });
+    if (aggRes.ok) {
+      const aggJson = (await aggRes.json()) as TMDBAggregateCredits;
+      const cast = (aggJson.cast ?? [])
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .slice(0, MAX_CAST)
+        .map((c) => ({
+          name: c.name,
+          character: c.roles?.[0]?.character ?? "",
+          profileUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+        }));
+      if (cast.length > 0) return cast;
+    }
+
+    const res = await fetch(`https://api.themoviedb.org/3/tv/${id}/credits?api_key=${key}`, {
       next: { revalidate: 60 * 60 * 24 },
     });
     if (!res.ok) return [];
     const json = (await res.json()) as TMDBCredits;
     return (json.cast ?? [])
-      .slice(0, 16)
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .slice(0, MAX_CAST)
       .map((c) => ({
         name: c.name,
         character: c.character,
@@ -226,6 +279,16 @@ export async function getDetail(
         malId: null,
       }));
       const isManga = type === "manga" || type === "manhwa";
+
+      let animeEpisodes: JikanEpisode[] = [];
+      if (!isManga && media.idMal !== null) {
+        try {
+          animeEpisodes = await getJikanAnimeEpisodes(media.idMal, 1);
+        } catch {
+          animeEpisodes = [];
+        }
+      }
+
       return {
         id: `anilist-${media.id}`,
         type,
@@ -233,7 +296,7 @@ export async function getDetail(
         tmdbId: null,
         anilistId: media.id,
         mangadexId: null,
-        malId: null,
+        malId: media.idMal,
         title: media.title.english ?? media.title.romaji,
         posterUrl: media.coverImage.extraLarge ?? media.coverImage.large,
         backdropUrl: media.bannerImage,
@@ -252,6 +315,7 @@ export async function getDetail(
         related,
         tmdbProviders: null,
         autoWatchOptions: getAllWatchOptions({ type: isManga ? "manga" : "anime", title: media.title.romaji }),
+        animeEpisodes,
       };
     }
 

@@ -45,6 +45,14 @@ export interface JikanEpisode {
   recap: boolean;
 }
 
+export interface JikanEpisodeDetail {
+  mal_id: number;
+  title: string;
+  title_japanese: string | null;
+  aired: string | null;
+  synopsis: string | null;
+}
+
 let queueTail: Promise<void> = Promise.resolve();
 let lastRequestAt = 0;
 
@@ -109,6 +117,15 @@ export async function getJikanAnimeEpisodes(malId: number, page?: number): Promi
     `/anime/${malId}/episodes?page=${page ?? 1}`
   );
   return data.data;
+}
+
+export async function getJikanEpisodeDetail(malId: number, episodeNumber: number): Promise<JikanEpisodeDetail | null> {
+  try {
+    const data = await jikanFetch<{ data: JikanEpisodeDetail }>(`/anime/${malId}/episodes/${episodeNumber}`);
+    return data.data;
+  } catch {
+    return null;
+  }
 }
 
 export async function getJikanStreamingLinks(malId: number): Promise<{ name: string; url: string }[]> {

@@ -2,6 +2,7 @@ const ANILIST_BASE_URL = "https://graphql.anilist.co";
 
 export interface AniListMedia {
   id: number;
+  idMal: number | null;
   title: {
     romaji: string;
     english: string | null;
@@ -49,6 +50,7 @@ export interface AniListMedia {
 
 const MEDIA_FIELDS = `
   id
+  idMal
   title {
     romaji
     english

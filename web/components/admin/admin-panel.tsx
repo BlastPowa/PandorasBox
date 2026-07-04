@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { Input } from "@/components/ui-fx/input";
 import { Pill } from "@/components/ui-fx/badge";
 
-type Section = "links" | "sites" | "announcements";
+type Section = "links" | "sites" | "announcements" | "issues";
 
 export function AdminPanel() {
   const [section, setSection] = useState<Section>("links");
@@ -19,12 +19,71 @@ export function AdminPanel() {
         <Pill active={section === "links"} onClick={() => setSection("links")}>Watch Links</Pill>
         <Pill active={section === "sites"} onClick={() => setSection("sites")}>Sites Directory</Pill>
         <Pill active={section === "announcements"} onClick={() => setSection("announcements")}>Announcements</Pill>
+        <Pill active={section === "issues"} onClick={() => setSection("issues")}>User Issues</Pill>
         <RefreshButton />
       </div>
       {section === "links" && <WatchLinks />}
       {section === "sites" && <Sites />}
       {section === "announcements" && <Announcements />}
+      {section === "issues" && <Issues />}
     </div>
+  );
+}
+
+interface Issue { id: string; username: string; message: string; status: string; created_at: string }
+
+function Issues() {
+  const supabase = createClient();
+  const [rows, setRows] = useState<Issue[]>([]);
+
+  async function load() {
+    const { data } = await supabase
+      .from("user_issues")
+      .select("id, username, message, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setRows((data as Issue[] | null) ?? []);
+  }
+  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  async function resolve(id: string) {
+    await supabase.from("user_issues").update({ status: "resolved" }).eq("id", id);
+    void load();
+  }
+  async function del(id: string) {
+    await supabase.from("user_issues").delete().eq("id", id);
+    void load();
+  }
+
+  return (
+    <GlassCard macDots title="User Issues">
+      <div className="space-y-2 p-4">
+        {rows.length === 0 && <p className="text-sm text-[var(--text-muted)]">No issues submitted yet.</p>}
+        {rows.map((r) => (
+          <div key={r.id} className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="font-mono text-xs text-[var(--accent)]">#{r.id.slice(0, 8).toUpperCase()}</span>
+              <span className={`text-xs font-semibold ${r.status === "resolved" ? "text-[var(--completed)]" : "text-[var(--gold)]"}`}>
+                {r.status}
+              </span>
+            </div>
+            <p className="font-semibold">{r.username}</p>
+            <p className="mt-1 whitespace-pre-wrap text-[var(--text-secondary)]">{r.message}</p>
+            <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-muted)]">
+              <span>{new Date(r.created_at).toLocaleString()}</span>
+              <div className="flex gap-2">
+                {r.status !== "resolved" && (
+                  <button onClick={() => resolve(r.id)} className="flex items-center gap-1 text-[var(--completed)]">
+                    <Check className="size-3.5" /> Resolve
+                  </button>
+                )}
+                <button onClick={() => del(r.id)} className="text-[var(--dropped)]"><Trash2 className="size-3.5" /></button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </GlassCard>
   );
 }
 

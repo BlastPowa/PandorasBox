@@ -12,6 +12,7 @@ import { GlassCard } from "@/components/ui-fx/glass-card";
 import { AddToLibrary, type LibrarySeed } from "@/components/library/add-to-library";
 import { TrailerButton } from "@/components/detail/trailer-button";
 import { EpisodesSection } from "@/components/detail/episodes-section";
+import { AnimeEpisodesSection } from "@/components/detail/anime-episodes-section";
 import { AddToCollection } from "@/components/collections/add-to-collection";
 import { getTrailerKey } from "@/lib/trailers";
 import { WhereToWatch } from "@/components/detail/where-to-watch";
@@ -210,6 +211,14 @@ export default async function TitlePage({
                 tmdbId={detail.tmdbId}
                 totalSeasons={detail.totalSeasons ?? 1}
                 initialEpisodes={detail.episodes}
+              />
+            )}
+
+            {detail.type === "anime" && detail.malId !== null && (detail.animeEpisodes ?? []).length > 0 && (
+              <AnimeEpisodesSection
+                itemId={detail.id}
+                malId={detail.malId}
+                initialEpisodes={detail.animeEpisodes ?? []}
               />
             )}
 

@@ -10,6 +10,8 @@ import {
   Globe,
   Dices,
   FolderHeart,
+  HelpCircle,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,10 +31,12 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/search", label: "Search", icon: Search },
   { href: "/library", label: "My Library", icon: Library, bottom: true },
   { href: "/collections", label: "Collections", icon: FolderHeart },
+  { href: "/rankings", label: "My Rankings", icon: Trophy },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/sites", label: "Sites", icon: Globe },
   { href: "/stats", label: "Stats", icon: BarChart3, bottom: true },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/faq", label: "FAQ & Help", icon: HelpCircle },
   { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
 ];
 

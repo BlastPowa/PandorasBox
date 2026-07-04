@@ -41,7 +41,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         toast.success("Account created! Check your email if confirmation is required, then sign in.");
         router.push(`/login?next=${encodeURIComponent(next)}`);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        // Login accepts either an email or a username; resolve username -> email server-side first.
+        let loginEmail = email;
+        if (!email.includes("@")) {
+          try {
+            const res = await fetch("/api/auth/resolve-login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ identifier: email }),
+            });
+            const json = (await res.json()) as { email: string | null };
+            if (json.email) loginEmail = json.email;
+          } catch {
+            // fall through and let signInWithPassword surface a generic error
+          }
+        }
+        const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
         if (error) throw error;
         toast.success("Welcome back!");
         router.push(next);
@@ -106,13 +121,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           <div className="relative">
             <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" />
             <Input
-              type="email"
+              type={mode === "login" ? "text" : "email"}
               required
-              placeholder="Email"
+              placeholder={mode === "login" ? "Email or username" : "Email"}
               className="pl-10"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
+              autoComplete={mode === "login" ? "username" : "email"}
             />
           </div>
           <div className="relative">

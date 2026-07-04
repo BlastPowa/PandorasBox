@@ -188,6 +188,26 @@ export const getWesternAnimation = () =>
   tmdbDiscover("tv", "discover/tv?with_genres=16&without_origin_country=JP&sort_by=popularity.desc");
 export const getTopRatedMovies = () => tmdbDiscover("movie", "movie/top_rated");
 
+// Highlight rows — curated by TMDB production company / network so they stay
+// accurate without needing an admin to hand-tag every title.
+export const getMarvelMovies = () =>
+  tmdbDiscover("movie", "discover/movie?with_companies=420&sort_by=popularity.desc");
+export const getMarvelTv = () =>
+  tmdbDiscover("tv", "discover/tv?with_companies=420&sort_by=popularity.desc");
+export const getDcMovies = () =>
+  tmdbDiscover("movie", "discover/movie?with_companies=9993|128064&sort_by=popularity.desc");
+export const getDcTv = () =>
+  tmdbDiscover("tv", "discover/tv?with_companies=9993|128064&sort_by=popularity.desc");
+export const getDisneyMovies = () =>
+  tmdbDiscover("movie", "discover/movie?with_companies=2&sort_by=popularity.desc");
+// "OG" 2000s-era nostalgia: Nickelodeon, Disney Channel and Disney XD shows that
+// first aired on or before 2015, ranked by popularity.
+export const getNostalgiaShows = () =>
+  tmdbDiscover(
+    "tv",
+    "discover/tv?with_networks=13|54|44&first_air_date.lte=2015-01-01&sort_by=popularity.desc"
+  );
+
 export function tmdbBackdrop(path: string | null): string | null {
   return path ? getBackdropUrl(path) : null;
 }

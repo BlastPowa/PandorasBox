@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from "react";
 import { ListManager } from "@core/storage/listManager";
 import type { ReelStats } from "@core/storage/listManager";
-import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";
+import type { ReelItem, ReelItemStatus, ReelItemType, ReelProgress } from "@core/storage/schema";
 import { createClient } from "@/lib/supabase/client";
 import { SupabaseLibraryAdapter } from "./adapter";
 
@@ -23,6 +23,7 @@ interface LibraryContextValue {
   markEpisode: (id: string, episode: number, season?: number) => Promise<void>;
   markChapter: (id: string, chapter: number) => Promise<void>;
   markComplete: (id: string) => Promise<void>;
+  updateProgress: (id: string, progress: Partial<ReelProgress>) => Promise<void>;
   getById: (id: string) => ReelItem | undefined;
 }
 
@@ -108,6 +109,7 @@ export function LibraryProvider({
       markEpisode: (id, episode, season) => run((m) => m.markEpisodeWatched(id, episode, season)),
       markChapter: (id, chapter) => run((m) => m.markChapterRead(id, chapter)),
       markComplete: (id) => run((m) => m.markComplete(id)),
+      updateProgress: (id, progress) => run((m) => m.updateProgress(id, progress)),
       getById: (id) => items.find((i) => i.id === id),
     };
   }, [items, loading, error, userId, refresh, run]);
