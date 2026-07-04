@@ -3,6 +3,13 @@
 -- never directly by users, so there is no public insert policy — this table has
 -- zero anon/authenticated write surface. Admins can read them as an email fallback.
 
+-- Defensive (re)create in case an earlier migration run didn't persist this —
+-- safe to run even if it already exists correctly.
+create or replace function public.is_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin');
+$$;
+
 create table if not exists public.user_issues (
   id uuid primary key default gen_random_uuid(),
   username text not null,
@@ -14,8 +21,14 @@ create table if not exists public.user_issues (
 
 alter table public.user_issues enable row level security;
 
+drop policy if exists "admins read issues" on public.user_issues;
 create policy "admins read issues"
   on public.user_issues for select using (public.is_admin());
 
+drop policy if exists "admins update issues" on public.user_issues;
 create policy "admins update issues"
   on public.user_issues for update using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "admins delete issues" on public.user_issues;
+create policy "admins delete issues"
+  on public.user_issues for delete using (public.is_admin());

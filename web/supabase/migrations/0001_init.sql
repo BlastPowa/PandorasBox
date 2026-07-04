@@ -1,5 +1,7 @@
 -- Pandora's Box — initial schema (Postgres / Supabase)
 -- Per-user data isolation via Row Level Security. Run in the Supabase SQL editor.
+-- Fully idempotent: safe to paste and run this whole file again at any time,
+-- regardless of what already exists in your database.
 
 -- ---------------------------------------------------------------------------
 -- profiles
@@ -15,12 +17,15 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "profiles readable by everyone" on public.profiles;
 create policy "profiles readable by everyone"
   on public.profiles for select using (true);
 
+drop policy if exists "users update own profile" on public.profiles;
 create policy "users update own profile"
   on public.profiles for update using (auth.uid() = id);
 
+drop policy if exists "users insert own profile" on public.profiles;
 create policy "users insert own profile"
   on public.profiles for insert with check (auth.uid() = id);
 
@@ -65,12 +70,16 @@ create index if not exists list_items_status_idx on public.list_items (user_id, 
 
 alter table public.list_items enable row level security;
 
+drop policy if exists "users read own list" on public.list_items;
 create policy "users read own list"
   on public.list_items for select using (auth.uid() = user_id);
+drop policy if exists "users insert own list" on public.list_items;
 create policy "users insert own list"
   on public.list_items for insert with check (auth.uid() = user_id);
+drop policy if exists "users update own list" on public.list_items;
 create policy "users update own list"
   on public.list_items for update using (auth.uid() = user_id);
+drop policy if exists "users delete own list" on public.list_items;
 create policy "users delete own list"
   on public.list_items for delete using (auth.uid() = user_id);
 
@@ -97,16 +106,20 @@ create table if not exists public.collection_items (
 alter table public.collections enable row level security;
 alter table public.collection_items enable row level security;
 
+drop policy if exists "read own or public collections" on public.collections;
 create policy "read own or public collections"
   on public.collections for select using (auth.uid() = user_id or is_public);
+drop policy if exists "manage own collections" on public.collections;
 create policy "manage own collections"
   on public.collections for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "read items of visible collections" on public.collection_items;
 create policy "read items of visible collections"
   on public.collection_items for select using (
     exists (select 1 from public.collections c
       where c.id = collection_id and (c.user_id = auth.uid() or c.is_public))
   );
+drop policy if exists "manage items of own collections" on public.collection_items;
 create policy "manage items of own collections"
   on public.collection_items for all using (
     exists (select 1 from public.collections c where c.id = collection_id and c.user_id = auth.uid())
@@ -132,8 +145,10 @@ create table if not exists public.watch_links (
 create index if not exists watch_links_media_idx on public.watch_links (media_key);
 alter table public.watch_links enable row level security;
 
+drop policy if exists "watch_links readable by everyone" on public.watch_links;
 create policy "watch_links readable by everyone"
   on public.watch_links for select using (true);
+drop policy if exists "admins manage watch_links" on public.watch_links;
 create policy "admins manage watch_links"
   on public.watch_links for all using (public.is_admin()) with check (public.is_admin());
 
@@ -152,8 +167,10 @@ create table if not exists public.site_directory (
 );
 
 alter table public.site_directory enable row level security;
+drop policy if exists "site_directory readable by everyone" on public.site_directory;
 create policy "site_directory readable by everyone"
   on public.site_directory for select using (true);
+drop policy if exists "admins manage site_directory" on public.site_directory;
 create policy "admins manage site_directory"
   on public.site_directory for all using (public.is_admin()) with check (public.is_admin());
 
@@ -170,8 +187,10 @@ create table if not exists public.announcements (
 );
 
 alter table public.announcements enable row level security;
+drop policy if exists "announcements readable by everyone" on public.announcements;
 create policy "announcements readable by everyone"
   on public.announcements for select using (true);
+drop policy if exists "admins manage announcements" on public.announcements;
 create policy "admins manage announcements"
   on public.announcements for all using (public.is_admin()) with check (public.is_admin());
 
@@ -190,7 +209,12 @@ create table if not exists public.availability (
 );
 
 alter table public.availability enable row level security;
+drop policy if exists "availability readable by everyone" on public.availability;
 create policy "availability readable by everyone"
   on public.availability for select using (true);
+drop policy if exists "admins manage availability" on public.availability;
 create policy "admins manage availability"
   on public.availability for all using (public.is_admin()) with check (public.is_admin());
+
+-- Verify: should return one row.
+select 'profiles table + is_admin() ready' as status;

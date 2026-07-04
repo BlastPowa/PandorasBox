@@ -10,14 +10,29 @@ create table if not exists public.library (
 
 alter table public.library enable row level security;
 
+drop policy if exists "users read own library" on public.library;
 create policy "users read own library"
   on public.library for select using (auth.uid() = user_id);
+drop policy if exists "users upsert own library" on public.library;
 create policy "users upsert own library"
   on public.library for insert with check (auth.uid() = user_id);
+drop policy if exists "users update own library" on public.library;
 create policy "users update own library"
   on public.library for update using (auth.uid() = user_id);
+drop policy if exists "users delete own library" on public.library;
 create policy "users delete own library"
   on public.library for delete using (auth.uid() = user_id);
 
--- allow Realtime to stream row changes for this table
-alter publication supabase_realtime add table public.library;
+-- allow Realtime to stream row changes for this table (skip if already added)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'library'
+  ) then
+    alter publication supabase_realtime add table public.library;
+  end if;
+end $$;
+
+-- Verify: should return one row.
+select 'library table ready' as status;
