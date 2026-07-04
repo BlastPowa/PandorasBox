@@ -213,10 +213,11 @@ body::before {
   }
 }
 
-/* Rotating conic border that traces the edge of any rounded box. */
+/* Rotating conic border that traces the edge of any rounded box.
+   Do NOT set border-radius here — the element keeps its own utility radius
+   (e.g. rounded-full); only the pseudo-elements inherit that radius. */
 .fx-glow-border {
   position: relative;
-  border-radius: inherit;
   isolation: isolate;
 }
 .fx-glow-border::before {

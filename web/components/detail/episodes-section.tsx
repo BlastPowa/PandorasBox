@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import * as Dialog from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
 import type { TMDBEpisode } from "@core/api/tmdb";
-import { formatAirDate } from "@core/utils/formatters";
+import { formatAirDate, formatRuntime } from "@core/utils/formatters";
 import { Spinner } from "@/components/ui-fx/feedback";
 
 export function EpisodesSection({
@@ -18,6 +20,7 @@ export function EpisodesSection({
   const [season, setSeason] = useState(1);
   const [episodes, setEpisodes] = useState<TMDBEpisode[]>(initialEpisodes);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<TMDBEpisode | null>(null);
 
   async function changeSeason(next: number) {
     setSeason(next);
@@ -60,7 +63,11 @@ export function EpisodesSection({
       ) : (
         <div className="space-y-2">
           {episodes.map((ep) => (
-            <div key={ep.id} className="glass flex gap-3 rounded-[var(--radius-md)] p-2.5">
+            <button
+              key={ep.id}
+              onClick={() => setSelected(ep)}
+              className="glass glow-ring flex w-full gap-3 rounded-[var(--radius-md)] p-2.5 text-left"
+            >
               <div className="relative h-[62px] w-[110px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--bg-elevated)]">
                 {ep.still_path ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -77,10 +84,49 @@ export function EpisodesSection({
                 {ep.air_date && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(ep.air_date)}</span>}
                 {ep.overview && <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">{ep.overview}</p>}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
+
+      {/* Read-more modal (mobile-friendly) */}
+      <Dialog.Root open={selected !== null} onOpenChange={(o) => !o && setSelected(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl">
+            {selected && (
+              <>
+                <div className="relative aspect-video w-full bg-[var(--bg-surface)]">
+                  {selected.still_path ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`https://image.tmdb.org/t/p/w780${selected.still_path}`} alt="" className="size-full object-cover" />
+                  ) : (
+                    <div className="grid size-full place-items-center font-display text-3xl text-[var(--text-muted)]">
+                      E{selected.episode_number}
+                    </div>
+                  )}
+                  <Dialog.Close className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80">
+                    <X className="size-4" />
+                  </Dialog.Close>
+                </div>
+                <div className="p-5">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs text-[var(--accent)]">Episode {selected.episode_number}</span>
+                    {selected.air_date && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(selected.air_date)}</span>}
+                    {selected.runtime !== null && <span className="text-xs text-[var(--text-muted)]">· {formatRuntime(selected.runtime)}</span>}
+                  </div>
+                  <Dialog.Title className="font-display text-lg font-bold">{selected.name}</Dialog.Title>
+                  <Dialog.Description asChild>
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                      {selected.overview || "No synopsis available for this episode yet."}
+                    </p>
+                  </Dialog.Description>
+                </div>
+              </>
+            )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </section>
   );
 }

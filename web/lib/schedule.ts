@@ -1,15 +1,27 @@
 import "server-only";
+import { getPosterUrl } from "@core/api/tmdb";
 
 const ANILIST_URL = "https://graphql.anilist.co";
 
 export interface ScheduleEntry {
-  mediaId: number;
+  id: string;
+  kind: "anime" | "movie" | "series";
+  detailType: "anime" | "movie" | "series";
+  source: "anilist" | "tmdb";
+  refId: string;
   title: string;
-  coverUrl: string | null;
-  episode: number;
-  airingAt: number;
-  type: "anime";
+  posterUrl: string | null;
+  timestamp: number; // unix seconds
+  label: string; // "Ep 5", "Theatrical", "Premiere"
+  hasTime: boolean; // true = precise air time; false = date-only
 }
+
+function entryHref(e: ScheduleEntry): string {
+  return `/title/${e.detailType}/${e.source}/${e.refId}`;
+}
+export { entryHref };
+
+/* ---------------------------------- anime --------------------------------- */
 
 interface AiringNode {
   episode: number;
@@ -19,29 +31,20 @@ interface AiringNode {
     title: { english: string | null; romaji: string };
     coverImage: { large: string | null };
     isAdult: boolean;
-    format: string | null;
     popularity: number | null;
   };
 }
 
-/** Live weekly anime airing schedule from AniList (no API key required). */
-export async function getAiringWeek(): Promise<ScheduleEntry[]> {
+export async function getAnimeWeek(days = 7): Promise<ScheduleEntry[]> {
   const now = Math.floor(Date.now() / 1000);
-  const weekEnd = now + 60 * 60 * 24 * 7;
+  const end = now + 60 * 60 * 24 * days;
   const query = `
     query ($start: Int, $end: Int) {
       Page(page: 1, perPage: 50) {
         airingSchedules(airingAt_greater: $start, airingAt_lesser: $end, sort: TIME) {
           episode
           airingAt
-          media {
-            id
-            title { english romaji }
-            coverImage { large }
-            isAdult
-            format
-            popularity
-          }
+          media { id title { english romaji } coverImage { large } isAdult popularity }
         }
       }
     }
@@ -50,23 +53,110 @@ export async function getAiringWeek(): Promise<ScheduleEntry[]> {
     const res = await fetch(ANILIST_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query, variables: { start: now, end: weekEnd } }),
+      body: JSON.stringify({ query, variables: { start: now, end } }),
       next: { revalidate: 60 * 30 },
     });
     if (!res.ok) return [];
     const json = (await res.json()) as { data?: { Page?: { airingSchedules?: AiringNode[] } } };
-    const nodes = json.data?.Page?.airingSchedules ?? [];
-    return nodes
-      .filter((n) => !n.media.isAdult && (n.media.popularity ?? 0) > 5000)
+    return (json.data?.Page?.airingSchedules ?? [])
+      .filter((n) => !n.media.isAdult && (n.media.popularity ?? 0) > 3000)
       .map((n) => ({
-        mediaId: n.media.id,
+        id: `anilist-${n.media.id}`,
+        kind: "anime" as const,
+        detailType: "anime" as const,
+        source: "anilist" as const,
+        refId: String(n.media.id),
         title: n.media.title.english ?? n.media.title.romaji,
-        coverUrl: n.media.coverImage.large,
-        episode: n.episode,
-        airingAt: n.airingAt,
-        type: "anime" as const,
+        posterUrl: n.media.coverImage.large,
+        timestamp: n.airingAt,
+        label: `Ep ${n.episode}`,
+        hasTime: true,
       }));
   } catch {
     return [];
   }
+}
+
+/* -------------------------------- tmdb utils ------------------------------ */
+
+interface TMDBRow {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  release_date?: string;
+  first_air_date?: string;
+}
+
+async function tmdb(pathAndQuery: string): Promise<TMDBRow[]> {
+  const key = process.env.TMDB_API_KEY ?? "";
+  if (!key) return [];
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/${pathAndQuery}${pathAndQuery.includes("?") ? "&" : "?"}api_key=${key}`,
+      { next: { revalidate: 60 * 60 } }
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { results?: TMDBRow[] };
+    return json.results ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function dateToUnix(d: string): number {
+  return Math.floor(new Date(`${d}T12:00:00`).getTime() / 1000);
+}
+
+/* -------------------------------- movies ---------------------------------- */
+
+export async function getMovieReleasesWindow(region: string, days = 21): Promise<ScheduleEntry[]> {
+  const today = new Date();
+  const start = today.toISOString().slice(0, 10);
+  const endDate = new Date(today.getTime() + days * 86400000).toISOString().slice(0, 10);
+  const rows = await tmdb(
+    `discover/movie?region=${region}&primary_release_date.gte=${start}&primary_release_date.lte=${endDate}&sort_by=primary_release_date.asc&vote_count.gte=0&with_release_type=2|3`
+  );
+  return rows
+    .filter((r) => r.release_date)
+    .slice(0, 40)
+    .map((r) => ({
+      id: `tmdb-${r.id}`,
+      kind: "movie" as const,
+      detailType: "movie" as const,
+      source: "tmdb" as const,
+      refId: String(r.id),
+      title: r.title ?? r.name ?? "Untitled",
+      posterUrl: r.poster_path ? getPosterUrl(r.poster_path) : null,
+      timestamp: dateToUnix(r.release_date as string),
+      label: "Theatrical",
+      hasTime: false,
+    }));
+}
+
+/* ---------------------------------- tv ------------------------------------ */
+
+export async function getTvWindow(days = 14): Promise<ScheduleEntry[]> {
+  const today = new Date();
+  const start = today.toISOString().slice(0, 10);
+  const endDate = new Date(today.getTime() + days * 86400000).toISOString().slice(0, 10);
+  // shows with episodes airing in the window (new + returning)
+  const rows = await tmdb(
+    `discover/tv?air_date.gte=${start}&air_date.lte=${endDate}&sort_by=popularity.desc&vote_count.gte=20`
+  );
+  return rows.slice(0, 40).map((r) => {
+    const premiere = r.first_air_date && r.first_air_date >= start && r.first_air_date <= endDate;
+    return {
+      id: `tmdb-${r.id}`,
+      kind: "series" as const,
+      detailType: "series" as const,
+      source: "tmdb" as const,
+      refId: String(r.id),
+      title: r.name ?? r.title ?? "Untitled",
+      posterUrl: r.poster_path ? getPosterUrl(r.poster_path) : null,
+      timestamp: premiere ? dateToUnix(r.first_air_date as string) : dateToUnix(start),
+      label: premiere ? "Premiere" : "New episodes",
+      hasTime: false,
+    };
+  });
 }

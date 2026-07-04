@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Clock, Layers, Star, Sparkles, Tv, Zap } from "lucide-react";
+import Link from "next/link";
+import { Clock, Layers, Star, Sparkles, Tv, Zap, Globe } from "lucide-react";
 import type { ReelItemType } from "@core/storage/schema";
 import { formatRuntime, formatAirDate } from "@core/utils/formatters";
 import { getDetail } from "@/lib/detail";
@@ -205,6 +206,13 @@ export default async function TitlePage({
             <GlassCard macDots title={isReading ? "Where to Read" : "Where to Watch"}>
               <div className="p-4">
                 <WhereToWatch options={watchOptions} />
+                <Link
+                  href="/sites"
+                  className="glass glow-ring mt-4 flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 py-2.5 text-sm font-semibold"
+                >
+                  <Globe className="size-4 text-[var(--accent)]" />
+                  Can&apos;t find it? Browse all sites
+                </Link>
               </div>
             </GlassCard>
           </aside>
