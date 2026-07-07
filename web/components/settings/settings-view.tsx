@@ -11,6 +11,7 @@ import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { Input } from "@/components/ui-fx/input";
 import { AvatarUpload } from "@/components/settings/avatar-upload";
+import { UsernameEditor } from "@/components/settings/username-editor";
 import { BulkImportModal } from "@/components/settings/bulk-import-modal";
 import { IntegrationsSection } from "@/components/settings/integrations-section";
 import { MatchPickerModal, type AmbiguousEntry, type MatchDecision } from "@/components/settings/match-picker-modal";
@@ -239,10 +240,14 @@ export function SettingsView({
       <GlassCard macDots title="Profile">
         <div className="space-y-4 p-5">
           {signedIn && <AvatarUpload initialUrl={avatarUrl} username={username} />}
-          <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-[var(--text-secondary)]">Username</span>
-            <Input defaultValue={username ?? ""} disabled />
-          </label>
+          {signedIn ? (
+            <UsernameEditor initialUsername={username} />
+          ) : (
+            <label className="block text-sm">
+              <span className="mb-1 block font-semibold text-[var(--text-secondary)]">Username</span>
+              <Input defaultValue={username ?? ""} disabled />
+            </label>
+          )}
           <p className="text-xs text-[var(--text-muted)]">
             Country ({country}) affects where-to-watch results. Manage sign-in providers with your account.
           </p>

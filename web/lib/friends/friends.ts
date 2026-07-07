@@ -65,10 +65,40 @@ export async function sendFriendRequest(addresseeId: string): Promise<void> {
   const supabase = createClient();
   const uid = await currentUserId();
   if (!uid) throw new Error("Sign in required");
+  if (uid === addresseeId) throw new Error("You can't friend yourself.");
+
+  // Check both directions first so this is idempotent instead of hitting the
+  // unique constraint (which previously surfaced as a raw Postgres error to the user).
+  const { data: existingRows } = await supabase
+    .from("friendships")
+    .select("id, requester, addressee, status")
+    .or(
+      `and(requester.eq.${uid},addressee.eq.${addresseeId}),and(requester.eq.${addresseeId},addressee.eq.${uid})`
+    );
+  const existing = (existingRows as Friendship[] | null)?.[0];
+
+  if (existing) {
+    if (existing.status === "accepted") throw new Error("You're already friends.");
+    if (existing.status === "pending") throw new Error("A request is already pending.");
+    if (existing.status === "blocked") throw new Error("Can't send a request to this user.");
+    // status === "declined" — allow re-requesting by reviving the same row.
+    const { error } = await supabase
+      .from("friendships")
+      .update({ requester: uid, addressee: addresseeId, status: "pending", updated_at: new Date().toISOString() })
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
   const { error } = await supabase
     .from("friendships")
     .insert({ requester: uid, addressee: addresseeId, status: "pending" });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (/duplicate key|unique constraint/i.test(error.message)) {
+      throw new Error("A request already exists with this user.");
+    }
+    throw new Error(error.message);
+  }
 }
 
 export async function respondToRequest(id: string, accept: boolean): Promise<void> {

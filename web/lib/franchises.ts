@@ -12,6 +12,7 @@ export const FRANCHISES: FranchiseDef[] = [
   { slug: "harry-potter", name: "Harry Potter", description: "The Wizarding World, in release order." },
   { slug: "lord-of-the-rings", name: "The Lord of the Rings", description: "Middle-earth, in release order." },
   { slug: "mcu", name: "Marvel Cinematic Universe", description: "Every MCU film, in release order." },
+  { slug: "dystopian", name: "Dystopian Worlds", description: "Bleak futures & broken societies — Maze Runner, The Walking Dead, Hunger Games & more." },
 ];
 
 export function getFranchise(slug: string): FranchiseDef | null {
@@ -59,6 +60,67 @@ async function fetchByCompanyChronological(companyId: number, limit = 40): Promi
   }
 }
 
+interface TMDBDiscoverResult extends TMDBCollectionPart {
+  name?: string;
+  first_air_date?: string;
+  popularity?: number;
+}
+
+/** Movies + TV matching dystopian/post-apocalyptic keywords, ranked by popularity (not chronological — this spans many unrelated stories). */
+async function fetchDystopian(limit = 40): Promise<UnifiedSearchResult[]> {
+  const key = process.env.TMDB_API_KEY ?? "";
+  if (!key) return [];
+  // TMDB keyword ids: 4565 = dystopia, 4458 = post-apocalyptic future.
+  const keywords = "4565|4458";
+  try {
+    const [movieRes, tvRes] = await Promise.all([
+      fetch(
+        `https://api.themoviedb.org/3/discover/movie?api_key=${key}&with_keywords=${keywords}&include_adult=false&sort_by=popularity.desc&vote_count.gte=20&page=1`,
+        { next: { revalidate: 60 * 60 * 24 } }
+      ),
+      fetch(
+        `https://api.themoviedb.org/3/discover/tv?api_key=${key}&with_keywords=${keywords}&include_adult=false&sort_by=popularity.desc&vote_count.gte=20&page=1`,
+        { next: { revalidate: 60 * 60 * 24 } }
+      ),
+    ]);
+    const [movieJson, tvJson] = await Promise.all([
+      movieRes.ok ? (movieRes.json() as Promise<{ results?: TMDBDiscoverResult[] }>) : Promise.resolve({ results: [] }),
+      tvRes.ok ? (tvRes.json() as Promise<{ results?: TMDBDiscoverResult[] }>) : Promise.resolve({ results: [] }),
+    ]);
+    const movies = (movieJson.results ?? []).filter((p) => !p.adult);
+    const tv = (tvJson.results ?? []).filter((p) => !p.adult);
+    const mapped: UnifiedSearchResult[] = [
+      ...movies.map((p) => mapDiscoverResult(p, "movie")),
+      ...tv.map((p) => mapDiscoverResult(p, "series")),
+    ];
+    return mapped
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+function mapDiscoverResult(p: TMDBDiscoverResult, type: "movie" | "series"): UnifiedSearchResult {
+  const date = p.release_date ?? p.first_air_date ?? null;
+  return {
+    id: `tmdb-${p.id}`,
+    source: "tmdb",
+    type,
+    title: p.title ?? p.name ?? "Untitled",
+    posterUrl: p.poster_path ? getPosterUrl(p.poster_path) : null,
+    year: date ? Number.parseInt(date.slice(0, 4), 10) || null : null,
+    synopsis: p.overview || null,
+    score: p.vote_average > 0 ? p.vote_average : null,
+    totalEpisodes: null,
+    totalChapters: null,
+    anilistId: null,
+    tmdbId: p.id,
+    mangadexId: null,
+    malId: null,
+  };
+}
+
 function toResults(parts: TMDBCollectionPart[]): UnifiedSearchResult[] {
   return parts
     .filter((p) => !p.adult)
@@ -94,6 +156,8 @@ export async function getFranchiseItems(slug: string): Promise<UnifiedSearchResu
       return fetchCollection(119);
     case "mcu":
       return fetchByCompanyChronological(420);
+    case "dystopian":
+      return fetchDystopian();
     default:
       return [];
   }

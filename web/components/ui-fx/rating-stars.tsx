@@ -5,7 +5,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface RatingStarsProps {
-  /** 0–10 scale (stored), rendered as 5 stars (each = 2 points). */
+  /** 0–10 scale, rendered as 10 individually-clickable stars. */
   value: number | null;
   onChange?: (value: number) => void;
   size?: number;
@@ -16,7 +16,7 @@ interface RatingStarsProps {
 export function RatingStars({
   value,
   onChange,
-  size = 18,
+  size = 14,
   readOnly = false,
   className,
 }: RatingStarsProps) {
@@ -25,44 +25,40 @@ export function RatingStars({
 
   return (
     <div
-      className={cn("flex items-center gap-1", className)}
+      className={cn("flex items-center gap-2", className)}
       onMouseLeave={() => setHover(null)}
       role={readOnly ? undefined : "radiogroup"}
       aria-label="Rating"
     >
-      {[1, 2, 3, 4, 5].map((star) => {
-        const points = star * 2;
-        const filled = effective >= points;
-        const half = !filled && effective >= points - 1;
-        return (
-          <button
-            key={star}
-            type="button"
-            disabled={readOnly}
-            aria-label={`${points} out of 10`}
-            onMouseEnter={() => !readOnly && setHover(points)}
-            onClick={() => onChange?.(points)}
-            className={cn(
-              "transition-transform duration-150",
-              !readOnly && "hover:scale-125 cursor-pointer",
-              readOnly && "cursor-default"
-            )}
-          >
-            <Star
-              width={size}
-              height={size}
+      <div className="flex items-center gap-[1px]">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((point) => {
+          const filled = effective >= point;
+          return (
+            <button
+              key={point}
+              type="button"
+              disabled={readOnly}
+              aria-label={`${point} out of 10`}
+              onMouseEnter={() => !readOnly && setHover(point)}
+              onClick={() => onChange?.(point)}
               className={cn(
-                filled || half ? "text-[var(--gold)]" : "text-[rgba(255,255,255,0.2)]"
+                "transition-transform duration-150",
+                !readOnly && "hover:scale-125 cursor-pointer",
+                readOnly && "cursor-default"
               )}
-              fill={filled ? "var(--gold)" : "none"}
-            />
-          </button>
-        );
-      })}
+            >
+              <Star
+                width={size}
+                height={size}
+                className={filled ? "text-[var(--gold)]" : "text-[rgba(255,255,255,0.2)]"}
+                fill={filled ? "var(--gold)" : "none"}
+              />
+            </button>
+          );
+        })}
+      </div>
       {value !== null && value > 0 && (
-        <span className="ml-1 font-mono text-xs text-[var(--text-secondary)]">
-          {value.toFixed(0)}/10
-        </span>
+        <span className="font-mono text-xs text-[var(--text-secondary)]">{value.toFixed(0)}/10</span>
       )}
     </div>
   );

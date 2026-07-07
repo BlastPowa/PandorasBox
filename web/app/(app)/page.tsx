@@ -12,6 +12,7 @@ import { Hero } from "@/components/discovery/hero";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
 import { MyPanel } from "@/components/home/my-panel";
 import { FriendsActivity } from "@/components/home/friends-activity";
+import { AnnouncementsBar } from "@/components/home/announcements-bar";
 
 export const revalidate = 1800;
 
@@ -53,6 +54,7 @@ async function HomeContent() {
 
   return (
     <div className="space-y-8">
+      <AnnouncementsBar />
       <MyPanel />
       <FriendsActivity />
       <Hero items={heroPool.length > 0 ? heroPool : anime} />
