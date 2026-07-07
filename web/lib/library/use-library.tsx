@@ -110,15 +110,43 @@ export function LibraryProvider({
     }
   }, []);
 
+  /** Fire-and-forget: record an activity feed event for friends to see. */
+  const logActivity = useCallback(async (id: string, verb: "added" | "started" | "finished" | "rated") => {
+    const m = managerRef.current;
+    const supabase = supabaseRef.current;
+    if (!m || !supabase) return;
+    try {
+      const item = (await m.getAll()).find((i) => i.id === id);
+      if (!item) return;
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      await supabase.from("activity").insert({
+        user_id: data.user.id,
+        verb,
+        media_key: item.id,
+        media_type: item.type,
+        title: item.title,
+        poster_url: item.posterUrl,
+      });
+    } catch {
+      // activity logging must never break library operations
+    }
+  }, []);
+
   const run = useCallback(
-    async (fn: (m: ListManager) => Promise<unknown>, syncId?: string) => {
+    async (
+      fn: (m: ListManager) => Promise<unknown>,
+      syncId?: string,
+      activity?: "added" | "started" | "finished" | "rated"
+    ) => {
       const m = managerRef.current;
       if (!m) throw new Error("Sign in to manage your library.");
       await fn(m);
       await refresh();
       if (syncId) void enqueueSync(syncId);
+      if (activity && syncId) void logActivity(syncId, activity);
     },
-    [refresh, enqueueSync]
+    [refresh, enqueueSync, logActivity]
   );
 
   const value = useMemo<LibraryContextValue>(() => {
@@ -130,14 +158,15 @@ export function LibraryProvider({
       signedIn: Boolean(userId),
       stats,
       refresh,
-      add: (item) => run((m) => m.add(item), item.id),
+      add: (item) => run((m) => m.add(item), item.id, "added"),
       update: (id, updates) => run((m) => m.update(id, updates), id),
       remove: (id) => run((m) => m.remove(id)),
-      setStatus: (id, status) => run((m) => m.update(id, { status }), id),
-      setRating: (id, rating) => run((m) => m.update(id, { rating }), id),
+      setStatus: (id, status) =>
+        run((m) => m.update(id, { status }), id, status === "watching" || status === "reading" ? "started" : undefined),
+      setRating: (id, rating) => run((m) => m.update(id, { rating }), id, "rated"),
       markEpisode: (id, episode, season) => run((m) => m.markEpisodeWatched(id, episode, season), id),
       markChapter: (id, chapter) => run((m) => m.markChapterRead(id, chapter), id),
-      markComplete: (id) => run((m) => m.markComplete(id), id),
+      markComplete: (id) => run((m) => m.markComplete(id), id, "finished"),
       updateProgress: (id, progress) => run((m) => m.updateProgress(id, progress), id),
       getById: (id) => items.find((i) => i.id === id),
     };

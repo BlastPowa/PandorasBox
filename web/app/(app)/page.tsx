@@ -11,6 +11,7 @@ import type { UnifiedSearchResult } from "@core/utils/search";
 import { Hero } from "@/components/discovery/hero";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
 import { MyPanel } from "@/components/home/my-panel";
+import { FriendsActivity } from "@/components/home/friends-activity";
 
 export const revalidate = 1800;
 
@@ -53,6 +54,7 @@ async function HomeContent() {
   return (
     <div className="space-y-8">
       <MyPanel />
+      <FriendsActivity />
       <Hero items={heroPool.length > 0 ? heroPool : anime} />
       <PosterRow title="Trending Anime" subtitle="What everyone's watching right now" items={anime} />
       {comingSoon.length > 0 && (

@@ -96,6 +96,11 @@ export async function createCollection(
       .single();
   }
   if (res.error) throw new Error(res.error.message);
+  try {
+    await supabase.from("activity").insert({ user_id: uid, verb: "created_collection", title: name });
+  } catch {
+    // activity logging must never break collection creation
+  }
   return normalize(res.data as Record<string, unknown>);
 }
 
