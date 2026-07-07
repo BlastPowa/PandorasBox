@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { PosterCard } from "./poster-card";
 import { PosterSkeleton } from "@/components/ui-fx/feedback";
@@ -6,10 +7,12 @@ export function PosterRow({
   title,
   subtitle,
   items,
+  viewAllHref,
 }: {
   title: string;
   subtitle?: string;
   items: UnifiedSearchResult[];
+  viewAllHref?: string;
 }) {
   if (items.length === 0) return null;
   return (
@@ -19,6 +22,11 @@ export function PosterRow({
           <h2 className="font-display text-lg font-bold">{title}</h2>
           {subtitle && <p className="text-xs text-[var(--text-muted)]">{subtitle}</p>}
         </div>
+        {viewAllHref && (
+          <Link href={viewAllHref} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)]">
+            View All
+          </Link>
+        )}
       </div>
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item) => (

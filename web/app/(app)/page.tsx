@@ -56,14 +56,19 @@ async function HomeContent() {
       <MyPanel />
       <FriendsActivity />
       <Hero items={heroPool.length > 0 ? heroPool : anime} />
-      <PosterRow title="Trending Anime" subtitle="What everyone's watching right now" items={anime} />
+      <PosterRow
+        title="Trending Anime"
+        subtitle="What everyone's watching right now"
+        items={anime}
+        viewAllHref="/browse/trending-anime"
+      />
       {comingSoon.length > 0 && (
         <PosterRow title="Coming Soon" subtitle="Announced & upcoming releases" items={comingSoon} />
       )}
-      {movies.length > 0 && <PosterRow title="Trending Movies" items={movies} />}
-      {series.length > 0 && <PosterRow title="Trending Series" items={series} />}
-      <PosterRow title="Popular Anime" subtitle="All-time favourites" items={popular} />
-      <PosterRow title="Trending Manga" items={manga} />
+      {movies.length > 0 && <PosterRow title="Trending Movies" items={movies} viewAllHref="/browse/trending-movies" />}
+      {series.length > 0 && <PosterRow title="Trending Series" items={series} viewAllHref="/browse/trending-series" />}
+      <PosterRow title="Popular Anime" subtitle="All-time favourites" items={popular} viewAllHref="/browse/popular-anime" />
+      <PosterRow title="Trending Manga" items={manga} viewAllHref="/browse/trending-manga" />
       {movies.length === 0 && (
         <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--glass)] px-4 py-3 text-sm text-[var(--text-secondary)]">
           Add a free <span className="text-[var(--accent)]">TMDB_API_KEY</span> in{" "}

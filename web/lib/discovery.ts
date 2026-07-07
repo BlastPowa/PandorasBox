@@ -68,7 +68,7 @@ async function aniListPage(
     const res = await fetch(ANILIST_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query, variables: { sort: [sort], type, perPage } }),
+      body: JSON.stringify({ query, variables: { sort: [sort], type, perPage: Math.min(perPage, 50) } }),
       next: { revalidate: 60 * 30 },
     });
     if (!res.ok) return [];
@@ -80,14 +80,14 @@ async function aniListPage(
   }
 }
 
-export function getTrendingAnime(): Promise<UnifiedSearchResult[]> {
-  return aniListPage("TRENDING_DESC", "ANIME");
+export function getTrendingAnime(limit = 18): Promise<UnifiedSearchResult[]> {
+  return aniListPage("TRENDING_DESC", "ANIME", limit);
 }
-export function getPopularAnime(): Promise<UnifiedSearchResult[]> {
-  return aniListPage("POPULARITY_DESC", "ANIME");
+export function getPopularAnime(limit = 18): Promise<UnifiedSearchResult[]> {
+  return aniListPage("POPULARITY_DESC", "ANIME", limit);
 }
-export function getTrendingManga(): Promise<UnifiedSearchResult[]> {
-  return aniListPage("TRENDING_DESC", "MANGA");
+export function getTrendingManga(limit = 18): Promise<UnifiedSearchResult[]> {
+  return aniListPage("TRENDING_DESC", "MANGA", limit);
 }
 
 interface TMDBTrending {
@@ -103,110 +103,107 @@ interface TMDBTrending {
   adult?: boolean;
 }
 
-async function tmdbTrending(kind: "movie" | "tv"): Promise<UnifiedSearchResult[]> {
+function mapTmdb(kind: "movie" | "tv", r: TMDBTrending): UnifiedSearchResult {
+  const date = r.release_date ?? r.first_air_date ?? "";
+  return {
+    id: `tmdb-${r.id}`,
+    source: "tmdb" as const,
+    type: kind === "movie" ? ("movie" as const) : ("series" as const),
+    title: r.title ?? r.name ?? "Untitled",
+    posterUrl: r.poster_path ? getPosterUrl(r.poster_path) : null,
+    year: date ? Number.parseInt(date.slice(0, 4), 10) || null : null,
+    synopsis: r.overview || null,
+    score: r.vote_average > 0 ? r.vote_average : null,
+    totalEpisodes: null,
+    totalChapters: null,
+    anilistId: null,
+    tmdbId: r.id,
+    mangadexId: null,
+    malId: null,
+  };
+}
+
+/** TMDB returns 20 results per page — fetch enough pages to satisfy `limit`. */
+async function fetchTmdbPages(urlFor: (page: number) => string, limit: number): Promise<TMDBTrending[]> {
+  const pages = Math.min(Math.ceil(limit / 20), 5);
+  const results = await Promise.all(
+    Array.from({ length: pages }, (_, i) => i + 1).map(async (page) => {
+      try {
+        const res = await fetch(urlFor(page), { next: { revalidate: 60 * 60 } });
+        if (!res.ok) return [];
+        const json = (await res.json()) as { results?: TMDBTrending[] };
+        return json.results ?? [];
+      } catch {
+        return [];
+      }
+    })
+  );
+  return results.flat();
+}
+
+async function tmdbTrending(kind: "movie" | "tv", limit = 18): Promise<UnifiedSearchResult[]> {
   const key = process.env.TMDB_API_KEY ?? "";
   if (!key) return [];
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/trending/${kind}/week?api_key=${key}`,
-      { next: { revalidate: 60 * 60 } }
-    );
-    if (!res.ok) return [];
-    const json = (await res.json()) as { results?: TMDBTrending[] };
-    return (json.results ?? []).filter((r) => !r.adult).slice(0, 18).map((r) => {
-      const date = r.release_date ?? r.first_air_date ?? "";
-      return {
-        id: `tmdb-${r.id}`,
-        source: "tmdb" as const,
-        type: kind === "movie" ? ("movie" as const) : ("series" as const),
-        title: r.title ?? r.name ?? "Untitled",
-        posterUrl: r.poster_path ? getPosterUrl(r.poster_path) : null,
-        year: date ? Number.parseInt(date.slice(0, 4), 10) || null : null,
-        synopsis: r.overview || null,
-        score: r.vote_average > 0 ? r.vote_average : null,
-        totalEpisodes: null,
-        totalChapters: null,
-        anilistId: null,
-        tmdbId: r.id,
-        mangadexId: null,
-        malId: null,
-      };
-    });
-  } catch {
-    return [];
-  }
+  const raw = await fetchTmdbPages(
+    (page) => `https://api.themoviedb.org/3/trending/${kind}/week?api_key=${key}&page=${page}`,
+    limit
+  );
+  return raw.filter((r) => !r.adult).slice(0, limit).map((r) => mapTmdb(kind, r));
 }
 
-export function getTrendingMovies(): Promise<UnifiedSearchResult[]> {
-  return tmdbTrending("movie");
+export function getTrendingMovies(limit = 18): Promise<UnifiedSearchResult[]> {
+  return tmdbTrending("movie", limit);
 }
-export function getTrendingSeries(): Promise<UnifiedSearchResult[]> {
-  return tmdbTrending("tv");
+export function getTrendingSeries(limit = 18): Promise<UnifiedSearchResult[]> {
+  return tmdbTrending("tv", limit);
 }
 
-async function tmdbDiscover(
-  kind: "movie" | "tv",
-  query: string
-): Promise<UnifiedSearchResult[]> {
+async function tmdbDiscover(kind: "movie" | "tv", query: string, limit = 18): Promise<UnifiedSearchResult[]> {
   const key = process.env.TMDB_API_KEY ?? "";
   if (!key) return [];
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/${query}${query.includes("?") ? "&" : "?"}api_key=${key}&include_adult=false`,
-      { next: { revalidate: 60 * 60 } }
-    );
-    if (!res.ok) return [];
-    const json = (await res.json()) as { results?: TMDBTrending[] };
-    return (json.results ?? []).filter((r) => !r.adult).slice(0, 18).map((r) => {
-      const date = r.release_date ?? r.first_air_date ?? "";
-      return {
-        id: `tmdb-${r.id}`,
-        source: "tmdb" as const,
-        type: kind === "movie" ? ("movie" as const) : ("series" as const),
-        title: r.title ?? r.name ?? "Untitled",
-        posterUrl: r.poster_path ? getPosterUrl(r.poster_path) : null,
-        year: date ? Number.parseInt(date.slice(0, 4), 10) || null : null,
-        synopsis: r.overview || null,
-        score: r.vote_average > 0 ? r.vote_average : null,
-        totalEpisodes: null,
-        totalChapters: null,
-        anilistId: null,
-        tmdbId: r.id,
-        mangadexId: null,
-        malId: null,
-      };
-    });
-  } catch {
-    return [];
-  }
+  const raw = await fetchTmdbPages(
+    (page) =>
+      `https://api.themoviedb.org/3/${query}${query.includes("?") ? "&" : "?"}api_key=${key}&include_adult=false&page=${page}`,
+    limit
+  );
+  return raw.filter((r) => !r.adult).slice(0, limit).map((r) => mapTmdb(kind, r));
 }
 
-export const getPopularMovies = () => tmdbDiscover("movie", "movie/popular");
-export const getPopularSeries = () => tmdbDiscover("tv", "tv/popular");
-export const getKdrama = () =>
-  tmdbDiscover("tv", "discover/tv?with_origin_country=KR&sort_by=popularity.desc");
-export const getWesternAnimation = () =>
-  tmdbDiscover("tv", "discover/tv?with_genres=16&without_origin_country=JP&sort_by=popularity.desc");
-export const getTopRatedMovies = () => tmdbDiscover("movie", "movie/top_rated");
+export const getPopularMovies = (limit = 18) => tmdbDiscover("movie", "movie/popular", limit);
+export const getPopularSeries = (limit = 18) => tmdbDiscover("tv", "tv/popular", limit);
+export const getKdrama = (limit = 18) =>
+  tmdbDiscover("tv", "discover/tv?with_origin_country=KR&sort_by=popularity.desc", limit);
+export const getWesternAnimation = (limit = 18) =>
+  tmdbDiscover("tv", "discover/tv?with_genres=16&without_origin_country=JP&sort_by=popularity.desc", limit);
+export const getTopRatedMovies = (limit = 18) => tmdbDiscover("movie", "movie/top_rated", limit);
 
 // Highlight rows — curated by TMDB production company / network so they stay
 // accurate without needing an admin to hand-tag every title.
-export const getMarvelMovies = () =>
-  tmdbDiscover("movie", "discover/movie?with_companies=420&sort_by=popularity.desc");
-export const getMarvelTv = () =>
-  tmdbDiscover("tv", "discover/tv?with_companies=420&sort_by=popularity.desc");
-export const getDcMovies = () =>
-  tmdbDiscover("movie", "discover/movie?with_companies=9993|128064&sort_by=popularity.desc");
-export const getDcTv = () =>
-  tmdbDiscover("tv", "discover/tv?with_companies=9993|128064&sort_by=popularity.desc");
-export const getDisneyMovies = () =>
-  tmdbDiscover("movie", "discover/movie?with_companies=2&sort_by=popularity.desc");
+export const getMarvelMovies = (limit = 18) =>
+  tmdbDiscover("movie", "discover/movie?with_companies=420&sort_by=popularity.desc", limit);
+export const getMarvelTv = (limit = 18) =>
+  tmdbDiscover("tv", "discover/tv?with_companies=420&sort_by=popularity.desc", limit);
+export const getDcMovies = (limit = 18) =>
+  tmdbDiscover("movie", "discover/movie?with_companies=9993|128064&sort_by=popularity.desc", limit);
+export const getDcTv = (limit = 18) =>
+  tmdbDiscover("tv", "discover/tv?with_companies=9993|128064&sort_by=popularity.desc", limit);
+export const getDisneyMovies = (limit = 18) =>
+  tmdbDiscover("movie", "discover/movie?with_companies=2&sort_by=popularity.desc", limit);
 // "OG" 2000s-era nostalgia: Nickelodeon, Disney Channel and Disney XD shows that
 // first aired on or before 2015, ranked by popularity.
-export const getNostalgiaShows = () =>
+export const getNostalgiaShows = (limit = 18) =>
   tmdbDiscover(
     "tv",
-    "discover/tv?with_networks=13|54|44&first_air_date.lte=2015-01-01&sort_by=popularity.desc"
+    "discover/tv?with_networks=13|54|44&first_air_date.lte=2015-01-01&sort_by=popularity.desc",
+    limit
+  );
+
+/** Movies/TV available on a given streaming service (TMDB watch-provider filter). */
+export const getByStreamingProvider = (providerId: number, kind: "movie" | "tv" = "movie", limit = 18) =>
+  tmdbDiscover(
+    kind,
+    `discover/${kind}?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc`,
+    limit
   );
 
 export function tmdbBackdrop(path: string | null): string | null {

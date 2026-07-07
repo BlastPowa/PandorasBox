@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import {
   getTrendingAnime,
   getPopularAnime,
@@ -14,7 +16,10 @@ import {
   getDcTv,
   getDisneyMovies,
   getNostalgiaShows,
+  getByStreamingProvider,
 } from "@/lib/discovery";
+import { STREAMING_PROVIDERS } from "@/lib/streaming-providers";
+import { FRANCHISES } from "@/lib/franchises";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
 
 export const revalidate = 3600;
@@ -35,6 +40,7 @@ async function BrowseContent() {
     dcTv,
     disneyMovies,
     nostalgia,
+    streamingRows,
   ] = await Promise.all([
     getPopularMovies(),
     getPopularSeries(),
@@ -50,6 +56,7 @@ async function BrowseContent() {
     getDcTv(),
     getDisneyMovies(),
     getNostalgiaShows(),
+    Promise.all(STREAMING_PROVIDERS.map((p) => getByStreamingProvider(p.tmdbId))),
   ]);
 
   const hasTmdb = movies.length > 0 || series.length > 0;
@@ -64,18 +71,50 @@ async function BrowseContent() {
           Anime &amp; manga rows work right now.
         </p>
       )}
-      <PosterRow title="Popular Movies" items={movies} />
-      <PosterRow title="Popular TV & Series" items={series} />
-      <PosterRow title="K-Drama" subtitle="Trending from Korea" items={kdrama} />
-      <PosterRow title="Animation & Cartoons" subtitle="Western & all-ages" items={cartoons} />
-      <PosterRow title="Marvel" subtitle="Movies & TV" items={marvel} />
-      <PosterRow title="DC" subtitle="Movies & TV" items={dc} />
-      <PosterRow title="Disney Movies" items={disneyMovies} />
-      <PosterRow title="OG TV Shows" subtitle="2000s Nickelodeon, Disney Channel & Disney XD" items={nostalgia} />
-      <PosterRow title="Trending Anime" items={anime} />
-      <PosterRow title="Popular Anime" items={popAnime} />
-      <PosterRow title="Trending Manga" items={manga} />
-      <PosterRow title="Top Rated Movies" items={topMovies} />
+
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 px-1 font-display text-lg font-bold">
+          <Sparkles className="size-5 text-[var(--gold)]" /> Franchise Collections
+        </h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {FRANCHISES.map((f) => (
+            <Link
+              key={f.slug}
+              href={`/browse/franchise/${f.slug}`}
+              className="glass glow-ring rounded-[var(--radius-lg)] p-4 hover:border-[var(--accent)]"
+            >
+              <h3 className="font-display font-bold">{f.name}</h3>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">{f.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <PosterRow title="Popular Movies" items={movies} viewAllHref="/browse/popular-movies" />
+      <PosterRow title="Popular TV & Series" items={series} viewAllHref="/browse/popular-series" />
+      <PosterRow title="K-Drama" subtitle="Trending from Korea" items={kdrama} viewAllHref="/browse/kdrama" />
+      <PosterRow title="Animation & Cartoons" subtitle="Western & all-ages" items={cartoons} viewAllHref="/browse/cartoons" />
+      <PosterRow title="Marvel" subtitle="Movies & TV" items={marvel} viewAllHref="/browse/marvel" />
+      <PosterRow title="DC" subtitle="Movies & TV" items={dc} viewAllHref="/browse/dc" />
+      <PosterRow title="Disney Movies" items={disneyMovies} viewAllHref="/browse/disney-movies" />
+      <PosterRow title="OG TV Shows" subtitle="2000s Nickelodeon, Disney Channel & Disney XD" items={nostalgia} viewAllHref="/browse/og-tv" />
+      <PosterRow title="Trending Anime" items={anime} viewAllHref="/browse/trending-anime" />
+      <PosterRow title="Popular Anime" items={popAnime} viewAllHref="/browse/popular-anime" />
+      <PosterRow title="Trending Manga" items={manga} viewAllHref="/browse/trending-manga" />
+      <PosterRow title="Top Rated Movies" items={topMovies} viewAllHref="/browse/top-rated-movies" />
+
+      <section className="space-y-6">
+        <h2 className="px-1 font-display text-lg font-bold">Streaming Services</h2>
+        {STREAMING_PROVIDERS.map((p, i) => (
+          <PosterRow
+            key={p.slug}
+            title={p.name}
+            subtitle="Streaming now"
+            items={streamingRows[i]}
+            viewAllHref={`/browse/streaming-${p.slug}`}
+          />
+        ))}
+      </section>
     </div>
   );
 }
