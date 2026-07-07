@@ -6,6 +6,13 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["-y", "http-server", "extension/dist", "-p", "8331", "-c-1"],
       "port": 8331
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "cwd": "web"
     }
   ]
 }

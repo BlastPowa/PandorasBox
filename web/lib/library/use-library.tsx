@@ -82,14 +82,43 @@ export function LibraryProvider({
     };
   }, [userId, refresh]);
 
+  /** Fire-and-forget: queue a push to connected integrations (MAL/AniList). */
+  const enqueueSync = useCallback(async (id: string) => {
+    const m = managerRef.current;
+    if (!m) return;
+    try {
+      const item = (await m.getAll()).find((i) => i.id === id);
+      if (!item || (item.malId == null && item.anilistId == null)) return;
+      const isAnime = item.type === "anime" || item.type === "series";
+      void fetch("/api/integrations/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mediaKey: item.id,
+          payload: {
+            status: item.status,
+            progress: (isAnime ? item.progress.currentEpisode : item.progress.currentChapter) ?? 0,
+            rating: item.rating,
+            malId: item.malId,
+            anilistId: item.anilistId,
+            kind: isAnime ? "anime" : "manga",
+          },
+        }),
+      });
+    } catch {
+      // sync queueing must never break library operations
+    }
+  }, []);
+
   const run = useCallback(
-    async (fn: (m: ListManager) => Promise<unknown>) => {
+    async (fn: (m: ListManager) => Promise<unknown>, syncId?: string) => {
       const m = managerRef.current;
       if (!m) throw new Error("Sign in to manage your library.");
       await fn(m);
       await refresh();
+      if (syncId) void enqueueSync(syncId);
     },
-    [refresh]
+    [refresh, enqueueSync]
   );
 
   const value = useMemo<LibraryContextValue>(() => {
@@ -101,15 +130,15 @@ export function LibraryProvider({
       signedIn: Boolean(userId),
       stats,
       refresh,
-      add: (item) => run((m) => m.add(item)),
-      update: (id, updates) => run((m) => m.update(id, updates)),
+      add: (item) => run((m) => m.add(item), item.id),
+      update: (id, updates) => run((m) => m.update(id, updates), id),
       remove: (id) => run((m) => m.remove(id)),
-      setStatus: (id, status) => run((m) => m.update(id, { status })),
-      setRating: (id, rating) => run((m) => m.update(id, { rating })),
-      markEpisode: (id, episode, season) => run((m) => m.markEpisodeWatched(id, episode, season)),
-      markChapter: (id, chapter) => run((m) => m.markChapterRead(id, chapter)),
-      markComplete: (id) => run((m) => m.markComplete(id)),
-      updateProgress: (id, progress) => run((m) => m.updateProgress(id, progress)),
+      setStatus: (id, status) => run((m) => m.update(id, { status }), id),
+      setRating: (id, rating) => run((m) => m.update(id, { rating }), id),
+      markEpisode: (id, episode, season) => run((m) => m.markEpisodeWatched(id, episode, season), id),
+      markChapter: (id, chapter) => run((m) => m.markChapterRead(id, chapter), id),
+      markComplete: (id) => run((m) => m.markComplete(id), id),
+      updateProgress: (id, progress) => run((m) => m.updateProgress(id, progress), id),
       getById: (id) => items.find((i) => i.id === id),
     };
   }, [items, loading, error, userId, refresh, run]);

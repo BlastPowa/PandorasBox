@@ -1,8 +1,10 @@
 export type RandomType = "any" | "movie" | "series" | "kdrama" | "anime" | "manga";
+export type GenreMode = "any" | "all";
 
 export interface RandomFilters {
   type: RandomType;
-  genre: string | null;
+  genres: string[];
+  mode: GenreMode;
 }
 
 /** TMDB movie genre ids (real, so filtering actually works). */
@@ -30,6 +32,7 @@ export const MOVIE_GENRES: Record<string, number> = {
 /** TMDB TV genre ids (note TV uses combined buckets like Action & Adventure). */
 export const TV_GENRES: Record<string, number> = {
   Action: 10759,
+  Adventure: 10759,
   Animation: 16,
   Comedy: 35,
   Crime: 80,
@@ -40,7 +43,9 @@ export const TV_GENRES: Record<string, number> = {
   Kids: 10762,
   Mystery: 9648,
   Reality: 10764,
+  Romance: 18,
   "Sci-Fi": 10765,
+  Thriller: 9648,
   War: 10768,
   Western: 37,
 };
@@ -51,7 +56,6 @@ export const ANILIST_GENRES: string[] = [
   "Adventure",
   "Comedy",
   "Drama",
-  "Ecchi",
   "Fantasy",
   "Horror",
   "Mahou Shoujo",
@@ -69,6 +73,7 @@ export const ANILIST_GENRES: string[] = [
 
 const ANY_GENRES = [
   "Action",
+  "Adventure",
   "Comedy",
   "Drama",
   "Fantasy",
@@ -96,12 +101,13 @@ export function genresForType(type: RandomType): string[] {
   }
 }
 
-export function movieGenreId(genre: string | null): number | null {
-  return genre && MOVIE_GENRES[genre] !== undefined ? MOVIE_GENRES[genre] : null;
+export function movieGenreIds(genres: string[]): number[] {
+  return genres.map((g) => MOVIE_GENRES[g]).filter((id): id is number => id !== undefined);
 }
-export function tvGenreId(genre: string | null): number | null {
-  return genre && TV_GENRES[genre] !== undefined ? TV_GENRES[genre] : null;
+export function tvGenreIds(genres: string[]): number[] {
+  // De-dupe: TV buckets merge (Action & Adventure share 10759)
+  return Array.from(new Set(genres.map((g) => TV_GENRES[g]).filter((id): id is number => id !== undefined)));
 }
-export function anilistGenre(genre: string | null): string | null {
-  return genre && ANILIST_GENRES.includes(genre) ? genre : null;
+export function anilistGenres(genres: string[]): string[] {
+  return genres.filter((g) => ANILIST_GENRES.includes(g));
 }

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Dices, Sparkles } from "lucide-react";
+import { Dices, Sparkles, X } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
-import { genresForType, type RandomType } from "@/lib/random-shared";
+import { genresForType, type RandomType, type GenreMode } from "@/lib/random-shared";
 import { Pill } from "@/components/ui-fx/badge";
 import { Button } from "@/components/ui-fx/button";
 import { BoxLoader } from "@/components/ui-fx/box-loader";
@@ -29,14 +29,21 @@ const LOADING_LINES = [
 
 export function Randomizer() {
   const [type, setType] = useState<RandomType>("any");
-  const [genre, setGenre] = useState<string | null>(null);
+  const [genres, setGenres] = useState<string[]>([]);
+  const [mode, setMode] = useState<GenreMode>("any");
   const genreOptions = genresForType(type);
 
   function changeType(next: RandomType) {
     setType(next);
-    // drop the selected genre if it isn't valid for the new type
-    if (genre && !genresForType(next).includes(genre)) setGenre(null);
+    // drop any selected genres that aren't valid for the new type
+    const valid = genresForType(next);
+    setGenres((prev) => prev.filter((g) => valid.includes(g)));
   }
+
+  function toggleGenre(g: string) {
+    setGenres((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
+  }
+
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<UnifiedSearchResult[] | null>(null);
   const [line, setLine] = useState(LOADING_LINES[0]);
@@ -46,8 +53,8 @@ export function Randomizer() {
     setResults(null);
     setLine(LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)]);
     try {
-      const params = new URLSearchParams({ type });
-      if (genre) params.set("genre", genre);
+      const params = new URLSearchParams({ type, mode });
+      if (genres.length > 0) params.set("genres", genres.join(","));
       const res = await fetch(`/api/random?${params.toString()}`);
       const json = (await res.json()) as { results: UnifiedSearchResult[]; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed");
@@ -76,12 +83,49 @@ export function Randomizer() {
           ))}
         </div>
 
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Genre (optional)</p>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Genres (optional)</p>
+          {genres.length > 1 && (
+            <div className="flex items-center gap-1 rounded-full bg-[var(--glass)] p-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setMode("any")}
+                className={`rounded-full px-2.5 py-1 transition-colors ${mode === "any" ? "bg-[var(--accent)] text-[#0a0a0f]" : "text-[var(--text-muted)]"}`}
+              >
+                Match Any
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("all")}
+                className={`rounded-full px-2.5 py-1 transition-colors ${mode === "all" ? "bg-[var(--accent)] text-[#0a0a0f]" : "text-[var(--text-muted)]"}`}
+              >
+                Match All
+              </button>
+            </div>
+          )}
+        </div>
+
+        {genres.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {genres.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => toggleGenre(g)}
+                className="flex items-center gap-1 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-[#0a0a0f]"
+              >
+                {g} <X className="size-3" />
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="mb-6 flex flex-wrap gap-2">
-          <Pill active={genre === null} onClick={() => setGenre(null)}>Any</Pill>
-          {genreOptions.map((g) => (
-            <Pill key={g} active={genre === g} onClick={() => setGenre(g)}>{g}</Pill>
-          ))}
+          {genreOptions
+            .filter((g) => !genres.includes(g))
+            .map((g) => (
+              <Pill key={g} active={false} onClick={() => toggleGenre(g)}>{g}</Pill>
+            ))}
         </div>
 
         <Button size="lg" onClick={openBox} loading={loading} className="w-full sm:w-auto">

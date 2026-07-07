@@ -100,6 +100,7 @@ interface TMDBTrending {
   vote_average: number;
   release_date?: string;
   first_air_date?: string;
+  adult?: boolean;
 }
 
 async function tmdbTrending(kind: "movie" | "tv"): Promise<UnifiedSearchResult[]> {
@@ -112,7 +113,7 @@ async function tmdbTrending(kind: "movie" | "tv"): Promise<UnifiedSearchResult[]
     );
     if (!res.ok) return [];
     const json = (await res.json()) as { results?: TMDBTrending[] };
-    return (json.results ?? []).slice(0, 18).map((r) => {
+    return (json.results ?? []).filter((r) => !r.adult).slice(0, 18).map((r) => {
       const date = r.release_date ?? r.first_air_date ?? "";
       return {
         id: `tmdb-${r.id}`,
@@ -151,12 +152,12 @@ async function tmdbDiscover(
   if (!key) return [];
   try {
     const res = await fetch(
-      `https://api.themoviedb.org/3/${query}${query.includes("?") ? "&" : "?"}api_key=${key}`,
+      `https://api.themoviedb.org/3/${query}${query.includes("?") ? "&" : "?"}api_key=${key}&include_adult=false`,
       { next: { revalidate: 60 * 60 } }
     );
     if (!res.ok) return [];
     const json = (await res.json()) as { results?: TMDBTrending[] };
-    return (json.results ?? []).slice(0, 18).map((r) => {
+    return (json.results ?? []).filter((r) => !r.adult).slice(0, 18).map((r) => {
       const date = r.release_date ?? r.first_air_date ?? "";
       return {
         id: `tmdb-${r.id}`,

@@ -140,7 +140,7 @@ export async function searchAniList(query: string, type?: "ANIME" | "MANGA"): Pr
   const gqlQuery = `
     query ($search: String, $type: MediaType) {
       Page(page: 1, perPage: 10) {
-        media(search: $search, type: $type) {
+        media(search: $search, type: $type, isAdult: false) {
           ${MEDIA_FIELDS}
         }
       }

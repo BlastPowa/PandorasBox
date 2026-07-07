@@ -12,6 +12,7 @@ import { Button } from "@/components/ui-fx/button";
 import { Input } from "@/components/ui-fx/input";
 import { AvatarUpload } from "@/components/settings/avatar-upload";
 import { BulkImportModal } from "@/components/settings/bulk-import-modal";
+import { IntegrationsSection } from "@/components/settings/integrations-section";
 
 function resultToItem(r: UnifiedSearchResult, status: ReelItemStatus): Omit<ReelItem, "addedAt" | "updatedAt"> {
   const progress = createDefaultProgress();
@@ -184,6 +185,9 @@ export function SettingsView({
           )}
         </div>
       </GlassCard>
+
+      {/* External account integrations (MyAnimeList, AniList, ...) */}
+      <IntegrationsSection signedIn={signedIn} />
 
       {/* Onboarding / quick import */}
       <GlassCard macDots title="Bring your list with you">

@@ -2,11 +2,12 @@ import "server-only";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { getPosterUrl } from "@core/api/tmdb";
 import {
-  movieGenreId,
-  tvGenreId,
-  anilistGenre,
+  movieGenreIds,
+  tvGenreIds,
+  anilistGenres,
   type RandomFilters,
   type RandomType,
+  type GenreMode,
 } from "./random-shared";
 
 export type { RandomType, RandomFilters } from "./random-shared";
@@ -34,23 +35,39 @@ interface TMDBResult {
 
 async function tmdbRandom(
   kind: "movie" | "tv",
-  genreId: number | null,
+  genreIds: number[],
+  mode: GenreMode,
   extra?: string
 ): Promise<UnifiedSearchResult[]> {
   const key = process.env.TMDB_API_KEY ?? "";
   if (!key) return [];
-  const page = 1 + Math.floor(Math.random() * 10);
   const voteFloor = kind === "movie" ? 150 : 40;
-  const genreParam = genreId !== null ? `&with_genres=${genreId}` : "";
+  const genreParam =
+    genreIds.length > 0 ? `&with_genres=${genreIds.join(mode === "all" ? "," : "|")}` : "";
   const extraParam = extra ? `&${extra}` : "";
+  const base = `https://api.themoviedb.org/3/discover/${kind}?api_key=${key}&include_adult=false&sort_by=popularity.desc&vote_count.gte=${voteFloor}${genreParam}${extraParam}`;
   try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/discover/${kind}?api_key=${key}&sort_by=popularity.desc&vote_count.gte=${voteFloor}&page=${page}${genreParam}${extraParam}`,
-      { cache: "no-store" }
-    );
-    if (!res.ok) return [];
-    const json = (await res.json()) as { results?: TMDBResult[] };
-    return (json.results ?? []).map((r) => {
+    // Read page 1 first to learn how many pages this (often narrow) filter has,
+    // then pick a random page within range so narrow niches (e.g. Korean action)
+    // never land on an empty deep page and return nothing.
+    const firstRes = await fetch(`${base}&page=1`, { cache: "no-store" });
+    if (!firstRes.ok) return [];
+    const firstJson = (await firstRes.json()) as { results?: TMDBResult[]; total_pages?: number };
+    const totalPages = Math.min(firstJson.total_pages ?? 1, 10);
+    let results = firstJson.results ?? [];
+    if (totalPages > 1) {
+      const page = 1 + Math.floor(Math.random() * totalPages);
+      if (page > 1) {
+        const r = await fetch(`${base}&page=${page}`, { cache: "no-store" });
+        if (r.ok) {
+          const j = (await r.json()) as { results?: TMDBResult[] };
+          if ((j.results ?? []).length > 0) results = j.results ?? results;
+        }
+      }
+    }
+    return results
+      .filter((r) => !(r as TMDBResult & { adult?: boolean }).adult)
+      .map((r) => {
       const date = r.release_date ?? r.first_air_date ?? "";
       return {
         id: `tmdb-${r.id}`,
@@ -84,14 +101,20 @@ interface AniListRandomNode {
   chapters: number | null;
   description: string | null;
   format: string | null;
+  genres: string[];
+  isAdult: boolean;
 }
 
-async function anilistRandom(mediaType: "ANIME" | "MANGA", genre: string | null): Promise<UnifiedSearchResult[]> {
+async function anilistRandom(
+  mediaType: "ANIME" | "MANGA",
+  genres: string[],
+  mode: GenreMode
+): Promise<UnifiedSearchResult[]> {
   const page = 1 + Math.floor(Math.random() * 8);
   const query = `
-    query ($type: MediaType, $genre: String, $page: Int) {
-      Page(page: $page, perPage: 20) {
-        media(type: $type, genre: $genre, sort: POPULARITY_DESC, isAdult: false) {
+    query ($type: MediaType, $genres: [String], $page: Int) {
+      Page(page: $page, perPage: 30) {
+        media(type: $type, genre_in: $genres, sort: POPULARITY_DESC, isAdult: false) {
           id
           title { english romaji }
           coverImage { large }
@@ -101,6 +124,8 @@ async function anilistRandom(mediaType: "ANIME" | "MANGA", genre: string | null)
           chapters
           description
           format
+          genres
+          isAdult
         }
       }
     }
@@ -109,12 +134,22 @@ async function anilistRandom(mediaType: "ANIME" | "MANGA", genre: string | null)
     const res = await fetch("https://graphql.anilist.co", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query, variables: { type: mediaType, genre: genre ?? null, page } }),
+      body: JSON.stringify({
+        query,
+        variables: { type: mediaType, genres: genres.length > 0 ? genres : null, page },
+      }),
       cache: "no-store",
     });
     if (!res.ok) return [];
     const json = (await res.json()) as { data?: { Page?: { media?: AniListRandomNode[] } } };
-    return (json.data?.Page?.media ?? []).map((m) => ({
+    const media = (json.data?.Page?.media ?? []).filter((m) => {
+      if (m.isAdult) return false;
+      if (mode === "all" && genres.length > 0) {
+        return genres.every((g) => m.genres.includes(g));
+      }
+      return true;
+    });
+    return media.map((m) => ({
       id: `anilist-${m.id}`,
       source: "anilist" as const,
       type: mediaType === "MANGA" ? ("manga" as const) : ("anime" as const),
@@ -136,38 +171,39 @@ async function anilistRandom(mediaType: "ANIME" | "MANGA", genre: string | null)
 }
 
 export async function getRandomTitles(filters: RandomFilters): Promise<UnifiedSearchResult[]> {
-  const want = filters.genre && filters.genre.length > 0 ? filters.genre : null;
+  const want = filters.genres ?? [];
+  const mode: GenreMode = filters.mode ?? "any";
   let pool: UnifiedSearchResult[] = [];
 
   if (filters.type === "movie") {
-    const id = movieGenreId(want);
-    if (want && id === null) return [];
-    pool = await tmdbRandom("movie", id);
+    const ids = movieGenreIds(want);
+    if (want.length > 0 && ids.length === 0) return [];
+    pool = await tmdbRandom("movie", ids, mode);
   } else if (filters.type === "series") {
-    const id = tvGenreId(want);
-    if (want && id === null) return [];
-    pool = await tmdbRandom("tv", id);
+    const ids = tvGenreIds(want);
+    if (want.length > 0 && ids.length === 0) return [];
+    pool = await tmdbRandom("tv", ids, mode);
   } else if (filters.type === "kdrama") {
-    const id = tvGenreId(want);
-    if (want && id === null) return [];
-    pool = await tmdbRandom("tv", id, "with_origin_country=KR&with_original_language=ko");
+    const ids = tvGenreIds(want);
+    if (want.length > 0 && ids.length === 0) return [];
+    pool = await tmdbRandom("tv", ids, mode, "with_origin_country=KR&with_original_language=ko");
   } else if (filters.type === "anime") {
-    const g = anilistGenre(want);
-    if (want && g === null) return [];
-    pool = await anilistRandom("ANIME", g);
+    const g = anilistGenres(want);
+    if (want.length > 0 && g.length === 0) return [];
+    pool = await anilistRandom("ANIME", g, mode);
   } else if (filters.type === "manga") {
-    const g = anilistGenre(want);
-    if (want && g === null) return [];
-    pool = await anilistRandom("MANGA", g);
+    const g = anilistGenres(want);
+    if (want.length > 0 && g.length === 0) return [];
+    pool = await anilistRandom("MANGA", g, mode);
   } else {
-    // "any" — mix sources, but only include a source if the genre maps to it
+    // "any" — mix sources, but only include a source if every requested genre maps onto it
     const tasks: Promise<UnifiedSearchResult[]>[] = [];
-    const mId = movieGenreId(want);
-    if (!want || mId !== null) tasks.push(tmdbRandom("movie", mId));
-    const tId = tvGenreId(want);
-    if (!want || tId !== null) tasks.push(tmdbRandom("tv", tId));
-    const aG = anilistGenre(want);
-    if (!want || aG !== null) tasks.push(anilistRandom("ANIME", aG));
+    const mIds = movieGenreIds(want);
+    if (want.length === 0 || mIds.length === want.length) tasks.push(tmdbRandom("movie", mIds, mode));
+    const tIds = tvGenreIds(want);
+    if (want.length === 0 || tIds.length > 0) tasks.push(tmdbRandom("tv", tIds, mode));
+    const aG = anilistGenres(want);
+    if (want.length === 0 || aG.length === want.length) tasks.push(anilistRandom("ANIME", aG, mode));
     const results = await Promise.all(tasks);
     pool = results.flat();
   }

@@ -105,14 +105,20 @@ async function tmdbFetch<T>(path: string, apiKey: string, extraParams?: Record<s
 
 export async function searchMovies(query: string, apiKey: string): Promise<TMDBMovie[]> {
   const resolvedKey = resolveApiKey(apiKey);
-  const data = await tmdbFetch<{ results: TMDBMovie[] }>("/search/movie", resolvedKey, { query });
-  return data.results;
+  const data = await tmdbFetch<{ results: TMDBMovie[] }>("/search/movie", resolvedKey, {
+    query,
+    include_adult: "false",
+  });
+  return data.results.filter((r) => !(r as TMDBMovie & { adult?: boolean }).adult);
 }
 
 export async function searchSeries(query: string, apiKey: string): Promise<TMDBSeries[]> {
   const resolvedKey = resolveApiKey(apiKey);
-  const data = await tmdbFetch<{ results: TMDBSeries[] }>("/search/tv", resolvedKey, { query });
-  return data.results;
+  const data = await tmdbFetch<{ results: TMDBSeries[] }>("/search/tv", resolvedKey, {
+    query,
+    include_adult: "false",
+  });
+  return data.results.filter((r) => !(r as TMDBSeries & { adult?: boolean }).adult);
 }
 
 export async function getMovieDetails(id: number, apiKey: string): Promise<TMDBMovie> {
