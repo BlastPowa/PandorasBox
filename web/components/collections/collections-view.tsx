@@ -3,18 +3,26 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { FolderPlus, Trash2, Library, Lock, Globe } from "lucide-react";
+import { FolderPlus, Trash2, Library, Lock, Globe, Users, EyeOff } from "lucide-react";
 import {
   listCollections,
   createCollection,
   deleteCollection,
   type Collection,
+  type CollectionVisibility,
 } from "@/lib/collections/collections";
 import { useLibrary } from "@/lib/library/use-library";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { Input } from "@/components/ui-fx/input";
 import { EmptyState } from "@/components/ui-fx/feedback";
+
+function VisibilityIcon({ visibility }: { visibility: CollectionVisibility }) {
+  if (visibility === "public") return <Globe className="size-4 text-[var(--reading)]" />;
+  if (visibility === "unlisted") return <EyeOff className="size-4 text-[var(--text-muted)]" />;
+  if (visibility === "friends") return <Users className="size-4 text-[var(--watching)]" />;
+  return <Lock className="size-4 text-[var(--text-muted)]" />;
+}
 
 export function CollectionsView() {
   const { signedIn } = useLibrary();
@@ -23,7 +31,7 @@ export function CollectionsView() {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const [visibility, setVisibility] = useState<CollectionVisibility>("public");
 
   async function load() {
     try {
@@ -45,10 +53,10 @@ export function CollectionsView() {
     if (!name.trim()) return;
     setCreating(true);
     try {
-      await createCollection(name.trim(), desc.trim(), isPublic);
+      await createCollection(name.trim(), desc.trim(), visibility);
       setName("");
       setDesc("");
-      setIsPublic(false);
+      setVisibility("public");
       toast.success("Collection created");
       await load();
     } catch (e) {
@@ -77,11 +85,19 @@ export function CollectionsView() {
             <Input placeholder="Name (e.g. Weekend Binge)" value={name} onChange={(e) => setName(e.target.value)} />
             <Input placeholder="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
           </div>
-          <div className="flex items-center justify-between">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-secondary)]">
-              <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-              {isPublic ? <Globe className="size-4" /> : <Lock className="size-4" />}
-              {isPublic ? "Public" : "Private"}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              Visibility
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as CollectionVisibility)}
+                className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm outline-none"
+              >
+                <option value="public">Public</option>
+                <option value="unlisted">Unlisted (link only)</option>
+                <option value="friends">Friends only</option>
+                <option value="private">Private</option>
+              </select>
             </label>
             <Button type="submit" loading={creating}><FolderPlus className="size-4" /> Create</Button>
           </div>
@@ -98,10 +114,11 @@ export function CollectionsView() {
             <div key={c.id} className="glass glow-ring group relative rounded-[var(--radius-lg)] p-4">
               <Link href={`/collections/${c.id}`} className="block">
                 <div className="flex items-center gap-2">
-                  {c.is_public ? <Globe className="size-4 text-[var(--reading)]" /> : <Lock className="size-4 text-[var(--text-muted)]" />}
+                  <VisibilityIcon visibility={c.visibility} />
                   <h3 className="font-display text-lg font-bold">{c.name}</h3>
                 </div>
                 {c.description && <p className="mt-1 line-clamp-2 text-sm text-[var(--text-secondary)]">{c.description}</p>}
+                <p className="mt-1 text-xs capitalize text-[var(--text-muted)]">{c.visibility}</p>
               </Link>
               <button
                 onClick={() => {

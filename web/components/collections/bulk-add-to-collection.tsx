@@ -3,75 +3,57 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { FolderPlus, Plus, Check } from "lucide-react";
+import { FolderPlus, Plus } from "lucide-react";
 import {
   listCollections,
   createCollection,
   addItemToCollection,
-  removeItemFromCollection,
-  collectionsContaining,
   type Collection,
 } from "@/lib/collections/collections";
-import { useLibrary } from "@/lib/library/use-library";
+import type { AddToCollectionItem } from "@/components/collections/add-to-collection";
 
-export interface AddToCollectionItem {
-  id: string;
-  type: string;
-  source: string;
-  title: string;
-  posterUrl: string | null;
-  year: number | null;
-  anilistId: number | null;
-  tmdbId: number | null;
-  mangadexId: string | null;
-}
-
-export function AddToCollection({ item }: { item: AddToCollectionItem }) {
-  const { signedIn } = useLibrary();
+/** Adds many library items to a chosen collection at once. */
+export function BulkAddToCollection({
+  items,
+  onDone,
+}: {
+  items: AddToCollectionItem[];
+  onDone?: () => void;
+}) {
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [contained, setContained] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const [newName, setNewName] = useState("");
 
   async function ensureLoaded() {
     if (loaded) return;
     try {
-      const list = await listCollections();
-      setCollections(list);
-      setContained(await collectionsContaining(item.id, list.map((c) => c.id)));
+      setCollections(await listCollections());
     } finally {
       setLoaded(true);
     }
   }
 
-  if (!signedIn) return null;
-
-  async function toggle(c: Collection) {
-    const has = contained.has(c.id);
-    try {
-      if (has) {
-        await removeItemFromCollection(c.id, item.id);
-        setContained((prev) => { const n = new Set(prev); n.delete(c.id); return n; });
-        toast.success(`Removed from "${c.name}"`);
-      } else {
-        await addItemToCollection(c.id, item);
-        setContained((prev) => new Set(prev).add(c.id));
-        toast.success(`Added to "${c.name}"`);
+  async function addAll(collectionId: string, name: string) {
+    let ok = 0;
+    for (const it of items) {
+      try {
+        await addItemToCollection(collectionId, it);
+        ok += 1;
+      } catch {
+        // continue; report the count below
       }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not update");
     }
+    toast.success(`Added ${ok} title${ok === 1 ? "" : "s"} to "${name}"`);
+    onDone?.();
   }
 
   async function createAndAdd() {
     if (!newName.trim()) return;
     try {
       const c = await createCollection(newName.trim(), "", "public");
-      await addItemToCollection(c.id, item);
       setNewName("");
       setCollections((prev) => [c, ...prev]);
-      setContained((prev) => new Set(prev).add(c.id));
-      toast.success(`Created "${c.name}" and added`);
+      await addAll(c.id, c.name);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not create");
     }
@@ -80,13 +62,13 @@ export function AddToCollection({ item }: { item: AddToCollectionItem }) {
   return (
     <DropdownMenu.Root onOpenChange={(o) => o && void ensureLoaded()}>
       <DropdownMenu.Trigger asChild>
-        <button className="glass glow-ring inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] px-4 text-sm font-semibold">
-          <FolderPlus className="size-4 text-[var(--accent)]" /> Collection
+        <button className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-3 py-2 text-xs font-bold text-[#0a0a0f]">
+          <FolderPlus className="size-4" /> Add {items.length} to collection
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          align="start"
+          align="end"
           sideOffset={6}
           className="z-50 w-64 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] p-1 shadow-2xl"
         >
@@ -94,22 +76,18 @@ export function AddToCollection({ item }: { item: AddToCollectionItem }) {
             {collections.length === 0 && (
               <p className="px-3 py-2 text-xs text-[var(--text-muted)]">No collections yet — create one below.</p>
             )}
-            {collections.map((c) => {
-              const has = contained.has(c.id);
-              return (
-                <DropdownMenu.Item
-                  key={c.id}
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    void toggle(c);
-                  }}
-                  className="flex cursor-pointer items-center justify-between rounded-[8px] px-3 py-2 text-sm text-[var(--text-secondary)] outline-none focus:bg-[var(--glass)] focus:text-[var(--text)]"
-                >
-                  {c.name}
-                  <Check className={`size-3.5 text-[var(--accent)] ${has ? "opacity-100" : "opacity-0"}`} />
-                </DropdownMenu.Item>
-              );
-            })}
+            {collections.map((c) => (
+              <DropdownMenu.Item
+                key={c.id}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  void addAll(c.id, c.name);
+                }}
+                className="cursor-pointer rounded-[8px] px-3 py-2 text-sm text-[var(--text-secondary)] outline-none focus:bg-[var(--glass)] focus:text-[var(--text)]"
+              >
+                {c.name}
+              </DropdownMenu.Item>
+            ))}
           </div>
           <DropdownMenu.Separator className="my-1 h-px bg-[var(--border)]" />
           <div className="flex items-center gap-1 p-1">

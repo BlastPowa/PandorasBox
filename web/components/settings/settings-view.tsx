@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, Upload, LogOut, QrCode, ClipboardList, Sparkles } from "lucide-react";
+import { Download, Upload, LogOut, QrCode, ClipboardList, Sparkles, FileCode2 } from "lucide-react";
 import { encodeListToQR, decodeListFromQR, validateDecodedList } from "@core/sync/qrSync";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { createDefaultProgress, type ReelItem, type ReelItemStatus } from "@core/storage/schema";
@@ -13,11 +13,19 @@ import { Input } from "@/components/ui-fx/input";
 import { AvatarUpload } from "@/components/settings/avatar-upload";
 import { BulkImportModal } from "@/components/settings/bulk-import-modal";
 import { IntegrationsSection } from "@/components/settings/integrations-section";
+import { MatchPickerModal, type AmbiguousEntry, type MatchDecision } from "@/components/settings/match-picker-modal";
+import { ImportSummary, type ImportSummaryData } from "@/components/settings/import-summary";
+import { parseMalXml, parseTxtList, type ParsedImportRow } from "@/lib/import/xml-parser";
+import { searchCandidates, classifyCandidates } from "@/lib/import/match";
 
-function resultToItem(r: UnifiedSearchResult, status: ReelItemStatus): Omit<ReelItem, "addedAt" | "updatedAt"> {
-  const progress = createDefaultProgress();
-  progress.totalEpisodes = r.totalEpisodes;
-  progress.totalChapters = r.totalChapters;
+function resultToItem(r: UnifiedSearchResult, status: ReelItemStatus, progress?: number | null): Omit<ReelItem, "addedAt" | "updatedAt"> {
+  const prog = createDefaultProgress();
+  prog.totalEpisodes = r.totalEpisodes;
+  prog.totalChapters = r.totalChapters;
+  if (progress != null) {
+    if (r.type === "manga" || r.type === "manhwa") prog.currentChapter = progress;
+    else prog.currentEpisode = progress;
+  }
   return {
     id: r.id,
     source: r.source,
@@ -27,7 +35,7 @@ function resultToItem(r: UnifiedSearchResult, status: ReelItemStatus): Omit<Reel
     backdropUrl: null,
     synopsis: r.synopsis,
     status,
-    progress,
+    progress: prog,
     rating: null,
     genres: [],
     totalEpisodes: r.totalEpisodes,
@@ -58,8 +66,12 @@ export function SettingsView({
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [pendingMatches, setPendingMatches] = useState<UnifiedSearchResult[]>([]);
-  const [missedCount, setMissedCount] = useState(0);
+  const [statusHints, setStatusHints] = useState<Map<string, ReelItemStatus>>(new Map());
+  const [progressHints, setProgressHints] = useState<Map<string, number>>(new Map());
+  const [ambiguousQueue, setAmbiguousQueue] = useState<AmbiguousEntry[]>([]);
+  const [summary, setSummary] = useState<ImportSummaryData | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const xmlRef = useRef<HTMLInputElement>(null);
 
   function exportJson() {
     const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
@@ -101,51 +113,93 @@ export function SettingsView({
     }
   }
 
-  // Paste-import: one title per line, matched via unified search (works from MAL, Notes, anywhere).
-  // Matches are collected first, then the user picks a status for each (or all at once)
-  // in a popup before anything is actually added — no need to fix statuses one by one after.
-  async function importFromText() {
-    const lines = Array.from(
-      new Set(
-        pasteText
-          .split("\n")
-          .map((l) => l.replace(/^\s*[-*\d.)\]]+\s*/, "").trim())
-          .filter((l) => l.length >= 2)
-      )
-    ).slice(0, 100);
-    if (lines.length === 0) {
-      toast.error("Paste at least one title (one per line).");
+  /** Shared engine for both pasted-text and MAL-XML imports. */
+  async function runImport(rows: ParsedImportRow[]) {
+    if (rows.length === 0) {
+      toast.error("Nothing to import.");
       return;
     }
     setImporting(true);
-    setProgress({ done: 0, total: lines.length });
+    setProgress({ done: 0, total: rows.length });
+    setSummary(null);
+
     const existing = new Set(items.map((i) => i.id));
     const matches: UnifiedSearchResult[] = [];
-    let missed = 0;
-    for (let i = 0; i < lines.length; i += 1) {
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(lines[i])}`);
-        const json = (await res.json()) as { results: UnifiedSearchResult[] };
-        const best = json.results?.[0];
-        if (best && !existing.has(best.id)) {
-          matches.push(best);
-          existing.add(best.id);
-        } else if (!best) {
-          missed += 1;
+    const newStatusHints = new Map<string, ReelItemStatus>();
+    const newProgressHints = new Map<string, number>();
+    const ambiguous: AmbiguousEntry[] = [];
+    const unmatched: string[] = [];
+    const duplicates: string[] = [];
+
+    for (let i = 0; i < rows.length; i += 1) {
+      const row = rows[i];
+      const candidates = await searchCandidates(row.title);
+      const outcome = classifyCandidates(row.title, candidates);
+      if (outcome.kind === "unmatched") {
+        unmatched.push(row.title);
+      } else if (outcome.kind === "ambiguous") {
+        ambiguous.push({ query: row.title, candidates: outcome.candidates });
+      } else {
+        const r = outcome.result;
+        if (existing.has(r.id)) {
+          duplicates.push(row.title);
+        } else if (!matches.some((m) => m.id === r.id)) {
+          matches.push(r);
+          existing.add(r.id);
+          if (row.status) newStatusHints.set(r.id, row.status);
+          if (row.progress != null) newProgressHints.set(r.id, row.progress);
         }
-      } catch {
-        missed += 1;
       }
-      setProgress({ done: i + 1, total: lines.length });
+      setProgress({ done: i + 1, total: rows.length });
     }
+
     setImporting(false);
     setProgress(null);
-    setMissedCount(missed);
-    if (matches.length === 0) {
-      toast.error(missed > 0 ? `No matches found for ${missed} title(s).` : "Nothing new to import.");
+    setStatusHints(newStatusHints);
+    setProgressHints(newProgressHints);
+    setSummary({ imported: [], skipped: [], unmatched, duplicates });
+
+    if (ambiguous.length > 0) {
+      setAmbiguousQueue(ambiguous);
+    } else if (matches.length > 0) {
+      setPendingMatches(matches);
+    } else if (unmatched.length === 0 && duplicates.length === 0) {
+      toast.info("Nothing new found.");
+    }
+  }
+
+  async function importFromText() {
+    await runImport(parseTxtList(pasteText));
+  }
+
+  async function importFromXml(file: File) {
+    const text = await file.text();
+    const rows = parseMalXml(text);
+    if (!rows) {
+      toast.error("That doesn't look like a MyAnimeList XML export.");
       return;
     }
-    setPendingMatches(matches);
+    await runImport(rows);
+  }
+
+  function resolveAmbiguous(decision: MatchDecision) {
+    const current = ambiguousQueue[0];
+    if (!current) return;
+
+    if (decision.action === "choose") {
+      const r = decision.result;
+      const existingIds = new Set(items.map((i) => i.id));
+      if (existingIds.has(r.id)) {
+        setSummary((s) => s && { ...s, duplicates: [...s.duplicates, current.query] });
+      } else {
+        setPendingMatches((pm) => (pm.some((m) => m.id === r.id) ? pm : [...pm, r]));
+      }
+    } else if (decision.action === "skip") {
+      setSummary((s) => s && { ...s, skipped: [...s.skipped, current.query] });
+    }
+    // "ignore" drops silently, not counted anywhere
+
+    setAmbiguousQueue((prev) => prev.slice(1));
   }
 
   async function confirmBulkImport(statuses: Map<string, ReelItemStatus>) {
@@ -153,15 +207,31 @@ export function SettingsView({
     setPendingMatches([]);
     setPasteText("");
     let added = 0;
+    const importedResults: UnifiedSearchResult[] = [];
     for (const item of toAdd) {
       try {
-        await add(resultToItem(item, statuses.get(item.id) ?? "planned"));
+        const status = statuses.get(item.id) ?? statusHints.get(item.id) ?? "planned";
+        await add(resultToItem(item, status, progressHints.get(item.id)));
         added += 1;
+        importedResults.push(item);
       } catch {
-        // skip failures silently, report the count below
+        // skip failures silently, reflected in the final counts below
       }
     }
-    toast.success(`Added ${added} title${added === 1 ? "" : "s"}${missedCount > 0 ? ` · ${missedCount} not found` : ""}`);
+    setSummary((s) => (s ? { ...s, imported: [...s.imported, ...importedResults] } : s));
+    toast.success(`Added ${added} title${added === 1 ? "" : "s"}`);
+  }
+
+  function retryMatch(query: string, result: UnifiedSearchResult) {
+    setSummary((s) => {
+      if (!s) return s;
+      return {
+        ...s,
+        unmatched: s.unmatched.filter((t) => t !== query),
+        skipped: s.skipped.filter((t) => t !== query),
+      };
+    });
+    setPendingMatches((pm) => (pm.some((m) => m.id === result.id) ? pm : [...pm, result]));
   }
 
   return (
@@ -196,9 +266,9 @@ export function SettingsView({
             <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
             <span>
               New here? Paste a list of titles from MyAnimeList, Letterboxd, iPhone Notes, a spreadsheet — anywhere —
-              one per line. We&apos;ll find each one, then let you set the status for every match (or all at once)
-              before anything&apos;s added — no need to fix them one by one after. Or use a Pandora&apos;s Box
-              JSON/code export below.
+              one per line, or upload a MyAnimeList XML export to bring statuses and progress with you. We&apos;ll
+              find each title, flag anything ambiguous so you pick the right one, and show you exactly what was
+              imported, skipped, unmatched, or already in your library.
             </span>
           </div>
           <textarea
@@ -209,10 +279,24 @@ export function SettingsView({
             disabled={!signedIn || importing}
             className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"
           />
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button onClick={importFromText} loading={importing} disabled={!signedIn}>
               <ClipboardList className="size-4" /> Import pasted list
             </Button>
+            <Button variant="glass" onClick={() => xmlRef.current?.click()} disabled={!signedIn || importing}>
+              <FileCode2 className="size-4" /> Import MAL XML export
+            </Button>
+            <input
+              ref={xmlRef}
+              type="file"
+              accept=".xml,text/xml,application/xml"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) await importFromXml(file);
+                e.target.value = "";
+              }}
+            />
             {progress && (
               <span className="font-mono text-xs text-[var(--text-muted)]">
                 {progress.done}/{progress.total}…
@@ -221,6 +305,10 @@ export function SettingsView({
           </div>
         </div>
       </GlassCard>
+
+      {summary && (
+        <ImportSummary data={summary} onRetryMatch={retryMatch} />
+      )}
 
       <GlassCard macDots title="Backup &amp; transfer">
         <div className="space-y-4 p-5">
@@ -272,9 +360,12 @@ export function SettingsView({
         </div>
       </GlassCard>
 
+      <MatchPickerModal entry={ambiguousQueue[0] ?? null} onResolve={resolveAmbiguous} />
+
       <BulkImportModal
         items={pendingMatches}
-        open={pendingMatches.length > 0}
+        open={pendingMatches.length > 0 && ambiguousQueue.length === 0}
+        initialStatuses={statusHints}
         onCancel={() => setPendingMatches([])}
         onConfirm={(statuses) => void confirmBulkImport(statuses)}
       />

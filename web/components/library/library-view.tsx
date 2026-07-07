@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, BarChart3, SlidersHorizontal, Trash2, Check } from "lucide-react";
+import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, X } from "lucide-react";
 import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";
 import { formatProgress, getStatusLabel } from "@core/utils/formatters";
 import { useLibrary, useLibraryStats } from "@/lib/library/use-library";
@@ -11,6 +11,8 @@ import { RatingStars } from "@/components/ui-fx/rating-stars";
 import { Pill, TypeBadge, StatusBadge } from "@/components/ui-fx/badge";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { Button } from "@/components/ui-fx/button";
+import { BulkAddToCollection } from "@/components/collections/bulk-add-to-collection";
+import type { AddToCollectionItem } from "@/components/collections/add-to-collection";
 
 const STATUS_TABS: { key: ReelItemStatus | "all"; label: string }[] = [
   { key: "all", label: "All" },
@@ -40,6 +42,16 @@ export function LibraryView() {
   const [type, setType] = useState<ReelItemType | "all">("all");
   const [sort, setSort] = useState<SortKey>("updated");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  }
 
   const filtered = useMemo(() => {
     let list = items.slice();
@@ -106,13 +118,48 @@ export function LibraryView() {
         <Link href="/stats" className="glass inline-flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]">
           <BarChart3 className="size-4" /> Stats
         </Link>
-        <button
-          onClick={() => setShowFilters((v) => !v)}
-          className="glass inline-flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]"
-        >
-          <SlidersHorizontal className="size-4" /> Filters
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setSelectMode((v) => !v); setSelected(new Set()); }}
+            className={`inline-flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold ${selectMode ? "bg-[var(--accent)] text-[#0a0a0f]" : "glass text-[var(--text-secondary)] hover:text-[var(--text)]"}`}
+          >
+            <CheckSquare className="size-4" /> {selectMode ? "Done" : "Select"}
+          </button>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className="glass inline-flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]"
+          >
+            <SlidersHorizontal className="size-4" /> Filters
+          </button>
+        </div>
       </div>
+
+      {selectMode && (
+        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--bg-elevated)]/95 p-2.5 backdrop-blur-xl">
+          <span className="text-sm font-semibold">{selected.size} selected</span>
+          <div className="flex items-center gap-2">
+            {selected.size > 0 && (
+              <BulkAddToCollection
+                items={filtered.filter((i) => selected.has(i.id)).map(toCollectionItem)}
+                onDone={() => { setSelected(new Set()); setSelectMode(false); }}
+              />
+            )}
+            <button
+              onClick={() => setSelected(new Set(filtered.map((i) => i.id)))}
+              className="glass rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)]"
+            >
+              Select all
+            </button>
+            <button
+              onClick={() => { setSelected(new Set()); setSelectMode(false); }}
+              className="glass grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)]"
+              aria-label="Cancel selection"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showFilters && (
         <div className="glass space-y-3 rounded-[var(--radius-md)] p-3">
@@ -164,6 +211,9 @@ export function LibraryView() {
               <tbody>
                 {filtered.map((item, idx) => (
                   <LibraryRow key={item.id} item={item} index={idx + 1}
+                    selectMode={selectMode}
+                    selected={selected.has(item.id)}
+                    onToggleSelect={() => toggleSelect(item.id)}
                     onRate={(v) => void setRating(item.id, v)}
                     onNext={() => void advance(item, markEpisode, markChapter)}
                     onComplete={() => void markComplete(item.id)}
@@ -178,6 +228,9 @@ export function LibraryView() {
           <div className="space-y-2 md:hidden">
             {filtered.map((item) => (
               <LibraryCard key={item.id} item={item}
+                selectMode={selectMode}
+                selected={selected.has(item.id)}
+                onToggleSelect={() => toggleSelect(item.id)}
                 onRate={(v) => void setRating(item.id, v)}
                 onNext={() => void advance(item, markEpisode, markChapter)}
                 onRemove={() => void remove(item.id)}
@@ -188,6 +241,20 @@ export function LibraryView() {
       )}
     </div>
   );
+}
+
+function toCollectionItem(i: ReelItem): AddToCollectionItem {
+  return {
+    id: i.id,
+    type: i.type,
+    source: i.source,
+    title: i.title,
+    posterUrl: i.posterUrl,
+    year: i.year,
+    anilistId: i.anilistId,
+    tmdbId: i.tmdbId,
+    mangadexId: i.mangadexId,
+  };
 }
 
 function advance(
@@ -210,14 +277,21 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function LibraryRow({ item, index, onRate, onNext, onComplete, onRemove }: {
+function LibraryRow({ item, index, selectMode, selected, onToggleSelect, onRate, onNext, onComplete, onRemove }: {
   item: ReelItem; index: number;
+  selectMode: boolean; selected: boolean; onToggleSelect: () => void;
   onRate: (v: number) => void; onNext: () => void; onComplete: () => void; onRemove: () => void;
 }) {
   const href = `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
   return (
-    <tr className="border-t border-[var(--border)] transition-colors hover:bg-[var(--glass)]">
-      <td className="px-3 py-2 font-mono text-xs text-[var(--text-muted)]">{index}</td>
+    <tr className={`border-t border-[var(--border)] transition-colors hover:bg-[var(--glass)] ${selected ? "bg-[rgba(168,85,247,0.12)]" : ""}`}>
+      <td className="px-3 py-2 font-mono text-xs text-[var(--text-muted)]">
+        {selectMode ? (
+          <input type="checkbox" checked={selected} onChange={onToggleSelect} className="size-4 accent-[var(--accent)]" />
+        ) : (
+          index
+        )}
+      </td>
       <td className="px-2 py-2">
         <Link href={href} className="relative block h-14 w-10 overflow-hidden rounded-[6px] bg-[var(--bg-elevated)]">
           {item.posterUrl && <Image src={item.posterUrl} alt="" fill sizes="40px" className="object-cover" />}
@@ -241,12 +315,18 @@ function LibraryRow({ item, index, onRate, onNext, onComplete, onRemove }: {
   );
 }
 
-function LibraryCard({ item, onRate, onNext, onRemove }: {
-  item: ReelItem; onRate: (v: number) => void; onNext: () => void; onRemove: () => void;
+function LibraryCard({ item, selectMode, selected, onToggleSelect, onRate, onNext, onRemove }: {
+  item: ReelItem; selectMode: boolean; selected: boolean; onToggleSelect: () => void;
+  onRate: (v: number) => void; onNext: () => void; onRemove: () => void;
 }) {
   const href = `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
   return (
-    <div className="glass flex gap-3 rounded-[var(--radius-md)] p-2.5">
+    <div className={`glass flex gap-3 rounded-[var(--radius-md)] p-2.5 ${selected ? "ring-2 ring-[var(--accent)]" : ""}`}>
+      {selectMode && (
+        <label className="flex items-center pl-1">
+          <input type="checkbox" checked={selected} onChange={onToggleSelect} className="size-5 accent-[var(--accent)]" />
+        </label>
+      )}
       <Link href={href} className="relative h-20 w-14 shrink-0 overflow-hidden rounded-[8px] bg-[var(--bg-elevated)]">
         {item.posterUrl && <Image src={item.posterUrl} alt="" fill sizes="56px" className="object-cover" />}
       </Link>

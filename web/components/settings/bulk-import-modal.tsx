@@ -19,16 +19,18 @@ function defaultStatusFor(item: UnifiedSearchResult): ReelItemStatus {
 export function BulkImportModal({
   items,
   open,
+  initialStatuses,
   onCancel,
   onConfirm,
 }: {
   items: UnifiedSearchResult[];
   open: boolean;
+  initialStatuses?: Map<string, ReelItemStatus>;
   onCancel: () => void;
   onConfirm: (statuses: Map<string, ReelItemStatus>) => void;
 }) {
   const [statuses, setStatuses] = useState<Map<string, ReelItemStatus>>(
-    () => new Map(items.map((i) => [i.id, defaultStatusFor(i)]))
+    () => new Map(items.map((i) => [i.id, initialStatuses?.get(i.id) ?? defaultStatusFor(i)]))
   );
 
   function setOne(id: string, status: ReelItemStatus) {

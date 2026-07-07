@@ -167,7 +167,19 @@ export default async function TitlePage({
                 totalSeasons={detail.totalSeasons}
                 title={detail.title}
               />
-              <AddToCollection itemId={detail.id} />
+              <AddToCollection
+                item={{
+                  id: detail.id,
+                  type: detail.type,
+                  source: detail.source,
+                  title: detail.title,
+                  posterUrl: detail.posterUrl,
+                  year: detail.year,
+                  anilistId: detail.anilistId,
+                  tmdbId: detail.tmdbId,
+                  mangadexId: detail.mangadexId,
+                }}
+              />
             </div>
           </div>
         </div>
