@@ -14,6 +14,7 @@ import {
   Trophy,
   Star,
   Users,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/search", label: "Search", icon: Search },
   { href: "/library", label: "My Library", icon: Library, bottom: true },
   { href: "/collections", label: "Collections", icon: FolderHeart },
+  { href: "/comics", label: "Comics", icon: BookOpen },
   { href: "/friends", label: "Friends", icon: Users },
   { href: "/rankings", label: "My Rankings", icon: Trophy },
   { href: "/episode-ratings", label: "Episode Ratings", icon: Star },

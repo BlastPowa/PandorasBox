@@ -39,6 +39,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "uploads.mangadex.org" },
       { protocol: "https", hostname: "mangadex.org" },
       { protocol: "https", hostname: "cdn.myanimelist.net" },
+      { protocol: "https", hostname: "comicvine.gamespot.com" },
+      { protocol: "https", hostname: "static.comicvine.com" },
     ],
   },
   // Tree-shakes barrel-style imports from these packages so pages only ship
