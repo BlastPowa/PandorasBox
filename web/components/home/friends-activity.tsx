@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { fetchProfilesByIds, type ProfileSummary } from "@/lib/friends/friends";
+import { fetchProfilesByIds, listMyFriendships, type ProfileSummary } from "@/lib/friends/friends";
 import { useLibrary } from "@/lib/library/use-library";
 
 interface ActivityRow {
@@ -39,10 +39,25 @@ export function FriendsActivity() {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
+
+      // Only show activity from people who are actually accepted friends —
+      // the "activity" RLS policy also allows reading any public-profile
+      // user's activity, which is correct for public profile pages but must
+      // NOT leak into a section explicitly labeled "Friends Activity".
+      const friendships = await listMyFriendships();
+      const friendIds = friendships
+        .filter((f) => f.status === "accepted")
+        .map((f) => (f.requester === uid ? f.addressee : f.requester));
+
+      if (friendIds.length === 0) {
+        if (!cancelled) setLoaded(true);
+        return;
+      }
+
       const { data } = await supabase
         .from("activity")
         .select("id, user_id, verb, title, poster_url, created_at")
-        .neq("user_id", uid)
+        .in("user_id", friendIds)
         .order("created_at", { ascending: false })
         .limit(12);
       if (cancelled) return;

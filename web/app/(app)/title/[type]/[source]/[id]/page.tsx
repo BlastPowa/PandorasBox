@@ -191,22 +191,39 @@ export default async function TitlePage({
               <section>
                 <h2 className="mb-3 font-display text-xl font-bold">Cast</h2>
                 <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
-                  {(detail.cast ?? []).map((c, i) => (
-                    <div key={`${c.name}-${i}`} className="w-24 shrink-0 text-center">
+                  {(detail.cast ?? []).map((c, i) => {
+                    const avatar = (
                       <div className="relative mx-auto aspect-square w-20 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
                         {c.profileUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={c.profileUrl} alt={c.name} className="size-full object-cover" loading="lazy" />
+                          <Image src={c.profileUrl} alt={c.name} fill sizes="80px" className="object-cover" />
                         ) : (
                           <div className="grid size-full place-items-center font-display text-lg text-[var(--text-muted)]">
                             {c.name.charAt(0)}
                           </div>
                         )}
                       </div>
-                      <div className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{c.name}</div>
-                      {c.character && <div className="line-clamp-1 text-[10px] text-[var(--text-muted)]">{c.character}</div>}
-                    </div>
-                  ))}
+                    );
+                    const body = (
+                      <>
+                        {avatar}
+                        <div className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{c.name}</div>
+                        {c.character && <div className="line-clamp-1 text-[10px] text-[var(--text-muted)]">{c.character}</div>}
+                      </>
+                    );
+                    return c.id ? (
+                      <Link
+                        key={`${c.name}-${i}`}
+                        href={`/person/${c.source}/${c.id}`}
+                        className="w-24 shrink-0 text-center transition-opacity hover:opacity-80"
+                      >
+                        {body}
+                      </Link>
+                    ) : (
+                      <div key={`${c.name}-${i}`} className="w-24 shrink-0 text-center">
+                        {body}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

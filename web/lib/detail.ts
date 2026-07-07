@@ -18,6 +18,7 @@ import { getMangaDexManga, getMangaDexChapters, getMangaDexCoverUrl } from "@cor
 import type { MangaDexChapter } from "@core/api/mangadex";
 import { getAllWatchOptions } from "@core/api/watchProviders";
 import type { WatchOption } from "@core/api/watchProviders";
+import { indexTitle } from "@/lib/memory-search/index-writer";
 
 export interface DetailData {
   id: string;
@@ -51,6 +52,8 @@ export interface DetailData {
 }
 
 export interface CastMember {
+  id: number | null;
+  source: "tmdb" | "anilist";
   name: string;
   character: string;
   profileUrl: string | null;
@@ -62,11 +65,12 @@ export interface Rating {
 }
 
 interface TMDBCredits {
-  cast?: { name: string; character: string; profile_path: string | null; order: number }[];
+  cast?: { id: number; name: string; character: string; profile_path: string | null; order: number }[];
 }
 
 interface TMDBAggregateCredits {
   cast?: {
+    id: number;
     name: string;
     profile_path: string | null;
     order: number;
@@ -89,6 +93,8 @@ async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promi
         .sort((a, b) => a.order - b.order)
         .slice(0, MAX_CAST)
         .map((c) => ({
+          id: c.id,
+          source: "tmdb" as const,
           name: c.name,
           character: c.character,
           profileUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
@@ -108,6 +114,8 @@ async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promi
         .sort((a, b) => a.order - b.order)
         .slice(0, MAX_CAST)
         .map((c) => ({
+          id: c.id,
+          source: "tmdb" as const,
           name: c.name,
           character: c.roles?.[0]?.character ?? "",
           profileUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
@@ -125,6 +133,8 @@ async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promi
       .sort((a, b) => a.order - b.order)
       .slice(0, MAX_CAST)
       .map((c) => ({
+        id: c.id,
+        source: "tmdb" as const,
         name: c.name,
         character: c.character,
         profileUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
@@ -181,6 +191,16 @@ export async function getDetail(
           getTmdbCast("movie", numId, tmdbKey),
           getOmdbRatings(m.title, m.release_date ? Number.parseInt(m.release_date.slice(0, 4), 10) || null : null),
         ]);
+        const movieYear = m.release_date ? Number.parseInt(m.release_date.slice(0, 4), 10) || null : null;
+        indexTitle({
+          mediaKey: `tmdb-${numId}`,
+          mediaType: "movie",
+          title: m.title,
+          year: movieYear,
+          posterUrl: m.poster_path ? getPosterUrl(m.poster_path) : null,
+          synopsis: m.overview || null,
+          genres: [],
+        });
         return {
           id: `tmdb-${numId}`,
           type: "movie",
@@ -193,7 +213,7 @@ export async function getDetail(
           posterUrl: m.poster_path ? getPosterUrl(m.poster_path) : null,
           backdropUrl: m.backdrop_path ? getBackdropUrl(m.backdrop_path) : null,
           synopsis: m.overview || null,
-          year: m.release_date ? Number.parseInt(m.release_date.slice(0, 4), 10) || null : null,
+          year: movieYear,
           score: m.vote_average > 0 ? m.vote_average : null,
           genres: [],
           status: null,
@@ -229,6 +249,16 @@ export async function getDetail(
         getTmdbCast("tv", numId, tmdbKey),
         getOmdbRatings(s.name, s.first_air_date ? Number.parseInt(s.first_air_date.slice(0, 4), 10) || null : null),
       ]);
+      const seriesYear = s.first_air_date ? Number.parseInt(s.first_air_date.slice(0, 4), 10) || null : null;
+      indexTitle({
+        mediaKey: `tmdb-${numId}`,
+        mediaType: "series",
+        title: s.name,
+        year: seriesYear,
+        posterUrl: s.poster_path ? getPosterUrl(s.poster_path) : null,
+        synopsis: s.overview || null,
+        genres: [],
+      });
       return {
         id: `tmdb-${numId}`,
         type: "series",
@@ -241,7 +271,7 @@ export async function getDetail(
         posterUrl: s.poster_path ? getPosterUrl(s.poster_path) : null,
         backdropUrl: s.backdrop_path ? getBackdropUrl(s.backdrop_path) : null,
         synopsis: s.overview || null,
-        year: s.first_air_date ? Number.parseInt(s.first_air_date.slice(0, 4), 10) || null : null,
+        year: seriesYear,
         score: s.vote_average > 0 ? s.vote_average : null,
         genres: [],
         status: s.status,
@@ -289,6 +319,17 @@ export async function getDetail(
         }
       }
 
+      const anilistTitle = media.title.english ?? media.title.romaji;
+      indexTitle({
+        mediaKey: `anilist-${media.id}`,
+        mediaType: isManga ? "manga" : "anime",
+        title: anilistTitle,
+        altTitles: [media.title.romaji],
+        year: media.seasonYear,
+        posterUrl: media.coverImage.extraLarge ?? media.coverImage.large,
+        synopsis: media.description ? formatAniListDescription(media.description) : null,
+        genres: media.genres,
+      });
       return {
         id: `anilist-${media.id}`,
         type,
@@ -297,7 +338,7 @@ export async function getDetail(
         anilistId: media.id,
         mangadexId: null,
         malId: media.idMal,
-        title: media.title.english ?? media.title.romaji,
+        title: anilistTitle,
         posterUrl: media.coverImage.extraLarge ?? media.coverImage.large,
         backdropUrl: media.bannerImage,
         synopsis: media.description ? formatAniListDescription(media.description) : null,
@@ -336,6 +377,16 @@ export async function getDetail(
         chapters = [];
       }
       const title = manga.attributes.title.en ?? Object.values(manga.attributes.title)[0] ?? "Untitled";
+      const mangaGenres = manga.attributes.tags.map((t) => t.attributes.name.en).filter(Boolean).slice(0, 8);
+      indexTitle({
+        mediaKey: `mangadex-${manga.id}`,
+        mediaType: type === "manhwa" ? "manhwa" : "manga",
+        title,
+        year: manga.attributes.year,
+        posterUrl: coverUrl,
+        synopsis: manga.attributes.description.en ?? null,
+        genres: mangaGenres,
+      });
       return {
         id: `mangadex-${manga.id}`,
         type: type === "manhwa" ? "manhwa" : "manga",
@@ -350,7 +401,7 @@ export async function getDetail(
         synopsis: manga.attributes.description.en ?? null,
         year: manga.attributes.year,
         score: null,
-        genres: manga.attributes.tags.map((t) => t.attributes.name.en).filter(Boolean).slice(0, 8),
+        genres: mangaGenres,
         status: manga.attributes.status,
         runtime: null,
         totalEpisodes: null,
