@@ -13,6 +13,7 @@ import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row"
 import { MyPanel } from "@/components/home/my-panel";
 import { FriendsActivity } from "@/components/home/friends-activity";
 import { AnnouncementsBar } from "@/components/home/announcements-bar";
+import { AmbientBackground } from "@/components/home/ambient-background";
 
 export const revalidate = 1800;
 
@@ -47,23 +48,33 @@ async function HomeContent() {
     getUpcomingMovies("US"),
   ]);
 
-  const heroPool = [...movies.slice(0, 2), ...anime.slice(0, 3), ...series.slice(0, 1)];
+  // The hero is the page's full-bleed background, so only titles with wide
+  // 16:9 artwork qualify. TMDB movies/series lead (near-universal backdrops);
+  // anime fills in when it has a banner.
+  const heroPool = [
+    ...movies.slice(0, 3),
+    ...series.slice(0, 1),
+    ...anime.slice(0, 3),
+  ].filter((i) => i.backdropUrl);
   const comingSoon = [...upMovies.slice(0, 10), ...upAnime.slice(0, 10)]
     .sort((a, b) => a.timestamp - b.timestamp)
     .map(scheduleToResult);
 
+  const heroItems = heroPool.length > 0 ? heroPool : anime.filter((i) => i.backdropUrl);
+
   return (
     <div className="space-y-8">
+      <AmbientBackground imageUrl={heroItems[0]?.backdropUrl ?? null} />
       <AnnouncementsBar />
-      <MyPanel />
-      <FriendsActivity />
-      <Hero items={heroPool.length > 0 ? heroPool : anime} />
+      <Hero items={heroItems} />
       <PosterRow
         title="Trending Anime"
         subtitle="What everyone's watching right now"
         items={anime}
         viewAllHref="/browse/trending-anime"
       />
+      <MyPanel />
+      <FriendsActivity />
       {comingSoon.length > 0 && (
         <PosterRow title="Coming Soon" subtitle="Announced & upcoming releases" items={comingSoon} />
       )}

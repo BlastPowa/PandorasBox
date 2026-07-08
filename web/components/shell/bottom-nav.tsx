@@ -4,18 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Home, Compass, Library, Dices, Menu, X } from "lucide-react";
-import { NAV_ITEMS } from "@/lib/nav";
+import { Menu, X } from "lucide-react";
+import { NAV_ITEMS, BOTTOM_NAV } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
-const PRIMARY = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/browse", label: "Browse", icon: Compass },
-  { href: "/library", label: "Library", icon: Library },
-  { href: "/randomize", label: "Randomize", icon: Dices },
-];
-
-const PRIMARY_HREFS = new Set(PRIMARY.map((p) => p.href));
+const PRIMARY_HREFS = new Set(BOTTOM_NAV.map((p) => p.href));
 
 export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
@@ -28,7 +21,7 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   return (
     <nav className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--bg-surface)]/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-stretch justify-around">
-        {PRIMARY.map((item) => {
+        {BOTTOM_NAV.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (

@@ -14,6 +14,8 @@ export const STREAMING_PROVIDERS: StreamingProvider[] = [
   { slug: "max", name: "Max", tmdbId: 1899 },
   { slug: "paramount-plus", name: "Paramount+", tmdbId: 531 },
   { slug: "apple-tv-plus", name: "Apple TV+", tmdbId: 350 },
+  { slug: "crunchyroll", name: "Crunchyroll", tmdbId: 283 },
+  { slug: "hidive", name: "HiDive", tmdbId: 430 },
 ];
 
 export function getStreamingProvider(slug: string): StreamingProvider | null {

@@ -18,11 +18,14 @@ import {
   getNostalgiaShows,
   getByStreamingProvider,
 } from "@/lib/discovery";
-import { STREAMING_PROVIDERS } from "@/lib/streaming-providers";
+import { getStreamingProvider } from "@/lib/streaming-providers";
 import { FRANCHISES } from "@/lib/franchises";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
+import { ProviderSwitcher } from "@/components/discovery/provider-switcher";
 
 export const revalidate = 3600;
+
+const NETFLIX = getStreamingProvider("netflix")!;
 
 async function BrowseContent() {
   const [
@@ -40,7 +43,7 @@ async function BrowseContent() {
     dcTv,
     disneyMovies,
     nostalgia,
-    streamingRows,
+    netflix,
   ] = await Promise.all([
     getPopularMovies(),
     getPopularSeries(),
@@ -56,7 +59,9 @@ async function BrowseContent() {
     getDcTv(),
     getDisneyMovies(),
     getNostalgiaShows(),
-    Promise.all(STREAMING_PROVIDERS.map((p) => getByStreamingProvider(p.tmdbId))),
+    // Only the default provider is fetched server-side; the switcher lazily
+    // loads the rest on click instead of firing 10 TMDB calls on every render.
+    getByStreamingProvider(NETFLIX.tmdbId),
   ]);
 
   const hasTmdb = movies.length > 0 || series.length > 0;
@@ -103,18 +108,7 @@ async function BrowseContent() {
       <PosterRow title="Trending Manga" items={manga} viewAllHref="/browse/trending-manga" />
       <PosterRow title="Top Rated Movies" items={topMovies} viewAllHref="/browse/top-rated-movies" />
 
-      <section className="space-y-6">
-        <h2 className="px-1 font-display text-lg font-bold">Streaming Services</h2>
-        {STREAMING_PROVIDERS.map((p, i) => (
-          <PosterRow
-            key={p.slug}
-            title={p.name}
-            subtitle="Streaming now"
-            items={streamingRows[i]}
-            viewAllHref={`/browse/streaming-${p.slug}`}
-          />
-        ))}
-      </section>
+      <ProviderSwitcher initialProvider="netflix" initialResults={netflix} />
     </div>
   );
 }

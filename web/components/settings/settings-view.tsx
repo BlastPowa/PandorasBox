@@ -14,6 +14,7 @@ import { AvatarUpload } from "@/components/settings/avatar-upload";
 import { UsernameEditor } from "@/components/settings/username-editor";
 import { BulkImportModal } from "@/components/settings/bulk-import-modal";
 import { IntegrationsSection } from "@/components/settings/integrations-section";
+import { AppearanceSection } from "@/components/settings/appearance-section";
 import { MatchPickerModal, type AmbiguousEntry, type MatchDecision } from "@/components/settings/match-picker-modal";
 import { ImportSummary, type ImportSummaryData } from "@/components/settings/import-summary";
 import { parseMalXml, parseTxtList, type ParsedImportRow } from "@/lib/import/xml-parser";
@@ -260,6 +261,8 @@ export function SettingsView({
           )}
         </div>
       </GlassCard>
+
+      <AppearanceSection />
 
       {/* External account integrations (MyAnimeList, AniList, ...) */}
       <IntegrationsSection signedIn={signedIn} />

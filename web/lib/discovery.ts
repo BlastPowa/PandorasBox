@@ -40,6 +40,7 @@ function mapAniList(media: AniListCard, forcedType?: "anime" | "manga"): Unified
     type: isManga ? "manga" : "anime",
     title: media.title.english ?? media.title.romaji,
     posterUrl: media.coverImage.large,
+    backdropUrl: media.bannerImage,
     year: media.seasonYear,
     synopsis: media.description ? formatAniListDescription(media.description) : null,
     score: media.averageScore !== null ? media.averageScore / 10 : null,
@@ -111,6 +112,10 @@ function mapTmdb(kind: "movie" | "tv", r: TMDBTrending): UnifiedSearchResult {
     type: kind === "movie" ? ("movie" as const) : ("series" as const),
     title: r.title ?? r.name ?? "Untitled",
     posterUrl: r.poster_path ? getPosterUrl(r.poster_path) : null,
+    // "original" (1920x1080 for TMDB backdrops) rather than w1280: the hero
+    // renders this at full viewport width, where w1280 visibly softens on
+    // >1280px displays. Measured at ~2x the pixels for the same 16:9 frame.
+    backdropUrl: r.backdrop_path ? getBackdropUrl(r.backdrop_path, "original") : null,
     year: date ? Number.parseInt(date.slice(0, 4), 10) || null : null,
     synopsis: r.overview || null,
     score: r.vote_average > 0 ? r.vote_average : null,

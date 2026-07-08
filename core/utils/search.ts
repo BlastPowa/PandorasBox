@@ -11,6 +11,10 @@ export interface UnifiedSearchResult {
   type: ReelItemType;
   title: string;
   posterUrl: string | null;
+  /** Wide 16:9 artwork (TMDB backdrop / AniList banner). The hero's full-bleed
+   * background needs this — a portrait posterUrl upscales badly across a wide
+   * viewport. Optional: not every source or code path supplies one. */
+  backdropUrl?: string | null;
   year: number | null;
   synopsis: string | null;
   score: number | null;

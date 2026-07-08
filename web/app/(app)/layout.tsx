@@ -3,6 +3,7 @@ import { Topbar } from "@/components/shell/topbar";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { CommandPaletteLoader } from "@/components/shell/command-palette-loader";
 import { OnboardingHint } from "@/components/onboarding/onboarding-hint";
+import { BackToTop } from "@/components/shell/back-to-top";
 import { getProfile, getCurrentUser } from "@/lib/auth";
 import { LibraryProvider } from "@/lib/library/use-library";
 
@@ -21,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
         <CommandPaletteLoader />
         <OnboardingHint />
+        <BackToTop />
       </div>
     </LibraryProvider>
   );

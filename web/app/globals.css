@@ -34,6 +34,40 @@
   --radius-xl: 24px;
 }
 
+/* ==========================================================================
+   Appearance themes — swap the accent palette via [data-theme] on <html>.
+   Only the accent/gold hues change; base/glass/text tokens stay identical so
+   contrast and layout never shift between palettes. Applied by an inline
+   script in app/layout.tsx (reads localStorage before hydration to avoid a
+   flash of the wrong palette) and changed live from Settings → Appearance.
+   ========================================================================== */
+
+:root[data-theme="blue"] {
+  --accent: #3b82f6;
+  --accent-2: #06b6d4;
+  --gold: #60a5fa;
+}
+:root[data-theme="teal"] {
+  --accent: #14b8a6;
+  --accent-2: #22d3ee;
+  --gold: #2dd4bf;
+}
+:root[data-theme="green"] {
+  --accent: #22c55e;
+  --accent-2: #84cc16;
+  --gold: #4ade80;
+}
+:root[data-theme="mocha"] {
+  --accent: #b45309;
+  --accent-2: #d97706;
+  --gold: #f59e0b;
+}
+:root[data-theme="red"] {
+  --accent: #ef4444;
+  --accent-2: #f43f5e;
+  --gold: #fb923c;
+}
+
 @theme inline {
   --color-bg-base: var(--bg-base);
   --color-bg-surface: var(--bg-surface);
@@ -368,4 +402,170 @@ body::before {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* Manual "Reduce motion" override from Settings → Appearance (independent of
+   the OS-level prefers-reduced-motion, for users who want it off site-wide
+   regardless of their system setting). */
+html.pb-reduce-motion *,
+html.pb-reduce-motion *::before,
+html.pb-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* "Compact poster rows" density toggle — poster-row.tsx/poster-card.tsx read
+   this custom property for card width instead of a fixed Tailwind class. */
+:root {
+  --poster-w: 150px;
+  --poster-w-sm: 130px;
+}
+html.pb-compact {
+  --poster-w: 118px;
+  --poster-w-sm: 104px;
+}
+
+/* ---------- Phase 2: ambient background ---------- */
+/* A fixed backdrop of the current hero image that blurs/darkens further as the
+   user scrolls into the poster rows. --pb-scroll is written by a rAF-throttled
+   scroll listener (components/home/ambient-background.tsx) and stays 0..1. */
+.pb-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+/* Wrapper carries the scroll-driven blur/fade/scale for ALL slide layers. */
+.pb-ambient__image {
+  position: absolute;
+  inset: 0;
+  /* Full, sharp, unzoomed image at rest (this IS the hero) fading + blurring
+     away as the page scrolls into the poster rows. */
+  opacity: calc(1 - (var(--pb-scroll, 0) * 0.85));
+  filter: blur(calc(var(--pb-scroll, 0) * 46px)) saturate(1.05);
+  /* Scale up only as far as the blur needs, so blurred edges don't reveal the
+     page background. At rest (--pb-scroll: 0) the image is pixel-exact, not
+     zoomed — stacking a constant inset + scale is what made it look enlarged. */
+  transform: scale(calc(1 + (var(--pb-scroll, 0) * 0.08)));
+  will-change: filter, opacity, transform;
+}
+
+/* One layer per slide, cross-faded by OPACITY.
+   Never transition `background-image`: the browser interpolates it as
+   cross-fade() and resolves `background-size: cover` against the blended pair,
+   so slides with different aspect ratios (TMDB backdrops are 1.78, AniList
+   banners are 4.76) visibly stretch mid-transition and then snap back.
+   Separate layers each resolve their own `cover`, so nothing distorts. */
+.pb-ambient__layer {
+  position: absolute;
+  inset: 0;
+  background-position: center center;
+  background-size: cover;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+.pb-ambient__layer.is-active {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-ambient__layer {
+    transition: none;
+  }
+}
+html.pb-reduce-motion .pb-ambient__layer {
+  transition: none;
+}
+/* Scrims MUST live here, in the same fixed, full-viewport layer as the image.
+   Putting them on the hero <section> (which sits inside a max-w-[1400px]
+   container) left the artwork undimmed beyond 1400px, producing a hard-edged
+   "black box" over the middle of the screen on wide displays. */
+.pb-ambient__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, rgba(10, 10, 15, 0.92) 0%, rgba(10, 10, 15, 0.55) 38%, rgba(10, 10, 15, 0.05) 70%),
+    linear-gradient(to top, var(--bg-base) 0%, rgba(10, 10, 15, 0.6) 26%, rgba(10, 10, 15, 0) 62%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-ambient__image {
+    transition: none;
+  }
+}
+html.pb-reduce-motion .pb-ambient__image {
+  transition: none;
+}
+
+/* ---------- Phase 2: subtle dotted backdrop pattern ---------- */
+.pb-pattern-dots {
+  background-image: radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+/* ---------- Phase 2: aura glow (daisyUI-style, our palette) ---------- */
+.pb-aura {
+  position: relative;
+  isolation: isolate;
+}
+.pb-aura::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2), var(--gold), var(--accent));
+  background-size: 300% 300%;
+  opacity: 0;
+  filter: blur(10px);
+  transition: opacity 0.3s ease;
+  animation: pb-aura-drift 6s linear infinite;
+}
+.pb-aura:hover::before,
+.pb-aura:focus-within::before {
+  opacity: 0.55;
+}
+@keyframes pb-aura-drift {
+  to {
+    background-position: 300% 50%;
+  }
+}
+
+/* ---------- Phase 2: 3D hover tilt + lift for poster cards ---------- */
+.pb-card-3d {
+  transform-style: preserve-3d;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease;
+}
+@media (hover: hover) {
+  .pb-card-3d:hover {
+    transform: perspective(900px) rotateX(5deg) rotateY(-5deg) translateY(-6px) scale(1.03);
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px var(--accent);
+  }
+}
+
+/* Stagger-fade for cards entering the viewport. The .pb-stagger parent gets
+   `is-visible` from an IntersectionObserver; --i is the child's index. */
+.pb-stagger > * {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.pb-stagger.is-visible > * {
+  animation: pb-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-stagger > *,
+  .pb-stagger.is-visible > * {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+html.pb-reduce-motion .pb-stagger > *,
+html.pb-reduce-motion .pb-stagger.is-visible > * {
+  opacity: 1;
+  transform: none;
+  animation: none;
 }

@@ -63,9 +63,13 @@ export function AnnouncementsBar() {
 
   if (!loaded || items.length === 0) return null;
 
+  // Only ever surface the newest undismissed announcement — stacking them
+  // pushes the hero off-screen. Dismissing it reveals the next, if any.
+  const visible = items.slice(0, 1);
+
   return (
     <div className="space-y-2">
-      {items.map((a) => {
+      {visible.map((a) => {
         const open = openId === a.id;
         return (
           <div key={a.id} className={`overflow-hidden rounded-[var(--radius-md)] border ${VARIANT_STYLES[a.variant]}`}>

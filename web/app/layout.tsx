@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -50,7 +51,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${fredoka.variable} ${inter.variable} ${jetbrains.variable} h-full`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh">
         <Providers>{children}</Providers>
       </body>

@@ -7,15 +7,18 @@ import { cn } from "@/lib/utils";
 export function PosterCard({
   item,
   className,
+  style,
 }: {
   item: UnifiedSearchResult;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <Link
       href={`/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId ?? item.id}`}
+      style={style}
       className={cn(
-        "group glow-ring relative block overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)]",
+        "group pb-card-3d relative block overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)]",
         className
       )}
     >
