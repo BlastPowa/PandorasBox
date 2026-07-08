@@ -8,7 +8,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     <input
       ref={ref}
       className={cn(
-        "h-11 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-4 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[rgba(168,85,247,0.25)]",
+        "h-11 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-4 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.25)]",
         className
       )}
       {...props}
@@ -35,7 +35,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         ref={ref}
         className={cn(
           "h-11 w-full rounded-full border border-[var(--border)] bg-[var(--glass)] backdrop-blur-md text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-200",
-          "focus:border-[rgba(168,85,247,0.5)] focus:shadow-[0_0_0_3px_rgba(168,85,247,0.18),0_8px_30px_rgba(168,85,247,0.12)]",
+          "focus:border-[rgb(var(--accent-rgb)/0.5)] focus:shadow-[0_0_0_3px_rgb(var(--accent-rgb)/0.18),0_8px_30px_rgb(var(--accent-rgb)/0.12)]",
           icon ? "pl-11" : "pl-4",
           trailing ? "pr-11" : "pr-4",
           className

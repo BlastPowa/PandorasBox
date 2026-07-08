@@ -12,9 +12,9 @@ const button = cva(
     variants: {
       variant: {
         primary:
-          "text-[#0a0a0f] font-semibold bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] shadow-[0_8px_30px_rgba(168,85,247,0.25)] hover:shadow-[0_10px_40px_rgba(168,85,247,0.4)] hover:brightness-110",
+          "text-[#0a0a0f] font-semibold bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] shadow-[0_8px_30px_rgb(var(--accent-rgb)/0.25)] hover:shadow-[0_10px_40px_rgb(var(--accent-rgb)/0.4)] hover:brightness-110",
         gold:
-          "text-[#0a0a0f] font-semibold bg-[linear-gradient(120deg,var(--gold),#ffcf6b)] shadow-[0_8px_30px_rgba(245,165,36,0.25)] hover:brightness-110",
+          "text-[#0a0a0f] font-semibold bg-[linear-gradient(120deg,var(--gold),#ffcf6b)] shadow-[0_8px_30px_rgb(var(--gold-rgb)/0.25)] hover:brightness-110",
         glass:
           "glass text-[var(--text)] glow-ring hover:bg-[var(--glass-strong)]",
         ghost:

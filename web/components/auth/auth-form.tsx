@@ -98,7 +98,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         </div>
 
         {!configured && (
-          <div className="rounded-[var(--radius-md)] border border-[rgba(245,165,36,0.3)] bg-[rgba(245,165,36,0.1)] px-4 py-3 text-xs leading-relaxed text-[#fbbf24]">
+          <div className="rounded-[var(--radius-md)] border border-[rgb(var(--gold-rgb)/0.3)] bg-[rgb(var(--gold-rgb)/0.1)] px-4 py-3 text-xs leading-relaxed text-[var(--gold)]">
             Supabase isn&apos;t configured yet. Add <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
             <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to{" "}
             <code className="font-mono">web/.env.local</code> to enable accounts.

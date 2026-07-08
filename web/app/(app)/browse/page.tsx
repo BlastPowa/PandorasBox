@@ -71,7 +71,7 @@ async function BrowseContent() {
   return (
     <div className="space-y-8">
       {!hasTmdb && (
-        <p className="rounded-[var(--radius-md)] border border-[rgba(245,165,36,0.3)] bg-[rgba(245,165,36,0.1)] px-4 py-3 text-sm text-[#fbbf24]">
+        <p className="rounded-[var(--radius-md)] border border-[rgb(var(--gold-rgb)/0.3)] bg-[rgb(var(--gold-rgb)/0.1)] px-4 py-3 text-sm text-[var(--gold)]">
           Add a free <span className="font-mono">TMDB_API_KEY</span> to unlock Movies, TV, K-drama and cartoons.
           Anime &amp; manga rows work right now.
         </p>

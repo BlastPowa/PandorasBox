@@ -32,9 +32,9 @@ function dismiss(id: string) {
 }
 
 const VARIANT_STYLES: Record<Announcement["variant"], string> = {
-  info: "border-[rgba(168,85,247,0.3)] bg-[rgba(168,85,247,0.1)] text-[var(--text)]",
+  info: "border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.1)] text-[var(--text)]",
   success: "border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.1)] text-[var(--text)]",
-  warning: "border-[rgba(245,165,36,0.3)] bg-[rgba(245,165,36,0.1)] text-[#fbbf24]",
+  warning: "border-[rgb(var(--gold-rgb)/0.3)] bg-[rgb(var(--gold-rgb)/0.1)] text-[var(--gold)]",
 };
 
 export function AnnouncementsBar() {

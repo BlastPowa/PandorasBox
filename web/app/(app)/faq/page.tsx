@@ -192,7 +192,7 @@ export default function FaqPage() {
       <div className="mt-8">
         <GlassCard macDots title="Still stuck? Contact an admin">
           <div className="space-y-3 p-5">
-            <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgba(168,85,247,0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+            <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgb(var(--accent-rgb)/0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
               <MessageCircleQuestion className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
               <span>Describe your issue below with your username — it goes straight to an admin&apos;s inbox.</span>
             </div>

@@ -238,7 +238,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
 
         {/* Conflict resolution */}
         {conflicts.length > 0 && (
-          <div className="rounded-[var(--radius-md)] border border-[rgba(245,165,36,0.4)] bg-[rgba(245,165,36,0.08)] p-4">
+          <div className="rounded-[var(--radius-md)] border border-[rgb(var(--gold-rgb)/0.4)] bg-[rgb(var(--gold-rgb)/0.08)] p-4">
             <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
               <GitMerge className="size-4 text-[var(--gold)]" /> Sync conflicts — pick which version to keep
             </p>

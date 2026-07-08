@@ -7,7 +7,7 @@ import type { UnifiedSearchResult } from "@core/utils/search";
 import { PosterCard } from "./poster-card";
 import { PosterSkeleton } from "@/components/ui-fx/feedback";
 import { FilterDropdown } from "./filter-dropdown";
-import { STREAMING_PROVIDERS } from "@/lib/streaming-providers";
+import { STREAMING_PROVIDERS, providerLogoUrl } from "@/lib/streaming-providers";
 import {
   SORT_OPTIONS,
   genresFor,
@@ -30,7 +30,11 @@ export function DiscoverGrid({ kind, initial }: Props) {
 
   const genreOptions = genresFor(kind).map((g) => ({ value: g, label: g }));
   const yearOptions = browseYears().map((y) => ({ value: String(y), label: String(y) }));
-  const providerOptions = STREAMING_PROVIDERS.map((p) => ({ value: p.slug, label: p.name }));
+  const providerOptions = STREAMING_PROVIDERS.map((p) => ({
+    value: p.slug,
+    label: p.name,
+    iconUrl: providerLogoUrl(p),
+  }));
 
   const genre = params.get("genre");
   const year = params.get("year");
@@ -90,8 +94,11 @@ export function DiscoverGrid({ kind, initial }: Props) {
     router.replace(`?${next.toString()}`, { scroll: false });
   }
 
-  async function loadMore() {
-    if (loadingMore || page >= totalPages) return;
+  const loadMore = useCallback(async () => {
+    // The sentinel is always mounted, so guard on `loading` too — otherwise a
+    // filter change (which empties the grid and pulls the sentinel up into view)
+    // would fire a page-2 fetch against the outgoing filter set.
+    if (loading || loadingMore || page >= totalPages) return;
     setLoadingMore(true);
     try {
       const res = await fetch(`/api/discover?${queryFor(page + 1)}`);
@@ -105,7 +112,43 @@ export function DiscoverGrid({ kind, initial }: Props) {
     } finally {
       setLoadingMore(false);
     }
-  }
+  }, [loading, loadingMore, page, totalPages, queryFor]);
+
+  // Infinite scroll: a sentinel below the grid triggers the next page while it
+  // is still 400px off-screen, so new rows are already in place by the time the
+  // user reaches them.
+  //
+  // The observer is created ONCE and reads loadMore through a ref. Rebuilding it
+  // whenever loadMore's identity changed (i.e. on every loading flip) meant the
+  // fresh observer only reported *changes* in intersection — and since the
+  // sentinel never left the viewport on a short page, it never fired again and
+  // loading stalled after page 2.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) void loadMoreRef.current();
+      },
+      { rootMargin: "400px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // A short page can leave the sentinel permanently on-screen, so intersection
+  // never re-fires after a batch lands. Re-check once each batch settles.
+  useEffect(() => {
+    if (loading || loadingMore || page >= totalPages) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.top < window.innerHeight + 400) void loadMoreRef.current();
+  }, [items.length, loading, loadingMore, page, totalPages]);
 
   function surpriseMe() {
     if (items.length === 0) return;
@@ -187,32 +230,33 @@ export function DiscoverGrid({ kind, initial }: Props) {
           Nothing matches these filters. Try widening them.
         </p>
       ) : (
-        <>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-            {items.map((item) => (
-              <PosterCard key={item.id} item={item} />
-            ))}
-          </div>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+          {items.map((item) => (
+            <PosterCard key={item.id} item={item} />
+          ))}
+          {/* Skeletons occupy the incoming row so the grid never jumps. */}
+          {loadingMore && Array.from({ length: 6 }).map((_, i) => <PosterSkeleton key={`sk-${i}`} />)}
+        </div>
+      )}
 
-          {page < totalPages && (
-            <div className="flex justify-center pt-2">
-              <button
-                type="button"
-                onClick={loadMore}
-                disabled={loadingMore}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-6 py-2.5 text-sm font-semibold transition",
-                  loadingMore
-                    ? "text-[var(--text-muted)]"
-                    : "text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                )}
-              >
-                {loadingMore && <Loader2 className="size-4 animate-spin" />}
-                {loadingMore ? "Loading…" : "Load more"}
-              </button>
-            </div>
-          )}
-        </>
+      {/* Sentinel stays mounted for the component's whole life so the single
+          IntersectionObserver never loses its target between filter changes. */}
+      <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
+
+      {!loading && items.length > 0 && page < totalPages && (
+        <div className="flex justify-center py-4" role="status" aria-live="polite">
+          <Loader2
+            className={cn(
+              "size-5 animate-spin text-[var(--accent)] transition-opacity",
+              loadingMore ? "opacity-100" : "opacity-0"
+            )}
+          />
+          <span className="sr-only">{loadingMore ? "Loading more titles" : ""}</span>
+        </div>
+      )}
+
+      {!loading && page >= totalPages && items.length > 20 && (
+        <p className="py-6 text-center text-xs text-[var(--text-muted)]">You&apos;ve reached the end.</p>
       )}
     </div>
   );

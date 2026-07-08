@@ -21,12 +21,23 @@
   --accent-2: #ec4899;
   --gold: #f5a524;
 
+  /* Same three hues as raw RGB channels. Needed because CSS cannot pull an
+     alpha variant out of a hex custom property — `rgba(var(--accent), 0.2)` is
+     invalid. Anything wanting a translucent accent must use
+     `rgb(var(--accent-rgb) / 0.2)`, never a hardcoded rgba() literal, or it
+     will not follow the selected theme. */
+  --accent-rgb: 168 85 247;
+  --accent-2-rgb: 236 72 153;
+  --gold-rgb: 245 165 36;
+
   --watching: #22d3ee;
   --reading: #34d399;
   --completed: #22c55e;
   --onhold: #f59e0b;
   --dropped: #ef4444;
-  --planned: #a855f7;
+  /* Status hues are semantic (green = completed, red = dropped) and stay fixed,
+     except "planned", which has no inherent meaning and follows the accent. */
+  --planned: var(--accent);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -42,30 +53,48 @@
    flash of the wrong palette) and changed live from Settings → Appearance.
    ========================================================================== */
 
+/* Each palette MUST redefine the -rgb channels alongside the hex values, or
+   every translucent accent (glows, rings, tinted panels, active nav items)
+   silently stays on the default purple while only solid colors change. */
 :root[data-theme="blue"] {
   --accent: #3b82f6;
   --accent-2: #06b6d4;
   --gold: #60a5fa;
+  --accent-rgb: 59 130 246;
+  --accent-2-rgb: 6 182 212;
+  --gold-rgb: 96 165 250;
 }
 :root[data-theme="teal"] {
   --accent: #14b8a6;
   --accent-2: #22d3ee;
   --gold: #2dd4bf;
+  --accent-rgb: 20 184 166;
+  --accent-2-rgb: 34 211 238;
+  --gold-rgb: 45 212 191;
 }
 :root[data-theme="green"] {
   --accent: #22c55e;
   --accent-2: #84cc16;
   --gold: #4ade80;
+  --accent-rgb: 34 197 94;
+  --accent-2-rgb: 132 204 22;
+  --gold-rgb: 74 222 128;
 }
 :root[data-theme="mocha"] {
   --accent: #b45309;
   --accent-2: #d97706;
   --gold: #f59e0b;
+  --accent-rgb: 180 83 9;
+  --accent-2-rgb: 217 119 6;
+  --gold-rgb: 245 158 11;
 }
 :root[data-theme="red"] {
   --accent: #ef4444;
   --accent-2: #f43f5e;
   --gold: #fb923c;
+  --accent-rgb: 239 68 68;
+  --accent-2-rgb: 244 63 94;
+  --gold-rgb: 251 146 60;
 }
 
 @theme inline {
@@ -128,13 +157,13 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60rem 60rem at 15% -10%, rgba(168, 85, 247, 0.14), transparent 60%),
-    radial-gradient(50rem 50rem at 100% 0%, rgba(236, 72, 153, 0.1), transparent 55%),
-    radial-gradient(40rem 40rem at 50% 120%, rgba(245, 165, 36, 0.06), transparent 60%);
+    radial-gradient(60rem 60rem at 15% -10%, rgb(var(--accent-rgb) / 0.14), transparent 60%),
+    radial-gradient(50rem 50rem at 100% 0%, rgb(var(--accent-2-rgb) / 0.1), transparent 55%),
+    radial-gradient(40rem 40rem at 50% 120%, rgb(var(--gold-rgb) / 0.06), transparent 60%);
 }
 
 ::selection {
-  background: rgba(168, 85, 247, 0.35);
+  background: rgb(var(--accent-rgb) / 0.35);
   color: #fff;
 }
 
@@ -187,8 +216,8 @@ body::before {
   transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
 }
 .glow-ring:hover {
-  border-color: rgba(168, 85, 247, 0.5);
-  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.35), 0 12px 40px rgba(168, 85, 247, 0.18);
+  border-color: rgb(var(--accent-rgb) / 0.5);
+  box-shadow: 0 0 0 1px rgb(var(--accent-rgb) / 0.35), 0 12px 40px rgb(var(--accent-rgb) / 0.18);
 }
 
 .hairline {
@@ -376,7 +405,7 @@ body::before {
   inset: 34px;
   border-radius: 50%;
   background: radial-gradient(circle, var(--accent), var(--accent-2));
-  box-shadow: 0 0 24px 4px rgba(168, 85, 247, 0.5);
+  box-shadow: 0 0 24px 4px rgb(var(--accent-rgb) / 0.5);
   animation: pb-pulse-core 1.6s ease-in-out infinite;
 }
 
@@ -389,8 +418,8 @@ body::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(120% 80% at 100% 0%, rgba(245, 165, 36, 0.22), transparent 60%),
-    radial-gradient(120% 80% at 0% 100%, rgba(168, 85, 247, 0.22), transparent 60%);
+  background: radial-gradient(120% 80% at 100% 0%, rgb(var(--gold-rgb) / 0.22), transparent 60%),
+    radial-gradient(120% 80% at 0% 100%, rgb(var(--accent-rgb) / 0.22), transparent 60%);
   pointer-events: none;
 }
 

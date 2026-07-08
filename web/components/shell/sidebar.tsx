@@ -110,7 +110,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                           "group relative flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-all duration-150",
                           collapsed && "justify-center px-0",
                           active
-                            ? "bg-[linear-gradient(120deg,rgba(168,85,247,0.18),rgba(236,72,153,0.12))] text-[var(--text)]"
+                            ? "bg-[linear-gradient(120deg,rgb(var(--accent-rgb)/0.18),rgb(var(--accent-2-rgb)/0.12))] text-[var(--text)]"
                             : "text-[var(--text-secondary)] hover:bg-[var(--glass)] hover:text-[var(--text)]"
                         )}
                       >
@@ -125,7 +125,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                           <span className="truncate transition-opacity duration-150">{item.label}</span>
                         )}
                         {!collapsed && item.adminOnly && (
-                          <span className="ml-auto shrink-0 rounded-full bg-[rgba(245,165,36,0.15)] px-2 py-0.5 text-[9px] font-bold uppercase text-[var(--gold)]">
+                          <span className="ml-auto shrink-0 rounded-full bg-[rgb(var(--gold-rgb)/0.15)] px-2 py-0.5 text-[9px] font-bold uppercase text-[var(--gold)]">
                             Admin
                           </span>
                         )}

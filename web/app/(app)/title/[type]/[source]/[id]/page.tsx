@@ -314,8 +314,8 @@ function Badge({
   tone: "accent" | "gold" | "green" | "muted";
 }) {
   const tones: Record<string, string> = {
-    accent: "bg-[rgba(168,85,247,0.16)] text-[#c084fc]",
-    gold: "bg-[rgba(245,165,36,0.16)] text-[var(--gold)]",
+    accent: "bg-[rgb(var(--accent-rgb)/0.16)] text-[var(--accent)]",
+    gold: "bg-[rgb(var(--gold-rgb)/0.16)] text-[var(--gold)]",
     green: "bg-[rgba(34,197,94,0.16)] text-[#4ade80]",
     muted: "bg-[var(--glass)] text-[var(--text-secondary)]",
   };

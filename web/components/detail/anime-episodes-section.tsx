@@ -134,7 +134,7 @@ export function AnimeEpisodesSection({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="truncate text-sm font-semibold">{ep.title || `Episode ${ep.mal_id}`}</h3>
-                    {ep.filler && <span className="shrink-0 rounded-full bg-[rgba(245,165,36,0.15)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--gold)]">FILLER</span>}
+                    {ep.filler && <span className="shrink-0 rounded-full bg-[rgb(var(--gold-rgb)/0.15)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--gold)]">FILLER</span>}
                     {ep.recap && <span className="shrink-0 rounded-full bg-[var(--glass)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--text-muted)]">RECAP</span>}
                   </div>
                   {ep.aired && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(ep.aired)}</span>}

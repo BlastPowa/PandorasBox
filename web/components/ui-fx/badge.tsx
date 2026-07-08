@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils";
 
 const TYPE_STYLES: Record<ReelItemType, string> = {
   movie: "bg-[rgba(34,211,238,0.15)] text-[#67e8f9]",
-  series: "bg-[rgba(168,85,247,0.18)] text-[#c084fc]",
-  anime: "bg-[rgba(236,72,153,0.15)] text-[#f472b6]",
+  series: "bg-[rgb(var(--accent-rgb)/0.18)] text-[var(--accent)]",
+  anime: "bg-[rgb(var(--accent-2-rgb)/0.15)] text-[var(--accent-2)]",
   manga: "bg-[rgba(52,211,153,0.14)] text-[#6ee7b7]",
-  manhwa: "bg-[rgba(245,165,36,0.15)] text-[#fbbf24]",
+  manhwa: "bg-[rgb(var(--gold-rgb)/0.15)] text-[var(--gold)]",
 };
 
 const STATUS_COLORS: Record<ReelItemStatus, string> = {

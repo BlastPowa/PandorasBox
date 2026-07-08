@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 export interface FilterOption {
   value: string;
   label: string;
+  /** Optional leading icon (provider logos). Plain <img>: these are 20px
+   * third-party marks, so next/image's machinery buys nothing here. */
+  iconUrl?: string;
 }
 
 /**
@@ -64,6 +67,9 @@ export function FilterDropdown({
         )}
       >
         {showDot && <span className="size-1.5 rounded-full bg-[var(--accent)]" />}
+        {active?.iconUrl && (
+          <img src={active.iconUrl} alt="" aria-hidden="true" className="size-4 rounded-[4px] object-cover" />
+        )}
         {label}
         <ChevronDown className={cn("size-3.5 transition-transform duration-150", open && "rotate-180")} />
       </button>
@@ -92,7 +98,12 @@ export function FilterDropdown({
                     : "text-[var(--text-secondary)] hover:bg-[var(--glass)] hover:text-[var(--text)]"
                 )}
               >
-                <span className="truncate">{opt.label}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  {"iconUrl" in opt && opt.iconUrl && (
+                    <img src={opt.iconUrl} alt="" aria-hidden="true" className="size-5 shrink-0 rounded-full object-cover" />
+                  )}
+                  <span className="truncate">{opt.label}</span>
+                </span>
                 {selected && <Check className="size-3.5 shrink-0 text-[var(--accent)]" />}
               </button>
             );

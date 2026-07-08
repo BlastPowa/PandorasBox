@@ -56,7 +56,7 @@ export function MemorySearchPanel() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgba(168,85,247,0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+      <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgb(var(--accent-rgb)/0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
         <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
         <span>
           Half-remember something? Describe the plot, a character, or a scene — &ldquo;a dystopian world where time

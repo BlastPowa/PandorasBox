@@ -270,7 +270,7 @@ export function SettingsView({
       {/* Onboarding / quick import */}
       <GlassCard macDots title="Bring your list with you">
         <div className="space-y-4 p-5">
-          <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgba(168,85,247,0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+          <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgb(var(--accent-rgb)/0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
             <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
             <span>
               New here? Paste a list of titles from MyAnimeList, Letterboxd, iPhone Notes, a spreadsheet — anywhere —

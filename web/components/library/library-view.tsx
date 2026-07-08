@@ -284,7 +284,7 @@ function LibraryRow({ item, index, selectMode, selected, onToggleSelect, onRate,
 }) {
   const href = `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
   return (
-    <tr className={`border-t border-[var(--border)] transition-colors hover:bg-[var(--glass)] ${selected ? "bg-[rgba(168,85,247,0.12)]" : ""}`}>
+    <tr className={`border-t border-[var(--border)] transition-colors hover:bg-[var(--glass)] ${selected ? "bg-[rgb(var(--accent-rgb)/0.12)]" : ""}`}>
       <td className="px-3 py-2 font-mono text-xs text-[var(--text-muted)]">
         {selectMode ? (
           <input type="checkbox" checked={selected} onChange={onToggleSelect} className="size-4 accent-[var(--accent)]" />
