@@ -104,7 +104,9 @@ interface TMDBTrending {
   adult?: boolean;
 }
 
-function mapTmdb(kind: "movie" | "tv", r: TMDBTrending): UnifiedSearchResult {
+export type { TMDBTrending };
+
+export function mapTmdb(kind: "movie" | "tv", r: TMDBTrending): UnifiedSearchResult {
   const date = r.release_date ?? r.first_air_date ?? "";
   return {
     id: `tmdb-${r.id}`,

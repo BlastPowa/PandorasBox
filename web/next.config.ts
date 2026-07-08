@@ -11,7 +11,9 @@ const csp = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://*.supabase.co",
+  // Images are now loaded straight from their source CDNs (see lib/image-loader.ts),
+  // not proxied through /_next/image, so every host must be listed here.
+  "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://comicvine.gamespot.com https://static.comicvine.com https://*.supabase.co",
   "media-src 'self' https:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.themoviedb.org https://graphql.anilist.co https://api.mangadex.org https://uploads.mangadex.org https://api.jikan.moe https://www.omdbapi.com https://openlibrary.org",
   "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
@@ -32,7 +34,18 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, ".."),
   poweredByHeader: false,
   images: {
-    formats: ["image/avif", "image/webp"],
+    // Serve remote artwork directly from the source CDNs instead of Vercel's
+    // Image Optimization. These providers already return correctly-sized,
+    // CDN-cached files, so optimizing them re-encoded images for no benefit and
+    // consumed the free tier's 5,000 transformations/month. See lib/image-loader.ts.
+    loader: "custom",
+    loaderFile: "./lib/image-loader.ts",
+    // Next's defaults go up to 3840px, so a 128px poster was being offered an
+    // "original" candidate (and got one as its src= fallback). Nothing here
+    // needs more than ~1200px — the full-bleed hero is a CSS background, not
+    // next/image — so cap the candidate set and keep posters on small buckets.
+    deviceSizes: [640, 750, 828, 1080, 1200],
+    imageSizes: [64, 96, 128, 256, 384],
     remotePatterns: [
       { protocol: "https", hostname: "image.tmdb.org" },
       { protocol: "https", hostname: "s4.anilist.co" },

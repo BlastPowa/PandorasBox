@@ -16,6 +16,8 @@ import {
   Users,
   BookOpen,
   Tv,
+  Clapperboard,
+  MonitorPlay,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +36,8 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: Home, group: "main", bottom: true },
   { href: "/browse", label: "Browse", icon: Compass, group: "main", bottom: true },
+  { href: "/movies", label: "Movies", icon: Clapperboard, group: "main" },
+  { href: "/tv", label: "Shows", icon: MonitorPlay, group: "main" },
   { href: "/anime", label: "Anime", icon: Tv, group: "main" },
   { href: "/randomize", label: "Randomize", icon: Dices, group: "main", bottom: true },
   { href: "/search", label: "Search", icon: Search, group: "main" },
