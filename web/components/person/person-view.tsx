@@ -9,6 +9,7 @@ import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Pill, TypeBadge } from "@/components/ui-fx/badge";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { ExpandableText } from "@/components/detail/expandable-text";
+import { BackButton } from "@/components/shell/back-button";
 
 type SortKey = "popularity" | "date" | "rating" | "az";
 
@@ -68,6 +69,7 @@ export function PersonView({ person }: { person: PersonDetail }) {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-6 md:px-8">
+      <BackButton />
       <div className="grid gap-6 md:grid-cols-[220px_1fr]">
         <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-[var(--radius-lg)] bg-[var(--bg-elevated)] md:mx-0 md:w-full">
           {person.photoUrl ? (

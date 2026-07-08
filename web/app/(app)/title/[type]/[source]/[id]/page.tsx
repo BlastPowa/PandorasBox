@@ -18,6 +18,7 @@ import { getTrailerKey } from "@/lib/trailers";
 import { WhereToWatch } from "@/components/detail/where-to-watch";
 import { PosterRow } from "@/components/discovery/poster-row";
 import { ExpandableText } from "@/components/detail/expandable-text";
+import { BackButton } from "@/components/shell/back-button";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 
 const VALID_TYPES: ReelItemType[] = ["movie", "series", "anime", "manga", "manhwa"];
@@ -73,6 +74,9 @@ export default async function TitlePage({
           <div className="size-full bg-[linear-gradient(160deg,#16121f,#1c1230)]" />
         )}
         <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base),rgba(10,10,15,0.5)_60%,rgba(10,10,15,0.4))]" />
+        <div className="absolute left-4 top-4 md:left-8">
+          <BackButton className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-white backdrop-blur" />
+        </div>
       </div>
 
       <div className="mx-auto -mt-24 max-w-[1200px] px-4 md:px-8">

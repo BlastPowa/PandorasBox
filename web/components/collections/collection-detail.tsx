@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, FolderOpen, Share2, Globe, Lock, Users, EyeOff } from "lucide-react";
+import { FolderOpen, Share2, Globe, Lock, Users, EyeOff } from "lucide-react";
+import { BackButton } from "@/components/shell/back-button";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import {
   getCollection,
@@ -146,9 +147,7 @@ export function CollectionDetail({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <Link href="/collections" className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]">
-        <ArrowLeft className="size-4" /> Collections
-      </Link>
+      <BackButton fallbackHref="/collections" label="Collections" className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-2xl font-bold">{collection.name}</h1>

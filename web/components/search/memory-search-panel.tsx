@@ -1,20 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Sparkles, Search as SearchIcon } from "lucide-react";
+import { Sparkles, Search as SearchIcon, Clock } from "lucide-react";
 import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import type { MemorySearchResult } from "@/app/api/memory-search/route";
+
+/** Client-side throttle between searches — the shared free Gemini quota is
+ * only ~20 requests/day for the whole app, so this exists purely to stop a
+ * single person from rapid-fire clicking through that budget in seconds. */
+const COOLDOWN_SECONDS = 20;
 
 export function MemorySearchPanel() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MemorySearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   async function search() {
+    if (cooldown > 0) return;
     if (query.trim().length < 8) {
       setNotice("Describe it in a bit more detail — a sentence or two works best.");
       return;
@@ -23,10 +36,17 @@ export function MemorySearchPanel() {
     setNotice(null);
     try {
       const res = await fetch(`/api/memory-search?q=${encodeURIComponent(query.trim())}`);
-      const json = (await res.json()) as { results: MemorySearchResult[]; error?: string };
+      if (res.status === 429) {
+        setNotice("Searching a bit too fast — wait a moment and try again.");
+        setCooldown(COOLDOWN_SECONDS);
+        return;
+      }
+      const json = (await res.json()) as { results: MemorySearchResult[]; error?: string; notice?: string };
       setResults(json.results);
       if (json.error) setNotice(json.error);
+      else if (json.notice) setNotice(json.notice);
       else if (json.results.length === 0) setNotice("Nothing matched yet — try describing it differently, or a plot detail we might have indexed.");
+      setCooldown(COOLDOWN_SECONDS);
     } catch {
       setNotice("Search failed — try again.");
     } finally {
@@ -39,9 +59,8 @@ export function MemorySearchPanel() {
       <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgba(168,85,247,0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
         <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
         <span>
-          Half-remember something? Describe the plot, a character, or a scene — &ldquo;movie where people were
-          trapped inside cubes with traps&rdquo; — and we&apos;ll match it against synopses and genres we&apos;ve
-          indexed. Coverage grows the more the site is browsed.
+          Half-remember something? Describe the plot, a character, or a scene — &ldquo;a dystopian world where time
+          is life and currency&rdquo; — and AI-assisted recognition plus our own index will try to find it.
         </span>
       </div>
 
@@ -53,10 +72,24 @@ export function MemorySearchPanel() {
           rows={3}
           className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 text-sm outline-none focus:border-[var(--accent)]"
         />
-        <Button onClick={() => void search()} loading={searching} className="sm:self-end">
-          <SearchIcon className="size-4" /> Find it
+        <Button onClick={() => void search()} loading={searching} disabled={cooldown > 0} className="sm:self-end">
+          {cooldown > 0 ? (
+            <>
+              <Clock className="size-4" /> Wait {cooldown}s
+            </>
+          ) : (
+            <>
+              <SearchIcon className="size-4" /> Find it
+            </>
+          )}
         </Button>
       </div>
+
+      <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+        <Sparkles className="size-3 shrink-0" />
+        This uses a free-tier AI search with a limited number of lookups per day — if it's temporarily
+        unavailable, you'll still get results from our own index.
+      </p>
 
       {notice && <p className="text-sm text-[var(--text-muted)]">{notice}</p>}
 

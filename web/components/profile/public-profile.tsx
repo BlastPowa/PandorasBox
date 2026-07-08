@@ -9,6 +9,7 @@ import { sendFriendRequest } from "@/lib/friends/friends";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
+import { BackButton } from "@/components/shell/back-button";
 
 interface ProfileRow {
   id: string;
@@ -75,6 +76,7 @@ export function PublicProfile({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 md:px-8">
+      <BackButton className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]" />
       <div className="relative h-32 overflow-hidden rounded-[var(--radius-lg)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] sm:h-40">
         {profile.banner_url && <Image src={profile.banner_url} alt="" fill className="object-cover" />}
       </div>

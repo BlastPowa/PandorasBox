@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import type { FranchiseDef } from "@/lib/franchises";
 import { PosterGrid } from "@/components/discovery/poster-row";
@@ -9,6 +8,7 @@ import { EmptyState } from "@/components/ui-fx/feedback";
 import { BulkAddToCollection } from "@/components/collections/bulk-add-to-collection";
 import type { AddToCollectionItem } from "@/components/collections/add-to-collection";
 import { useLibrary } from "@/lib/library/use-library";
+import { BackButton } from "@/components/shell/back-button";
 
 function toCollectionItem(r: UnifiedSearchResult): AddToCollectionItem {
   return {
@@ -29,9 +29,7 @@ export function FranchisePage({ franchise, items }: { franchise: FranchiseDef; i
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
-      <Link href="/browse" className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]">
-        <ArrowLeft className="size-4" /> Browse
-      </Link>
+      <BackButton fallbackHref="/browse" label="Browse" className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]" />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
