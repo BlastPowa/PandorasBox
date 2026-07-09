@@ -15,6 +15,7 @@ import { UsernameEditor } from "@/components/settings/username-editor";
 import { BulkImportModal } from "@/components/settings/bulk-import-modal";
 import { IntegrationsSection } from "@/components/settings/integrations-section";
 import { AppearanceSection } from "@/components/settings/appearance-section";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { MatchPickerModal, type AmbiguousEntry, type MatchDecision } from "@/components/settings/match-picker-modal";
 import { ImportSummary, type ImportSummaryData } from "@/components/settings/import-summary";
 import { parseMalXml, parseTxtList, type ParsedImportRow } from "@/lib/import/xml-parser";
@@ -238,135 +239,153 @@ export function SettingsView({
 
   return (
     <div className="space-y-5">
-      <GlassCard macDots title="Profile">
-        <div className="space-y-4 p-5">
-          {signedIn && <AvatarUpload initialUrl={avatarUrl} username={username} />}
-          {signedIn ? (
-            <UsernameEditor initialUsername={username} />
-          ) : (
-            <label className="block text-sm">
-              <span className="mb-1 block font-semibold text-[var(--text-secondary)]">Username</span>
-              <Input defaultValue={username ?? ""} disabled />
-            </label>
-          )}
-          <p className="text-xs text-[var(--text-muted)]">
-            Country ({country}) affects where-to-watch results. Manage sign-in providers with your account.
-          </p>
-          {signedIn && (
-            <form action="/auth/signout" method="post">
-              <Button variant="danger" type="submit" className="w-full sm:w-auto">
-                <LogOut className="size-4" /> Sign out
-              </Button>
-            </form>
-          )}
-        </div>
-      </GlassCard>
+      <SettingsTabs
+        sections={{
+          account: (
+            <GlassCard macDots title="Profile">
+              <div className="space-y-4 p-5">
+                {signedIn && <AvatarUpload initialUrl={avatarUrl} username={username} />}
+                {signedIn ? (
+                  <UsernameEditor initialUsername={username} />
+                ) : (
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-semibold text-[var(--text-secondary)]">Username</span>
+                    <Input defaultValue={username ?? ""} disabled />
+                  </label>
+                )}
+                <p className="text-xs text-[var(--text-muted)]">
+                  Country ({country}) affects where-to-watch results. Manage sign-in providers with your account.
+                </p>
+                {signedIn && (
+                  <form action="/auth/signout" method="post">
+                    <Button variant="danger" type="submit" className="w-full sm:w-auto">
+                      <LogOut className="size-4" /> Sign out
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </GlassCard>
+          ),
+          appearance: <AppearanceSection />,
+          integrations: <IntegrationsSection signedIn={signedIn} />,
+          import: (
+            <>
+              <GlassCard macDots title="Bring your list with you">
+                <div className="space-y-4 p-5">
+                  <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgb(var(--accent-rgb)/0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                    <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
+                    <span>
+                      New here? Paste a list of titles from MyAnimeList, Letterboxd, iPhone Notes, a spreadsheet —
+                      anywhere — one per line, or upload a MyAnimeList XML export to bring statuses and progress with
+                      you. We&apos;ll find each title, flag anything ambiguous so you pick the right one, and show
+                      you exactly what was imported, skipped, unmatched, or already in your library.
+                    </span>
+                  </div>
+                  <textarea
+                    value={pasteText}
+                    onChange={(e) => setPasteText(e.target.value)}
+                    placeholder={"One Piece\nBreaking Bad\nDune: Part Two\nSolo Leveling"}
+                    rows={6}
+                    disabled={!signedIn || importing}
+                    className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"
+                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button onClick={importFromText} loading={importing} disabled={!signedIn}>
+                      <ClipboardList className="size-4" /> Import pasted list
+                    </Button>
+                    <Button variant="glass" onClick={() => xmlRef.current?.click()} disabled={!signedIn || importing}>
+                      <FileCode2 className="size-4" /> Import MAL XML export
+                    </Button>
+                    <input
+                      ref={xmlRef}
+                      type="file"
+                      accept=".xml,text/xml,application/xml"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) await importFromXml(file);
+                        e.target.value = "";
+                      }}
+                    />
+                    {progress && (
+                      <span className="font-mono text-xs text-[var(--text-muted)]">
+                        {progress.done}/{progress.total}…
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </GlassCard>
 
-      <AppearanceSection />
+              {summary && <ImportSummary data={summary} onRetryMatch={retryMatch} />}
+            </>
+          ),
+          backup: (
+            <>
+              <GlassCard macDots title="Backup &amp; transfer">
+                <div className="space-y-4 p-5">
+                  {!signedIn && (
+                    <p className="text-sm text-[var(--text-muted)]">Sign in to export or import your library.</p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="glass" onClick={exportJson} disabled={!signedIn}>
+                      <Download className="size-4" /> Export JSON
+                    </Button>
+                    <Button variant="glass" onClick={() => fileRef.current?.click()} disabled={!signedIn}>
+                      <Upload className="size-4" /> Import JSON
+                    </Button>
+                    <Button variant="glass" onClick={showQr} disabled={!signedIn}>
+                      <QrCode className="size-4" /> Share code
+                    </Button>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="application/json"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) await importFrom(await file.text(), "json");
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                  {qr && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-[var(--text-muted)]">
+                        Copy this portable code to move your library to another device or share it:
+                      </p>
+                      <textarea
+                        readOnly
+                        value={qr}
+                        onFocus={(e) => e.target.select()}
+                        className="h-24 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 font-mono text-[10px] text-[var(--text-secondary)]"
+                      />
+                      <Input
+                        placeholder="Paste a code here to import..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void importFrom((e.target as HTMLInputElement).value, "code");
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </GlassCard>
 
-      {/* External account integrations (MyAnimeList, AniList, ...) */}
-      <IntegrationsSection signedIn={signedIn} />
-
-      {/* Onboarding / quick import */}
-      <GlassCard macDots title="Bring your list with you">
-        <div className="space-y-4 p-5">
-          <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgb(var(--accent-rgb)/0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-            <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
-            <span>
-              New here? Paste a list of titles from MyAnimeList, Letterboxd, iPhone Notes, a spreadsheet — anywhere —
-              one per line, or upload a MyAnimeList XML export to bring statuses and progress with you. We&apos;ll
-              find each title, flag anything ambiguous so you pick the right one, and show you exactly what was
-              imported, skipped, unmatched, or already in your library.
-            </span>
-          </div>
-          <textarea
-            value={pasteText}
-            onChange={(e) => setPasteText(e.target.value)}
-            placeholder={"One Piece\nBreaking Bad\nDune: Part Two\nSolo Leveling"}
-            rows={6}
-            disabled={!signedIn || importing}
-            className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"
-          />
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={importFromText} loading={importing} disabled={!signedIn}>
-              <ClipboardList className="size-4" /> Import pasted list
-            </Button>
-            <Button variant="glass" onClick={() => xmlRef.current?.click()} disabled={!signedIn || importing}>
-              <FileCode2 className="size-4" /> Import MAL XML export
-            </Button>
-            <input
-              ref={xmlRef}
-              type="file"
-              accept=".xml,text/xml,application/xml"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) await importFromXml(file);
-                e.target.value = "";
-              }}
-            />
-            {progress && (
-              <span className="font-mono text-xs text-[var(--text-muted)]">
-                {progress.done}/{progress.total}…
-              </span>
-            )}
-          </div>
-        </div>
-      </GlassCard>
-
-      {summary && (
-        <ImportSummary data={summary} onRetryMatch={retryMatch} />
-      )}
-
-      <GlassCard macDots title="Backup &amp; transfer">
-        <div className="space-y-4 p-5">
-          {!signedIn && <p className="text-sm text-[var(--text-muted)]">Sign in to export or import your library.</p>}
-          <div className="flex flex-wrap gap-2">
-            <Button variant="glass" onClick={exportJson} disabled={!signedIn}><Download className="size-4" /> Export JSON</Button>
-            <Button variant="glass" onClick={() => fileRef.current?.click()} disabled={!signedIn}><Upload className="size-4" /> Import JSON</Button>
-            <Button variant="glass" onClick={showQr} disabled={!signedIn}><QrCode className="size-4" /> Share code</Button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) await importFrom(await file.text(), "json");
-                e.target.value = "";
-              }}
-            />
-          </div>
-          {qr && (
-            <div className="space-y-2">
-              <p className="text-xs text-[var(--text-muted)]">
-                Copy this portable code to move your library to another device or share it:
-              </p>
-              <textarea
-                readOnly
-                value={qr}
-                onFocus={(e) => e.target.select()}
-                className="h-24 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 font-mono text-[10px] text-[var(--text-secondary)]"
-              />
-              <Input
-                placeholder="Paste a code here to import..."
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void importFrom((e.target as HTMLInputElement).value, "code");
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </GlassCard>
-
-      <GlassCard macDots title="About">
-        <div className="space-y-1 p-5 text-sm text-[var(--text-secondary)]">
-          <p><span className="font-semibold text-[var(--text)]">Pandora&apos;s Box</span> — universal entertainment tracker.</p>
-          <p className="text-xs text-[var(--text-muted)]">
-            Data &amp; artwork from TMDB, AniList and MangaDex. This app links out to external sites; it does not host content.
-          </p>
-        </div>
-      </GlassCard>
+              <GlassCard macDots title="About">
+                <div className="space-y-1 p-5 text-sm text-[var(--text-secondary)]">
+                  <p>
+                    <span className="font-semibold text-[var(--text)]">Pandora&apos;s Box</span> — universal
+                    entertainment tracker.
+                  </p>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Data &amp; artwork from TMDB, AniList and MangaDex. This app links out to external sites; it does
+                    not host content.
+                  </p>
+                </div>
+              </GlassCard>
+            </>
+          ),
+        }}
+      />
 
       <MatchPickerModal entry={ambiguousQueue[0] ?? null} onResolve={resolveAmbiguous} />
 

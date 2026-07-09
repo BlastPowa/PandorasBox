@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Search, User as UserIcon, LogIn } from "lucide-react";
+import { Search, User as UserIcon, LogIn, Library, Settings, LogOut, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { SearchInput } from "@/components/ui-fx/input";
 import { Brand } from "./brand";
 import type { Profile } from "@/lib/auth";
@@ -33,21 +34,72 @@ export function Topbar({ profile }: { profile: Profile | null }) {
         />
       </form>
       {profile ? (
-        <Link
-          href="/settings"
-          className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-[var(--glass)] text-sm font-bold text-[var(--text)] transition-colors hover:border-[var(--accent)]"
-          aria-label="Profile and settings"
-          title={profile.username ?? "Profile"}
-        >
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" className="size-full object-cover" />
-          ) : profile.username ? (
-            profile.username.charAt(0).toUpperCase()
-          ) : (
-            <UserIcon className="size-4" />
-          )}
-        </Link>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--glass)] p-1 pr-2 text-sm font-bold text-[var(--text)] transition-colors hover:border-[var(--accent)]"
+              aria-label="Profile menu"
+              title={profile.username ?? "Profile"}
+            >
+              <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-[var(--bg-surface)]">
+                {profile.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.avatar_url} alt="" className="size-full object-cover" />
+                ) : profile.username ? (
+                  profile.username.charAt(0).toUpperCase()
+                ) : (
+                  <UserIcon className="size-4" />
+                )}
+              </span>
+              <ChevronDown className="size-3.5 text-[var(--text-muted)]" />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="end"
+              sideOffset={8}
+              className="z-50 min-w-[190px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] p-1 shadow-2xl"
+            >
+              {profile.username && (
+                <DropdownMenu.Item asChild>
+                  <Link
+                    href={`/profile/${profile.username}`}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm text-[var(--text-secondary)] outline-none transition-colors focus:bg-[var(--glass)] focus:text-[var(--text)]"
+                  >
+                    <UserIcon className="size-4" /> Profile
+                  </Link>
+                </DropdownMenu.Item>
+              )}
+              <DropdownMenu.Item asChild>
+                <Link
+                  href="/library"
+                  className="flex cursor-pointer items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm text-[var(--text-secondary)] outline-none transition-colors focus:bg-[var(--glass)] focus:text-[var(--text)]"
+                >
+                  <Library className="size-4" /> My Library
+                </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item asChild>
+                <Link
+                  href="/settings"
+                  className="flex cursor-pointer items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm text-[var(--text-secondary)] outline-none transition-colors focus:bg-[var(--glass)] focus:text-[var(--text)]"
+                >
+                  <Settings className="size-4" /> Settings
+                </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="my-1 h-px bg-[var(--border)]" />
+              <DropdownMenu.Item asChild>
+                <form action="/auth/signout" method="post" className="contents">
+                  <button
+                    type="submit"
+                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 py-2 text-left text-sm text-[var(--dropped)] outline-none transition-colors focus:bg-[rgba(239,68,68,0.12)]"
+                  >
+                    <LogOut className="size-4" /> Sign out
+                  </button>
+                </form>
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       ) : (
         <Link
           href="/login"
