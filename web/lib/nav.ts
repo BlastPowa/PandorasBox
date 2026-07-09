@@ -18,6 +18,7 @@ import {
   Tv,
   Clapperboard,
   MonitorPlay,
+  Gamepad2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/episode-ratings", label: "Episode Ratings", icon: Star, group: "personal" },
   { href: "/friends", label: "Friends", icon: Users, group: "personal" },
   { href: "/stats", label: "Stats", icon: BarChart3, group: "personal" },
+  { href: "/gamers", label: "Games", icon: Gamepad2, group: "more" },
   { href: "/comics", label: "Comics", icon: BookOpen, group: "more" },
   { href: "/sites", label: "Sites", icon: Globe, group: "more" },
   { href: "/settings", label: "Settings", icon: Settings, group: "more" },

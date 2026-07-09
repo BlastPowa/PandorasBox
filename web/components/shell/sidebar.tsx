@@ -19,14 +19,22 @@ function readCollapsed(): boolean {
   }
 }
 
-function readOpenGroups(): Set<NavGroup> {
+/** Which group a path belongs to, for defaulting the sidebar's open section. */
+function groupForPath(pathname: string): NavGroup {
+  const match = NAV_ITEMS.find((i) => (i.href === "/" ? pathname === "/" : pathname.startsWith(i.href)));
+  return match?.group ?? "main";
+}
+
+function readOpenGroups(activeGroup: NavGroup): Set<NavGroup> {
   try {
     const raw = window.localStorage.getItem(GROUPS_KEY);
     if (raw) return new Set(JSON.parse(raw) as NavGroup[]);
   } catch {
     // ignore
   }
-  return new Set(NAV_GROUPS.map((g) => g.key));
+  // First visit: open only the section the current page lives in, so the nav
+  // reads as a few headers plus one expanded group rather than one long list.
+  return new Set([activeGroup]);
 }
 
 export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
@@ -37,8 +45,11 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
   useEffect(() => {
     setCollapsed(readCollapsed());
-    setOpenGroups(readOpenGroups());
+    setOpenGroups(readOpenGroups(groupForPath(pathname)));
     setMounted(true);
+    // Only on mount — subsequent navigation shouldn't override the user's
+    // manual expand/collapse choices.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function toggleCollapsed() {
