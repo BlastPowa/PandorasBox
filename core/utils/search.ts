@@ -7,7 +7,7 @@ import { normaliseTitle } from "./formatters";
 
 export interface UnifiedSearchResult {
   id: string;
-  source: "tmdb" | "anilist" | "mangadex";
+  source: "tmdb" | "anilist" | "mangadex" | "comicvine";
   type: ReelItemType;
   title: string;
   posterUrl: string | null;

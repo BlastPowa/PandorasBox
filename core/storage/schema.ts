@@ -1,4 +1,4 @@
-export type ReelItemType = "movie" | "series" | "anime" | "manga" | "manhwa";
+export type ReelItemType = "movie" | "series" | "anime" | "manga" | "manhwa" | "comic";
 
 export type ReelItemStatus =
   | "watching"
@@ -24,7 +24,7 @@ export interface ReelProgress {
 
 export interface ReelItem {
   id: string;
-  source: "tmdb" | "anilist" | "mangadex";
+  source: "tmdb" | "anilist" | "mangadex" | "comicvine";
   type: ReelItemType;
   title: string;
   posterUrl: string | null;

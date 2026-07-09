@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 export interface LibrarySeed {
   id: string;
-  source: "tmdb" | "anilist" | "mangadex";
+  source: "tmdb" | "anilist" | "mangadex" | "comicvine";
   type: ReelItemType;
   title: string;
   posterUrl: string | null;
@@ -68,7 +68,7 @@ export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
     useLibrary();
   const [busy, setBusy] = useState(false);
   const existing = getById(seed.id);
-  const isReading = seed.type === "manga" || seed.type === "manhwa";
+  const isReading = seed.type === "manga" || seed.type === "manhwa" || seed.type === "comic";
   const isMovie = seed.type === "movie";
   const defaultStatus: ReelItemStatus = isReading ? "reading" : "watching";
 
@@ -118,9 +118,13 @@ export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
   }
 
   if (!signedIn) {
+    const nextPath =
+      seed.type === "comic"
+        ? `/comic/${seed.id.replace("comicvine-", "")}`
+        : `/title/${seed.type}/${seed.source}/${seed.anilistId ?? seed.tmdbId ?? seed.mangadexId}`;
     return (
       <a
-        href={`/login?next=/title/${seed.type}/${seed.source}/${seed.anilistId ?? seed.tmdbId ?? seed.mangadexId}`}
+        href={`/login?next=${nextPath}`}
         className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-5 text-sm font-semibold text-[#0a0a0f]"
       >
         <Plus className="size-4" /> Sign in to track

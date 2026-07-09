@@ -24,6 +24,7 @@ function detailHref(category: ReelItemType, itemId: string): string {
   const idx = itemId.indexOf("-");
   const source = idx === -1 ? itemId : itemId.slice(0, idx);
   const refId = idx === -1 ? "" : itemId.slice(idx + 1);
+  if (category === "comic") return `/comic/${refId}`;
   return `/title/${category}/${source}/${refId}`;
 }
 
@@ -33,6 +34,7 @@ const CATEGORIES: { key: ReelItemType; label: string }[] = [
   { key: "anime", label: "Anime" },
   { key: "manga", label: "Manga" },
   { key: "manhwa", label: "Manhwa" },
+  { key: "comic", label: "Comics" },
 ];
 
 export function RankingsView() {

@@ -15,6 +15,7 @@ const FILTERS: { key: ReelItemType | "all"; label: string }[] = [
   { key: "anime", label: "Anime" },
   { key: "manga", label: "Manga" },
   { key: "manhwa", label: "Manhwa" },
+  { key: "comic", label: "Comics" },
 ];
 
 export function FilterableGrid({ items }: { items: UnifiedSearchResult[] }) {

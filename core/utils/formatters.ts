@@ -69,6 +69,8 @@ export function getTypeLabel(type: ReelItemType): string {
       return "Manga";
     case "manhwa":
       return "Manhwa";
+    case "comic":
+      return "Comic";
   }
 }
 

@@ -13,9 +13,13 @@ export function PosterCard({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const href =
+    item.type === "comic"
+      ? `/comic/${item.id.replace("comicvine-", "")}`
+      : `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId ?? item.id}`;
   return (
     <Link
-      href={`/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId ?? item.id}`}
+      href={href}
       style={style}
       className={cn(
         "group pb-card-3d relative block overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)]",

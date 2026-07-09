@@ -101,16 +101,26 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
             ref={(el) => {
               slideRefs.current[i] = el;
             }}
-            className="relative flex h-full w-full snap-start snap-always items-center justify-center gap-3 px-3 sm:gap-6"
+            className="relative flex h-full w-full snap-start snap-always items-center justify-center gap-4 px-3 sm:gap-8"
           >
+            {/* Whole-slide blurred backdrop of the poster (lordflix look) — the
+                page behind the card is a soft, dark-tinted blow-up of the art,
+                never a flat black rectangle. */}
+            {s.posterUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-125 object-cover opacity-40 blur-3xl" />
+            )}
+            <div className="pointer-events-none absolute inset-0 bg-black/55" />
+
             {/* Portrait player card — the trailer is letterboxed inside a tall
-                rounded card (lordflix layout), with the title/meta pinned to the
-                bottom of the card and the action rail sitting outside it. */}
-            <div className="relative h-full max-h-[92dvh] w-full max-w-[440px] overflow-hidden rounded-[var(--radius-xl)] border border-white/10 bg-black">
+                rounded card, title/meta pinned to its bottom, rail outside it.
+                Sized responsively: near-square-tall on desktop, full-width on
+                phones so the player fills the screen like a real short. */}
+            <div className="relative z-10 h-full max-h-[94dvh] w-full max-w-[min(94vw,460px)] overflow-hidden rounded-[var(--radius-xl)] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-sm">
               {/* Blurred poster fills the card's letterbox area */}
               {s.posterUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-110 object-cover opacity-25 blur-2xl" />
+                <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-110 object-cover opacity-30 blur-2xl" />
               )}
 
               {/* Video, centered 16:9 (click to play/pause) */}
@@ -163,30 +173,31 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
               </div>
             </div>
 
-            {/* Action rail — outside the card */}
-            <div className="flex shrink-0 flex-col items-center gap-3 pb-24 sm:pb-0">
-              <Link href={href} className="relative block h-20 w-14 overflow-hidden rounded-[var(--radius-md)] border border-white/20 shadow-lg">
+            {/* Action rail — overlays the card on phones (so the player stays
+                full-width like a real short) and sits outside it on desktop. */}
+            <div className="absolute bottom-24 right-3 z-20 flex shrink-0 flex-col items-center gap-4 sm:static sm:bottom-auto sm:right-auto sm:z-10 sm:pb-0">
+              <Link href={href} className="relative block h-24 w-16 overflow-hidden rounded-[var(--radius-md)] border border-white/20 shadow-lg transition hover:scale-105">
                 {s.posterUrl ? (
-                  <Image src={s.posterUrl} alt={s.title} fill sizes="56px" className="object-cover" />
+                  <Image src={s.posterUrl} alt={s.title} fill sizes="64px" className="object-cover" />
                 ) : (
-                  <span className="grid size-full place-items-center bg-white/10 font-display text-lg font-bold text-white">
+                  <span className="grid size-full place-items-center bg-white/10 font-display text-xl font-bold text-white">
                     {s.title.charAt(0)}
                   </span>
                 )}
               </Link>
 
-              <Link href={href} className="flex flex-col items-center gap-1 text-white" aria-label={`View details for ${s.title}`}>
-                <span className="grid size-12 place-items-center rounded-full bg-white/15 backdrop-blur transition hover:bg-white/25">
-                  <Info className="size-5" />
+              <Link href={href} className="flex flex-col items-center gap-1.5 text-white" aria-label={`View details for ${s.title}`}>
+                <span className="grid size-14 place-items-center rounded-full bg-white/15 backdrop-blur transition hover:bg-white/25">
+                  <Info className="size-6" />
                 </span>
-                <span className="text-[11px] font-semibold">Details</span>
+                <span className="text-xs font-semibold">Details</span>
               </Link>
 
-              <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="flex flex-col items-center gap-1 text-white">
-                <span className="grid size-12 place-items-center rounded-full bg-white/15 backdrop-blur transition hover:bg-white/25">
-                  {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+              <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="flex flex-col items-center gap-1.5 text-white">
+                <span className="grid size-14 place-items-center rounded-full bg-white/15 backdrop-blur transition hover:bg-white/25">
+                  {muted ? <VolumeX className="size-6" /> : <Volume2 className="size-6" />}
                 </span>
-                <span className="text-[11px] font-semibold">Audio</span>
+                <span className="text-xs font-semibold">Audio</span>
               </button>
             </div>
           </section>

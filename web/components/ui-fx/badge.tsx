@@ -8,6 +8,7 @@ const TYPE_STYLES: Record<ReelItemType, string> = {
   anime: "bg-[rgb(var(--accent-2-rgb)/0.15)] text-[var(--accent-2)]",
   manga: "bg-[rgba(52,211,153,0.14)] text-[#6ee7b7]",
   manhwa: "bg-[rgb(var(--gold-rgb)/0.15)] text-[var(--gold)]",
+  comic: "bg-[rgba(239,68,68,0.14)] text-[#fca5a5]",
 };
 
 const STATUS_COLORS: Record<ReelItemStatus, string> = {

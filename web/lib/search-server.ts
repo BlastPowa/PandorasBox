@@ -1,15 +1,38 @@
 import "server-only";
 import { unifiedSearch, type UnifiedSearchResult } from "@core/utils/search";
 import { searchMangaDex, getMangaDexCoverUrl } from "@core/api/mangadex";
+import { searchComics } from "@/lib/comics";
 
 export async function runSearch(query: string): Promise<UnifiedSearchResult[]> {
   const tmdbKey = process.env.TMDB_API_KEY ?? "";
-  const [unified, mangadex] = await Promise.allSettled([
+  const [unified, mangadex, comics] = await Promise.allSettled([
     unifiedSearch(query, tmdbKey),
     searchMangaDex(query),
+    searchComics(query),
   ]);
 
   const results: UnifiedSearchResult[] = unified.status === "fulfilled" ? unified.value : [];
+
+  if (comics.status === "fulfilled") {
+    for (const c of comics.value.slice(0, 12)) {
+      results.push({
+        id: `comicvine-${c.id}`,
+        source: "comicvine",
+        type: "comic",
+        title: c.name,
+        posterUrl: c.coverUrl,
+        year: c.startYear,
+        synopsis: c.synopsis,
+        score: null,
+        totalEpisodes: null,
+        totalChapters: c.issueCount > 0 ? c.issueCount : null,
+        anilistId: null,
+        tmdbId: null,
+        mangadexId: null,
+        malId: null,
+      });
+    }
+  }
 
   if (mangadex.status === "fulfilled") {
     for (const m of mangadex.value.slice(0, 8)) {
