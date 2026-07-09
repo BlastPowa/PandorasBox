@@ -19,6 +19,7 @@ import {
   Clapperboard,
   MonitorPlay,
   Gamepad2,
+  Film,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,6 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/movies", label: "Movies", icon: Clapperboard, group: "main" },
   { href: "/tv", label: "Shows", icon: MonitorPlay, group: "main" },
   { href: "/anime", label: "Anime", icon: Tv, group: "main" },
+  { href: "/shorts", label: "Shorts", icon: Film, group: "main" },
   { href: "/randomize", label: "Randomize", icon: Dices, group: "main", bottom: true },
   { href: "/search", label: "Search", icon: Search, group: "main" },
   { href: "/schedule", label: "Schedule", icon: CalendarDays, group: "main" },
