@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { runSearch } from "@/lib/search-server";
 import { FilterableGrid } from "@/components/discovery/type-filter";
 import { EmptyState } from "@/components/ui-fx/feedback";
@@ -30,7 +30,11 @@ export default async function SearchPage({
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
-      <h1 className="mb-4 font-display text-2xl font-bold">Search</h1>
+      <header className="relative mb-6 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--media-border)] bg-[radial-gradient(circle_at_75%_20%,rgb(var(--accent-2-rgb)/0.22),transparent_35%),radial-gradient(circle_at_10%_90%,rgb(var(--accent-rgb)/0.28),transparent_42%),var(--bg-surface)] px-5 py-8 sm:px-8 sm:py-12">
+        <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent)]"><Sparkles className="size-4" /> Unified discovery</span>
+        <h1 className="mt-2 font-display text-3xl font-extrabold sm:text-5xl">Search every story</h1>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">One search across movies, television, anime, manga, manhwa, and comics.</p>
+      </header>
       <SearchModeTabs>
         {query.length === 0 ? (
           <EmptyState

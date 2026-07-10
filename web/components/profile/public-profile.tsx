@@ -2,162 +2,91 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Lock, Users, CalendarDays, UserPlus, Settings as SettingsIcon } from "lucide-react";
+import { Activity, Award, CalendarDays, ChevronRight, Clock3, FolderHeart, Lock, Settings as SettingsIcon, ShieldCheck, Sparkles, UserPlus, Users } from "lucide-react";
 import { sendFriendRequest } from "@/lib/friends/friends";
-import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { BackButton } from "@/components/shell/back-button";
 
-interface ProfileRow {
-  id: string;
-  username: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  banner_url: string | null;
-  privacy: "public" | "friends" | "private";
-  created_at: string;
+interface ProfileRow { id: string; username: string | null; avatar_url: string | null; bio: string | null; banner_url: string | null; privacy: "public" | "friends" | "private"; created_at: string; }
+interface CollectionRow { id: string; name: string; description: string | null; cover_url: string | null; visibility?: string; created_at: string; }
+interface ActivityRow { id: string; verb: string; title: string | null; poster_url: string | null; media_type: string | null; media_key: string | null; created_at: string; }
+
+const VERB_LABEL: Record<string, string> = { started: "started", finished: "completed", rated: "rated", added: "added", created_collection: "created a collection" };
+
+function activityHref(row: ActivityRow) {
+  if (!row.media_key || !row.media_type) return null;
+  const [source, id] = row.media_key.includes(":") ? row.media_key.split(":", 2) : ["tmdb", row.media_key];
+  return `/title/${row.media_type}/${source}/${id}`;
 }
 
-interface CollectionRow {
-  id: string;
-  name: string;
-  description: string | null;
-  cover_url: string | null;
-  visibility?: string;
-  created_at: string;
-}
-
-interface ActivityRow {
-  id: string;
-  verb: string;
-  title: string | null;
-  poster_url: string | null;
-  media_type: string | null;
-  media_key: string | null;
-  created_at: string;
-}
-
-const VERB_LABEL: Record<string, string> = {
-  started: "started",
-  finished: "finished",
-  rated: "rated",
-  added: "added",
-  created_collection: "created a collection:",
-};
-
-export function PublicProfile({
-  profile,
-  isOwner,
-  visible,
-  collections,
-  activity,
-}: {
-  profile: ProfileRow;
-  isOwner: boolean;
-  visible: boolean;
-  collections: CollectionRow[];
-  activity: ActivityRow[];
-}) {
+export function PublicProfile({ profile, isOwner, visible, collections, activity }: { profile: ProfileRow; isOwner: boolean; visible: boolean; collections: CollectionRow[]; activity: ActivityRow[]; }) {
   const [requested, setRequested] = useState(false);
-  const joined = new Date(profile.created_at).toLocaleDateString(undefined, { year: "numeric", month: "long" });
+  const joinedDate = new Date(profile.created_at);
+  const joined = joinedDate.toLocaleDateString(undefined, { year: "numeric", month: "long" });
+  const accountYears = Math.max(0, Math.floor((Date.now() - joinedDate.getTime()) / 31_557_600_000));
+  const level = Math.max(1, Math.min(99, 1 + accountYears * 5 + collections.length * 2 + Math.floor(activity.length / 3)));
+  const uniqueTitles = useMemo(() => new Set(activity.map((row) => row.title).filter(Boolean)).size, [activity]);
+  const completed = activity.filter((row) => row.verb === "finished").length;
+  const featured = collections.slice(0, 3);
+  const recentPosters = activity.filter((row) => row.poster_url).slice(0, 5);
+
+  const badges = [
+    { label: "Collector", description: `${collections.length} public collection${collections.length === 1 ? "" : "s"}`, icon: FolderHeart, earned: collections.length > 0 },
+    { label: "Explorer", description: `${uniqueTitles} recent title${uniqueTitles === 1 ? "" : "s"}`, icon: Sparkles, earned: uniqueTitles >= 3 },
+    { label: "Finisher", description: `${completed} recent completion${completed === 1 ? "" : "s"}`, icon: Award, earned: completed > 0 },
+    { label: "PBox Member", description: `Joined ${joined}`, icon: ShieldCheck, earned: true },
+  ].filter((badge) => badge.earned);
 
   async function addFriend() {
-    try {
-      await sendFriendRequest(profile.id);
-      setRequested(true);
-      toast.success("Friend request sent");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not send request");
-    }
+    try { await sendFriendRequest(profile.id); setRequested(true); toast.success("Friend request sent"); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not send request"); }
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 md:px-8">
+    <div className="mx-auto max-w-[1200px] px-4 pb-12 pt-4 md:px-8">
       <BackButton className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]" />
-      <div className="relative h-32 overflow-hidden rounded-[var(--radius-lg)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] sm:h-40">
-        {profile.banner_url && <Image src={profile.banner_url} alt="" fill className="object-cover" />}
-      </div>
 
-      <div className="-mt-10 flex flex-wrap items-end justify-between gap-3 px-2">
-        <div className="flex items-end gap-3">
-          <div className="relative size-20 shrink-0 overflow-hidden rounded-full border-4 border-[var(--bg-base)] bg-[var(--bg-elevated)]">
-            {profile.avatar_url ? (
-              <Image src={profile.avatar_url} alt="" fill sizes="80px" className="object-cover" />
-            ) : (
-              <div className="grid size-full place-items-center font-display text-2xl font-bold text-[var(--text-muted)]">
-                {profile.username?.[0]?.toUpperCase() ?? "?"}
-              </div>
-            )}
-          </div>
-          <div className="pb-1">
-            <h1 className="font-display text-xl font-bold">{profile.username}</h1>
-            <p className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-              <CalendarDays className="size-3" /> Joined {joined}
-            </p>
+      <header className="relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--media-border)] bg-[var(--bg-surface)] shadow-2xl">
+        <div className="relative h-56 sm:h-72 lg:h-80">
+          {profile.banner_url ? <Image src={profile.banner_url} alt="" fill priority sizes="(max-width: 1200px) 100vw, 1200px" className="object-cover" /> : <div className="size-full bg-[radial-gradient(circle_at_70%_20%,rgb(var(--accent-2-rgb)/0.5),transparent_38%),radial-gradient(circle_at_20%_80%,rgb(var(--accent-rgb)/0.55),transparent_42%),linear-gradient(145deg,#171724,#08080d)]" />}
+          <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-surface)_0%,rgb(10_10_15/0.62)_42%,transparent_76%)]" />
+          <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 sm:gap-6 sm:p-8">
+            <div className="relative size-24 shrink-0 overflow-hidden rounded-2xl border-4 border-[var(--bg-surface)] bg-[var(--bg-elevated)] shadow-2xl sm:size-32">
+              {profile.avatar_url ? <Image src={profile.avatar_url} alt={`${profile.username ?? "User"}'s avatar`} fill priority sizes="128px" className="object-cover" /> : <div className="grid size-full place-items-center font-display text-4xl font-bold text-[var(--text-muted)]">{profile.username?.[0]?.toUpperCase() ?? "?"}</div>}
+            </div>
+            <div className="min-w-0 flex-1 pb-1">
+              <div className="flex flex-wrap items-center gap-3"><h1 className="truncate font-display text-2xl font-extrabold sm:text-4xl">{profile.username}</h1><span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--accent-rgb)/0.4)] bg-[rgb(var(--accent-rgb)/0.18)] px-3 py-1 text-xs font-bold text-[var(--accent)]"><span className="size-2 rounded-full bg-[var(--completed)] shadow-[0_0_10px_var(--completed)]" /> Collector</span></div>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-secondary)] sm:text-sm"><CalendarDays className="size-3.5" /> PBox member since {joined}</p>
+            </div>
+            <div className="hidden rounded-full bg-[rgb(10_10_15/0.7)] p-1.5 sm:block"><div className="grid size-16 place-items-center rounded-full border-2 border-[var(--accent)] bg-[var(--bg-surface)] text-center shadow-[0_0_28px_rgb(var(--accent-rgb)/0.25)]"><span><span className="block text-[9px] uppercase tracking-widest text-[var(--text-muted)]">Level</span><strong className="font-mono text-xl text-[var(--accent)]">{level}</strong></span></div></div>
           </div>
         </div>
-        {isOwner ? (
-          <Button asChild variant="glass" size="sm"><Link href="/settings"><SettingsIcon className="size-4" /> Edit profile</Link></Button>
-        ) : (
-          <Button size="sm" onClick={() => void addFriend()} disabled={requested}>
-            <UserPlus className="size-4" /> {requested ? "Request sent" : "Add friend"}
-          </Button>
-        )}
-      </div>
-
-      {profile.bio && <p className="mt-4 px-2 text-sm text-[var(--text-secondary)]">{profile.bio}</p>}
-
-      {!visible ? (
-        <div className="mt-6">
-          <EmptyState
-            icon={profile.privacy === "friends" ? <Users className="size-10" /> : <Lock className="size-10" />}
-            title={profile.privacy === "friends" ? "Friends only" : "Private profile"}
-            description={
-              profile.privacy === "friends"
-                ? "Add this person as a friend to see their collections and activity."
-                : "This user has set their profile to private."
-            }
-          />
+        <div className="flex flex-col gap-4 border-t border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">{profile.bio || "Tracking stories, worlds, and favourites across PBox."}</p>
+          {isOwner ? <Button asChild variant="glass" size="sm"><Link href="/settings"><SettingsIcon className="size-4" /> Edit profile</Link></Button> : <Button size="sm" onClick={() => void addFriend()} disabled={requested}><UserPlus className="size-4" /> {requested ? "Request sent" : "Add friend"}</Button>}
         </div>
-      ) : (
-        <div className="mt-6 space-y-6">
-          {collections.length > 0 && (
-            <GlassCard macDots title="Public collections">
-              <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                {collections.map((c) => (
-                  <Link key={c.id} href={`/collections/${c.id}`} className="glass rounded-[var(--radius-md)] p-3 hover:border-[var(--accent)]">
-                    <h3 className="font-semibold">{c.name}</h3>
-                    {c.description && <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">{c.description}</p>}
-                  </Link>
-                ))}
-              </div>
-            </GlassCard>
-          )}
+      </header>
 
-          <GlassCard macDots title="Recent activity">
-            {activity.length === 0 ? (
-              <p className="p-4 text-sm text-[var(--text-muted)]">No recent activity.</p>
-            ) : (
-              <div className="space-y-1 p-3">
-                {activity.map((a) => (
-                  <div key={a.id} className="flex items-center gap-3 rounded-[var(--radius-md)] p-2 text-sm hover:bg-[var(--glass)]">
-                    {a.poster_url && (
-                      <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded-[6px] bg-[var(--bg-surface)]">
-                        <Image src={a.poster_url} alt="" fill sizes="36px" className="object-cover" />
-                      </div>
-                    )}
-                    <p className="min-w-0 truncate text-[var(--text-secondary)]">
-                      <span className="font-semibold text-[var(--text)]">{profile.username}</span>{" "}
-                      {VERB_LABEL[a.verb] ?? a.verb} <span className="font-semibold text-[var(--text)]">{a.title}</span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </GlassCard>
+      {!visible ? <div className="mt-6"><EmptyState icon={profile.privacy === "friends" ? <Users className="size-10" /> : <Lock className="size-10" />} title={profile.privacy === "friends" ? "Friends only" : "Private profile"} description={profile.privacy === "friends" ? "Add this person as a friend to see their collections and activity." : "This user has set their profile to private."} /></div> : (
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <main className="min-w-0 space-y-6">
+            <section className="grid grid-cols-3 gap-3" aria-label="Profile statistics">
+              {[{ label: "Collections", value: collections.length, icon: FolderHeart }, { label: "Recent titles", value: uniqueTitles, icon: Activity }, { label: "Completions", value: completed, icon: Award }].map(({ label, value, icon: Icon }) => <div key={label} className="rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-4"><Icon className="mb-4 size-5 text-[var(--accent)]" /><strong className="block font-mono text-2xl">{value}</strong><span className="text-xs text-[var(--text-muted)]">{label}</span></div>)}
+            </section>
+
+            {featured.length > 0 && <section><div className="mb-3 flex items-center justify-between"><h2 className="font-display text-xl font-bold">Featured collections</h2><span className="text-xs text-[var(--text-muted)]">Curated by {profile.username}</span></div><div className="grid gap-3 sm:grid-cols-3">{featured.map((collection, index) => <Link key={collection.id} href={`/collections/${collection.id}`} className="group relative min-h-48 overflow-hidden rounded-2xl border border-[var(--media-border)] bg-[var(--bg-surface)]"><>{collection.cover_url ? <Image src={collection.cover_url} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /> : recentPosters[index]?.poster_url ? <Image src={recentPosters[index].poster_url!} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover opacity-60 transition duration-500 group-hover:scale-105" /> : <div className="size-full bg-[linear-gradient(145deg,rgb(var(--accent-rgb)/0.35),rgb(var(--accent-2-rgb)/0.12))]" />}</><div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" /><div className="absolute inset-x-0 bottom-0 p-4"><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Featured</p><h3 className="mt-1 font-display text-lg font-bold">{collection.name}</h3>{collection.description && <p className="mt-1 line-clamp-2 text-xs text-white/65">{collection.description}</p>}</div></Link>)}</div></section>}
+
+            <section><div className="mb-3 flex items-center justify-between"><h2 className="font-display text-xl font-bold">Recent activity</h2><Clock3 className="size-4 text-[var(--text-muted)]" /></div>{activity.length === 0 ? <p className="rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-6 text-sm text-[var(--text-muted)]">No recent activity.</p> : <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--glass)]">{activity.map((row) => { const href = activityHref(row); const content = <><div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-elevated)]">{row.poster_url ? <Image src={row.poster_url} alt="" fill sizes="44px" className="object-cover" /> : <div className="grid size-full place-items-center"><Activity className="size-4 text-[var(--text-muted)]" /></div>}</div><div className="min-w-0 flex-1"><p className="text-sm text-[var(--text-secondary)]"><strong className="text-[var(--text)]">{profile.username}</strong> {VERB_LABEL[row.verb] ?? row.verb}</p>{row.title && <p className="mt-0.5 truncate font-semibold">{row.title}</p>}<time className="mt-1 block text-[10px] text-[var(--text-muted)]">{new Date(row.created_at).toLocaleDateString()}</time></div>{href && <ChevronRight className="size-4 shrink-0 text-[var(--text-muted)]" />}</>; return href ? <Link key={row.id} href={href} className="flex items-center gap-3 border-b border-[var(--border)] p-3 transition last:border-0 hover:bg-[var(--glass-strong)]">{content}</Link> : <div key={row.id} className="flex items-center gap-3 border-b border-[var(--border)] p-3 last:border-0">{content}</div>; })}</div>}</section>
+          </main>
+
+          <aside className="space-y-5">
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-5"><div className="mb-4 flex items-center justify-between"><h2 className="font-display font-bold">Collector level</h2><strong className="font-mono text-xl text-[var(--accent)]">{level}</strong></div><div className="h-2 overflow-hidden rounded-full bg-[var(--bg-elevated)]"><div className="h-full rounded-full bg-[linear-gradient(90deg,var(--accent),var(--accent-2))]" style={{ width: `${Math.max(8, level % 10 * 10)}%` }} /></div><p className="mt-2 text-[10px] text-[var(--text-muted)]">Build collections and activity to shape your profile.</p></section>
+            <section><h2 className="mb-3 font-display font-bold">Badges</h2><div className="space-y-2">{badges.map(({ label, description, icon: Icon }) => <div key={label} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--glass)] p-3"><div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[rgb(var(--accent-rgb)/0.16)] text-[var(--accent)]"><Icon className="size-5" /></div><div className="min-w-0"><h3 className="text-sm font-semibold">{label}</h3><p className="truncate text-[10px] text-[var(--text-muted)]">{description}</p></div></div>)}</div></section>
+            {recentPosters.length > 0 && <section><h2 className="mb-3 font-display font-bold">Recent showcase</h2><div className="grid grid-cols-5 gap-1.5">{recentPosters.map((row) => <div key={row.id} className="relative aspect-[2/3] overflow-hidden rounded-lg border border-[var(--border)]"><Image src={row.poster_url!} alt={row.title ?? "Recent title"} fill sizes="60px" className="object-cover" /></div>)}</div></section>}
+          </aside>
         </div>
       )}
     </div>

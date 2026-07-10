@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { ArrowRight, Compass, Sparkles } from "lucide-react";
 import {
   getTrendingAnime,
   getPopularAnime,
@@ -67,9 +67,20 @@ async function BrowseContent() {
   const hasTmdb = movies.length > 0 || series.length > 0;
   const marvel = [...marvelMovies, ...marvelTv];
   const dc = [...dcMovies, ...dcTv];
+  const spotlight = movies.find((item) => item.backdropUrl) ?? series.find((item) => item.backdropUrl) ?? anime.find((item) => item.backdropUrl);
 
   return (
     <div className="space-y-8">
+      <section className="relative -mx-4 -mt-6 min-h-[320px] overflow-hidden border-b border-[var(--border)] md:-mx-8 md:min-h-[390px]">
+        {spotlight?.backdropUrl && <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${JSON.stringify(spotlight.backdropUrl)})` }} />}
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--cinematic-scrim)_0%,rgb(7_7_12/0.72)_42%,transparent_78%),linear-gradient(to_top,var(--bg-base),transparent_65%)]" />
+        <div className="relative flex min-h-[320px] max-w-2xl flex-col justify-end px-4 pb-12 pt-20 md:min-h-[390px] md:px-10 md:pb-16">
+          <span className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-[var(--media-border)] bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white/75 backdrop-blur"><Compass className="size-3.5 text-[var(--accent)]" /> Explore PBox</span>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-6xl">Find your next world</h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65 sm:text-base">Movies, series, anime, manga, comics, and games—curated across every corner of your entertainment library.</p>
+          <div className="mt-5 flex flex-wrap gap-3"><Link href="/movies" className="inline-flex h-11 items-center gap-2 rounded-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-6 text-sm font-bold text-[#0a0a0f]">Browse movies <ArrowRight className="size-4" /></Link><Link href="/anime" className="glass inline-flex h-11 items-center rounded-full px-6 text-sm font-semibold">Explore anime</Link></div>
+        </div>
+      </section>
       {!hasTmdb && (
         <p className="rounded-[var(--radius-md)] border border-[rgb(var(--gold-rgb)/0.3)] bg-[rgb(var(--gold-rgb)/0.1)] px-4 py-3 text-sm text-[var(--gold)]">
           Add a free <span className="font-mono">TMDB_API_KEY</span> to unlock Movies, TV, K-drama and cartoons.
@@ -116,7 +127,6 @@ async function BrowseContent() {
 export default function BrowsePage() {
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
-      <h1 className="mb-5 font-display text-2xl font-bold">Browse everything</h1>
       <Suspense
         fallback={
           <div className="space-y-8">
