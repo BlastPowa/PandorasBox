@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Shuffle, Loader2 } from "lucide-react";
-import type { UnifiedSearchResult } from "@core/utils/search";
+import { Shuffle } from "lucide-react";
 import { PosterCard } from "./poster-card";
 import { PosterSkeleton } from "@/components/ui-fx/feedback";
 import { FilterDropdown } from "./filter-dropdown";
@@ -17,7 +16,6 @@ import {
   type SortKey,
 } from "@/lib/browse-filters";
 import type { DiscoverPage } from "@/lib/discover";
-import { cn } from "@/lib/utils";
 
 interface Props {
   kind: MediaKind;
@@ -125,7 +123,9 @@ export function DiscoverGrid({ kind, initial }: Props) {
   // loading stalled after page 2.
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef(loadMore);
-  loadMoreRef.current = loadMore;
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -243,17 +243,9 @@ export function DiscoverGrid({ kind, initial }: Props) {
           IntersectionObserver never loses its target between filter changes. */}
       <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
 
-      {!loading && items.length > 0 && page < totalPages && (
-        <div className="flex justify-center py-4" role="status" aria-live="polite">
-          <Loader2
-            className={cn(
-              "size-5 animate-spin text-[var(--accent)] transition-opacity",
-              loadingMore ? "opacity-100" : "opacity-0"
-            )}
-          />
-          <span className="sr-only">{loadingMore ? "Loading more titles" : ""}</span>
-        </div>
-      )}
+      <span className="sr-only" role="status" aria-live="polite">
+        {loadingMore ? "Loading more titles" : ""}
+      </span>
 
       {!loading && page >= totalPages && items.length > 20 && (
         <p className="py-6 text-center text-xs text-[var(--text-muted)]">You&apos;ve reached the end.</p>

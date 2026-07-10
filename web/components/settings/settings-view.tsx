@@ -99,7 +99,7 @@ export function SettingsView({
     try {
       const parsed = kind === "json" ? (JSON.parse(text) as unknown) : decodeListFromQR(text);
       if (!validateDecodedList(parsed)) {
-        toast.error("That file isn't a valid Pandora's Box export.");
+        toast.error("That file isn't a valid PBox export.");
         return;
       }
       const existing = new Set(items.map((i) => i.id));
@@ -373,7 +373,7 @@ export function SettingsView({
               <GlassCard macDots title="About">
                 <div className="space-y-1 p-5 text-sm text-[var(--text-secondary)]">
                   <p>
-                    <span className="font-semibold text-[var(--text)]">Pandora&apos;s Box</span> — universal
+                    <span className="font-semibold text-[var(--text)]">PBox</span> — universal
                     entertainment tracker.
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">

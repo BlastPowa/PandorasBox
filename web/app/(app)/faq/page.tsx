@@ -3,7 +3,7 @@ import { GlassCard } from "@/components/ui-fx/glass-card";
 import { FaqAccordion, type FaqEntry } from "@/components/faq/faq-accordion";
 import { ContactForm } from "@/components/faq/contact-form";
 
-export const metadata = { title: "FAQ & Help · Pandora's Box" };
+export const metadata = { title: "FAQ & Help · PBox" };
 
 const ENTRIES: FaqEntry[] = [
   {
@@ -20,7 +20,7 @@ const ENTRIES: FaqEntry[] = [
             — before anything&apos;s added, so you never have to fix them one by one afterward.
           </li>
           <li>
-            <span className="text-[var(--text)]">Import a file.</span> If you exported a Pandora&apos;s Box JSON
+            <span className="text-[var(--text)]">Import a file.</span> If you exported a PBox JSON
             file or share-code before, use <span className="text-[var(--text)]">Import JSON</span> or paste the
             share code in the same section.
           </li>
@@ -35,7 +35,7 @@ const ENTRIES: FaqEntry[] = [
         In <span className="text-[var(--text)]">Settings → Backup &amp; transfer</span>, click{" "}
         <span className="text-[var(--text)]">Export JSON</span> to download a file, or{" "}
         <span className="text-[var(--text)]">Share code</span> to get a portable text code you can paste into
-        Pandora&apos;s Box on another device or send to a friend.
+        PBox on another device or send to a friend.
       </p>
     ),
   },
@@ -55,7 +55,7 @@ const ENTRIES: FaqEntry[] = [
       <p>
         It&apos;s a shortcut back to everything you&apos;ve set to <span className="text-[var(--text)]">Watching</span> or{" "}
         <span className="text-[var(--text)]">Reading</span>, sorted so titles you&apos;ve already started come first.
-        Since Pandora&apos;s Box links out to other sites rather than playing video itself, progress is tracked by you
+        Since PBox links out to other sites rather than playing video itself, progress is tracked by you
         marking episodes/chapters — it doesn&apos;t auto-detect what you watched elsewhere.
       </p>
     ),
@@ -164,7 +164,7 @@ const ENTRIES: FaqEntry[] = [
     ),
   },
   {
-    question: "Can I use Pandora's Box on my phone?",
+    question: "Can I use PBox on my phone?",
     answer: (
       <p>
         Yes — it&apos;s a full responsive web app and can be installed like an app: open it in your phone&apos;s

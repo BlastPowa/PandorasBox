@@ -7,6 +7,7 @@ import { Info, Volume2, VolumeX, Play, Pause, ChevronUp, ChevronDown } from "luc
 import type { ShortItem } from "@/lib/trailers";
 import { truncateText } from "@core/utils/formatters";
 import { cn } from "@/lib/utils";
+import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 
 /** Sends a command to a YouTube iframe via its postMessage JS API. */
 function ytCommand(iframe: HTMLIFrameElement | null, func: "playVideo" | "pauseVideo") {
@@ -26,6 +27,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
   const [active, setActive] = useState(0);
   const [muted, setMuted] = useState(true);
   const [paused, setPaused] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -49,8 +51,8 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
   }, [items.length]);
 
   const scrollToSlide = useCallback((idx: number) => {
-    slideRefs.current[idx]?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+    slideRefs.current[idx]?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+  }, [reducedMotion]);
 
   const togglePlay = useCallback(() => {
     const iframe = iframeRefs.current[active];
@@ -175,7 +177,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
 
             {/* Action rail — overlays the card on phones (so the player stays
                 full-width like a real short) and sits outside it on desktop. */}
-            <div className="absolute bottom-24 right-3 z-20 flex shrink-0 flex-col items-center gap-4 sm:static sm:bottom-auto sm:right-auto sm:z-10 sm:pb-0">
+            <div className="absolute bottom-24 right-3 z-20 flex shrink-0 flex-col items-center gap-4 md:static md:bottom-auto md:right-auto md:z-10 md:pb-0">
               <Link href={href} className="relative block h-24 w-16 overflow-hidden rounded-[var(--radius-md)] border border-white/20 shadow-lg transition hover:scale-105">
                 {s.posterUrl ? (
                   <Image src={s.posterUrl} alt={s.title} fill sizes="64px" className="object-cover" />

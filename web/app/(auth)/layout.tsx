@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
       {children}
       <p className="mt-8 max-w-sm text-center text-xs leading-relaxed text-[var(--text-muted)]">
-        Pandora&apos;s Box tracks movies, series, anime, K-drama, cartoons, manga &amp; manhwa, and
+        PBox tracks movies, series, anime, K-drama, cartoons, manga &amp; manhwa, and
         links you to where they&apos;re streaming. Data from TMDB, AniList &amp; MangaDex.
       </p>
     </div>

@@ -24,7 +24,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
       <div className="shrink-0 md:hidden">
         <Brand compact />
       </div>
-      <form onSubmit={onSubmit} className="mx-auto w-full min-w-0 max-w-xl">
+      <form onSubmit={onSubmit} className="mx-auto min-w-0 flex-1 max-w-xl overflow-hidden rounded-full">
         <SearchInput
           icon={<Search className="size-4" />}
           placeholder="Search movies, series, anime, manga..."

@@ -3,7 +3,7 @@ import { getPopularAnime, getPopularSeries } from "@/lib/discovery";
 import { EpisodeRatingsView } from "@/components/episode-ratings/episode-ratings-view";
 
 export const revalidate = 3600;
-export const metadata = { title: "Episode Ratings · Pandora's Box" };
+export const metadata = { title: "Episode Ratings · PBox" };
 
 export default async function EpisodeRatingsPage() {
   const [anime, series] = await Promise.all([getPopularAnime(), getPopularSeries()]);

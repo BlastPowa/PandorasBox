@@ -24,7 +24,7 @@ export const HERO_SLIDE_EVENT = "pb:hero-slide";
 export function AmbientBackground({ imageUrl }: { imageUrl: string | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [image, setImage] = useState(imageUrl);
-  const [seen, setSeen] = useState<string[]>(imageUrl ? [imageUrl] : []);
+  const [layers, setLayers] = useState<string[]>(imageUrl ? [imageUrl] : []);
 
   // The Hero owns the slideshow timer; it announces each slide so we track it
   // without lifting state (and without re-rendering the Hero on our account).
@@ -33,7 +33,7 @@ export function AmbientBackground({ imageUrl }: { imageUrl: string | null }) {
       const url = (e as CustomEvent<string | null>).detail;
       if (!url) return;
       setImage(url);
-      setSeen((prev) => (prev.includes(url) ? prev : [...prev, url]));
+      setLayers((prev) => [url, ...prev.filter((item) => item !== url)].slice(0, 2));
     };
     window.addEventListener(HERO_SLIDE_EVENT, onSlide);
     return () => window.removeEventListener(HERO_SLIDE_EVENT, onSlide);
@@ -81,7 +81,7 @@ export function AmbientBackground({ imageUrl }: { imageUrl: string | null }) {
   return (
     <div ref={containerRef} className="pb-ambient" aria-hidden="true">
       <div className="pb-ambient__image">
-        {seen.map((url) => (
+        {layers.map((url) => (
           <div
             key={url}
             className={`pb-ambient__layer${url === image ? " is-active" : ""}`}

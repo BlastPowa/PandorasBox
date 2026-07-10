@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Menu, X } from "lucide-react";
-import { NAV_ITEMS, BOTTOM_NAV } from "@/lib/nav";
+import { Menu, Search, X } from "lucide-react";
+import { NAV_ITEMS, NAV_GROUPS, BOTTOM_NAV } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 const PRIMARY_HREFS = new Set(BOTTOM_NAV.map((p) => p.href));
@@ -13,10 +13,11 @@ const PRIMARY_HREFS = new Set(BOTTOM_NAV.map((p) => p.href));
 export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
   const moreItems = NAV_ITEMS.filter(
     (i) => !PRIMARY_HREFS.has(i.href) && (!i.adminOnly || isAdmin)
-  );
+  ).filter((i) => i.label.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
     <nav className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--bg-surface)]/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
@@ -30,7 +31,7 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors",
+                "flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-hidden text-[10px] font-semibold transition-colors",
                 active ? "text-[var(--accent)]" : "text-[var(--text-muted)]"
               )}
             >
@@ -43,7 +44,7 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
         <Dialog.Root open={open} onOpenChange={setOpen}>
           <Dialog.Trigger asChild>
             <button
-              className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold text-[var(--text-muted)]"
+              className="flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold text-[var(--text-muted)]"
               aria-label="More options"
             >
               <Menu className="size-5" />
@@ -59,24 +60,19 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
                   <X className="size-4" />
                 </Dialog.Close>
               </div>
-              <div className="grid grid-cols-3 gap-3 px-5 pb-4">
-                {moreItems.map((item) => {
-                  const Icon = item.icon;
-                  const active = pathname.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className={cn(
-                        "glass flex flex-col items-center justify-center gap-2 rounded-[var(--radius-md)] py-4 text-xs font-semibold",
-                        active ? "text-[var(--accent)] ring-1 ring-[var(--accent)]" : "text-[var(--text-secondary)]"
-                      )}
-                    >
-                      <Icon className="size-5" />
-                      {item.label}
-                    </Link>
-                  );
+              <div className="mx-5 mb-4 flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-base)] px-4">
+                <Search className="size-4 text-[var(--text-muted)]" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a page" className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]" />
+              </div>
+              <div className="max-h-[58dvh] space-y-5 overflow-y-auto px-5 pb-4">
+                {NAV_GROUPS.map((group) => {
+                  const groupItems = moreItems.filter((item) => item.group === group.key);
+                  if (groupItems.length === 0) return null;
+                  return <section key={group.key}><h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">{group.label}</h2><div className="grid grid-cols-3 gap-3">{groupItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = pathname.startsWith(item.href);
+                    return <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={cn("glass flex min-h-20 flex-col items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 text-center text-[11px] font-semibold", active ? "text-[var(--accent)] ring-1 ring-[var(--accent)]" : "text-[var(--text-secondary)]")}><Icon className="size-5" />{item.label}</Link>;
+                  })}</div></section>;
                 })}
               </div>
             </Dialog.Content>

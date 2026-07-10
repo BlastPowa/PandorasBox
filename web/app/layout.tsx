@@ -23,12 +23,12 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pandora's Box — Track everything you watch and read",
+  title: "PBox — Track everything you watch and read",
   description:
     "A universal tracker and discovery hub for movies, series, anime, manga and manhwa. Rank your library, find where to watch, and never miss a new episode.",
   manifest: "/manifest.webmanifest",
-  applicationName: "Pandora's Box",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Pandora's Box" },
+  applicationName: "PBox",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "PBox" },
   icons: {
     icon: "/icons/icon-192.png",
     apple: "/icons/icon-192.png",
@@ -54,7 +54,6 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-dvh">

@@ -23,7 +23,7 @@ export async function sendIssueEmail(issueId: string, username: string, message:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Pandora's Box <onboarding@resend.dev>",
+        from: "PBox <onboarding@resend.dev>",
         to: [to],
         subject: `User Issue (${shortId})`,
         html: `<p><strong>User Issue (${shortId})</strong></p><p><strong>From:</strong> ${safeUsername}</p><hr/><p>${safeMessage}</p>`,

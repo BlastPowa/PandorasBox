@@ -1,6 +1,6 @@
 {
-  "name": "Pandora's Box",
-  "short_name": "Pandora's",
+  "name": "PBox",
+  "short_name": "PBox",
   "description": "Track and discover movies, series, anime, manga and manhwa — all in one box.",
   "start_url": "/",
   "display": "standalone",

@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
 import { FriendsView } from "@/components/friends/friends-view";
 
-export const metadata = { title: "Friends · Pandora's Box" };
+export const metadata = { title: "Friends · PBox" };
 
 export default function FriendsPage() {
   return (

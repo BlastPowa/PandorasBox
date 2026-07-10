@@ -29,9 +29,10 @@ const chunk = (type, data) => {
 };
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
 
-// theme colors
-const A = { r: 0xa8, g: 0x55, b: 0xf7 }; // accent purple
-const B = { r: 0xec, g: 0x72, b: 0x91 }; // magenta
+// Neutral PWA treatment: installed app icons are OS-cached, while the browser
+// favicon and in-app mark follow the live palette.
+const A = { r: 0x20, g: 0x20, b: 0x32 };
+const B = { r: 0x0a, g: 0x0a, b: 0x0f };
 const GOLD = { r: 0xf5, g: 0xa5, b: 0x24 };
 const BG = { r: 0x0a, g: 0x0a, b: 0x0f };
 
@@ -39,7 +40,6 @@ function makeIcon(size, maskable) {
   const pad = maskable ? Math.round(size * 0.14) : 0;
   const rows = [];
   const cx = (size - 1) / 2;
-  const cy = (size - 1) / 2;
   const glowY = size * 0.42;
   for (let y = 0; y < size; y++) {
     const row = Buffer.alloc(1 + size * 4);
@@ -80,6 +80,17 @@ function makeIcon(size, maskable) {
         }
       }
 
+      // Crisp PB monogram, legible at launcher and favicon sizes.
+      const px = x / size, py = y / size;
+      const white = { r: 248, g: 250, b: 252 };
+      const pStem = px >= 0.32 && px <= 0.37 && py >= 0.25 && py <= 0.67;
+      const pTop = px >= 0.36 && px <= 0.50 && ((py >= 0.25 && py <= 0.30) || (py >= 0.43 && py <= 0.48));
+      const pSide = px >= 0.47 && px <= 0.52 && py >= 0.29 && py <= 0.44;
+      const bStem = px >= 0.52 && px <= 0.57 && py >= 0.25 && py <= 0.67;
+      const bBars = px >= 0.56 && px <= 0.69 && ((py >= 0.25 && py <= 0.30) || (py >= 0.43 && py <= 0.48) || (py >= 0.62 && py <= 0.67));
+      const bSide = px >= 0.66 && px <= 0.71 && ((py >= 0.29 && py <= 0.44) || (py >= 0.47 && py <= 0.63));
+      if (pStem || pTop || pSide || bStem || bBars || bSide) { r = white.r; g = white.g; b = white.b; }
+
       row[o] = r; row[o + 1] = g; row[o + 2] = b; row[o + 3] = a;
     }
     rows.push(row);
@@ -99,4 +110,4 @@ fs.writeFileSync(path.join(outDir, "icon-192.png"), makeIcon(192, false));
 fs.writeFileSync(path.join(outDir, "icon-512.png"), makeIcon(512, false));
 fs.writeFileSync(path.join(outDir, "icon-maskable-512.png"), makeIcon(512, true));
 fs.writeFileSync(path.join(__dirname, "..", "public", "favicon.png"), makeIcon(64, false));
-console.log("Generated Pandora's Box PWA icons in public/icons/");
+console.log("Generated PBox PWA icons in public/icons/");

@@ -88,7 +88,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       <div className="space-y-5 p-6">
         <div>
           <h1 className="font-display text-2xl font-bold">
-            {mode === "login" ? "Welcome back" : "Join Pandora's Box"}
+            {mode === "login" ? "Welcome back" : "Join PBox"}
           </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             {mode === "login"

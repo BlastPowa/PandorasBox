@@ -30,7 +30,15 @@ export default function imageLoader({ src, width }: { src: string; width: number
   // <size> to the smallest bucket that still covers the requested width so we
   // never upscale a thumbnail or ship a 1280px file into a 150px slot.
   if (src.includes("image.tmdb.org/t/p/")) {
-    return src.replace(/\/t\/p\/[^/]+\//, `/t/p/${tmdbBucket(width)}/`);
+    const bucketed = src.replace(/\/t\/p\/[^/]+\//, `/t/p/${tmdbBucket(width)}/`);
+    return `${bucketed}${bucketed.includes("?") ? "&" : "?"}width=${width}`;
+  }
+
+  // Next verifies that a custom loader varies its result by requested width.
+  // AniList ignores unknown query parameters, so this preserves its CDN asset
+  // while producing stable responsive candidates and avoiding dev warnings.
+  if (src.includes("s4.anilist.co/")) {
+    return `${src}${src.includes("?") ? "&" : "?"}width=${width}`;
   }
 
   // Everything else (AniList, MangaDex, MAL, Comic Vine, Supabase avatars) has

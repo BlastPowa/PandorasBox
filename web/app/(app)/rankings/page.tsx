@@ -1,7 +1,7 @@
 import { Trophy } from "lucide-react";
 import { RankingsView } from "@/components/rankings/rankings-view";
 
-export const metadata = { title: "My Rankings · Pandora's Box" };
+export const metadata = { title: "My Rankings · PBox" };
 
 export default function RankingsPage() {
   return (

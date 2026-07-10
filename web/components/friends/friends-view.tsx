@@ -34,6 +34,7 @@ export function FriendsView() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ProfileSummary[]>([]);
   const [searching, setSearching] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await createClient().auth.getUser();
@@ -42,10 +43,11 @@ export function FriendsView() {
     setFriendships(rows);
     const otherIds = rows.map((r) => (r.requester === data.user?.id ? r.addressee : r.requester));
     setProfiles(await fetchProfilesByIds(otherIds));
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (signedIn) void load();
+    if (signedIn) queueMicrotask(() => void load());
   }, [signedIn, load]);
 
   const accepted = useMemo(() => friendships.filter((f) => f.status === "accepted"), [friendships]);
@@ -121,6 +123,19 @@ export function FriendsView() {
         description="Sign in to add friends, see their activity, and view public profiles & collections."
         action={<Button asChild><Link href="/login?next=/friends">Sign in</Link></Button>}
       />
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <div className="space-y-4" role="status" aria-label="Loading friends">
+        <div className="skeleton h-9 w-64 rounded-full" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton h-20 rounded-[var(--radius-lg)]" />
+          ))}
+        </div>
+      </div>
     );
   }
 

@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { truncateText } from "@core/utils/formatters";
 import { TypeBadge } from "@/components/ui-fx/badge";
-import { Play, Info, Star, Calendar } from "lucide-react";
+import { ArrowRight, Star, Calendar } from "lucide-react";
 import { HERO_SLIDE_EVENT } from "@/components/home/ambient-background";
+import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 
 export function Hero({ items }: { items: UnifiedSearchResult[] }) {
   // Only titles with wide 16:9 artwork can headline — the hero image is the
@@ -14,12 +15,20 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
   // badly-cropped mess at that size.
   const slides = items.filter((i) => i.backdropUrl).slice(0, 5);
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (slides.length <= 1 || paused || reducedMotion) return;
     const timer = setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
     return () => clearInterval(timer);
-  }, [slides.length]);
+  }, [slides.length, paused, reducedMotion]);
+
+  useEffect(() => {
+    const onVisibility = () => setPaused(document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
 
   const activeSlide = slides[index];
 
@@ -35,6 +44,10 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
 
   return (
     <section
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}
       className="relative -mx-4 -mt-6 flex h-[min(78vh,calc(100dvh-190px))] min-h-[380px] flex-col justify-end sm:h-[min(86vh,calc(100dvh-170px))] sm:min-h-[460px] md:-mx-8"
     >
       {/* No image here — AmbientBackground (fixed, full-viewport) is the one and
@@ -78,14 +91,7 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
             href={href}
             className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-7 py-3 text-sm font-bold uppercase tracking-wide text-[#0a0a0f] transition hover:brightness-110"
           >
-            <Play className="size-4 fill-current" /> Play
-          </Link>
-          <Link
-            href={href}
-            aria-label="Details"
-            className="glass grid size-11 place-items-center rounded-full text-white transition hover:bg-[var(--glass-strong)]"
-          >
-            <Info className="size-4" />
+            View details <ArrowRight className="size-4" />
           </Link>
         </div>
 

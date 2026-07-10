@@ -43,6 +43,12 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+  --nav-surface: rgb(18 18 26 / 0.88);
+  --nav-border: rgb(255 255 255 / 0.09);
+  --cinematic-scrim: rgb(7 7 12 / 0.92);
+  --cinematic-control: rgb(255 255 255 / 0.14);
+  --media-border: rgb(255 255 255 / 0.16);
+  --content-max: 1400px;
 }
 
 /* ==========================================================================
@@ -473,12 +479,12 @@ html.pb-compact {
   /* Full, sharp, unzoomed image at rest (this IS the hero) fading + blurring
      away as the page scrolls into the poster rows. */
   opacity: calc(1 - (var(--pb-scroll, 0) * 0.85));
-  filter: blur(calc(var(--pb-scroll, 0) * 46px)) saturate(1.05);
+  filter: saturate(1.05);
   /* Scale up only as far as the blur needs, so blurred edges don't reveal the
      page background. At rest (--pb-scroll: 0) the image is pixel-exact, not
      zoomed — stacking a constant inset + scale is what made it look enlarged. */
-  transform: scale(calc(1 + (var(--pb-scroll, 0) * 0.08)));
-  will-change: filter, opacity, transform;
+  transform: scale(calc(1 + (var(--pb-scroll, 0) * 0.025)));
+  will-change: opacity, transform;
 }
 
 /* One layer per slide, cross-faded by OPACITY.

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Check } from "lucide-react";
-import { THEMES, THEME_STORAGE_KEY } from "@/lib/theme";
+import { THEMES, THEME_CHANGE_EVENT, THEME_STORAGE_KEY } from "@/lib/theme";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Switch } from "@/components/ui-fx/switch";
 
@@ -11,6 +11,7 @@ const REDUCE_MOTION_KEY = "pb_reduce_motion";
 const LIBRARY_VIEW_KEY = "pb_library_view";
 
 function readBool(key: string): boolean {
+  if (typeof window === "undefined") return false;
   try {
     return window.localStorage.getItem(key) === "1";
   } catch {
@@ -27,21 +28,13 @@ function writeBool(key: string, value: boolean) {
 }
 
 export function AppearanceSection() {
-  const [theme, setTheme] = useState("default");
-  const [compact, setCompact] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [libraryListView, setLibraryListView] = useState(false);
-
-  useEffect(() => {
-    try {
-      setTheme(window.localStorage.getItem(THEME_STORAGE_KEY) ?? "default");
-    } catch {
-      // ignore
-    }
-    setCompact(readBool(DENSITY_KEY));
-    setReduceMotion(readBool(REDUCE_MOTION_KEY));
-    setLibraryListView(window.localStorage.getItem(LIBRARY_VIEW_KEY) === "list");
-  }, []);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "default";
+    try { return window.localStorage.getItem(THEME_STORAGE_KEY) ?? "default"; } catch { return "default"; }
+  });
+  const [compact, setCompact] = useState(() => readBool(DENSITY_KEY));
+  const [reduceMotion, setReduceMotion] = useState(() => readBool(REDUCE_MOTION_KEY));
+  const [libraryListView, setLibraryListView] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(LIBRARY_VIEW_KEY) === "list");
 
   function applyTheme(id: string) {
     setTheme(id);
@@ -55,6 +48,7 @@ export function AppearanceSection() {
     } else {
       document.documentElement.setAttribute("data-theme", id);
     }
+    window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
   }
 
   function toggleCompact(v: boolean) {

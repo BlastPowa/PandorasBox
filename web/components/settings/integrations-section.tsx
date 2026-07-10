@@ -138,7 +138,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, keep }),
     });
-    if (res.ok) toast.success(`Kept the ${keep === "local" ? "Pandora's Box" : "external"} version`);
+    if (res.ok) toast.success(`Kept the ${keep === "local" ? "PBox" : "external"} version`);
     else toast.error("Could not resolve conflict");
   }
 
@@ -251,7 +251,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                       onClick={() => void resolveConflict(c.id, "local")}
                       className="rounded-[var(--radius-md)] border border-[var(--border)] p-2 text-left transition-colors hover:border-[var(--accent)]"
                     >
-                      <p className="font-semibold text-[var(--accent)]">Keep Pandora&apos;s Box</p>
+                      <p className="font-semibold text-[var(--accent)]">Keep PBox</p>
                       <p>{c.local.status} · {c.local.progress} watched{c.local.rating ? ` · ★${c.local.rating}` : ""}</p>
                     </button>
                     <button

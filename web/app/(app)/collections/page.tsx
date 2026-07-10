@@ -1,6 +1,6 @@
 import { CollectionsView } from "@/components/collections/collections-view";
 
-export const metadata = { title: "Collections · Pandora's Box" };
+export const metadata = { title: "Collections · PBox" };
 
 export default function CollectionsPage() {
   return (

@@ -46,7 +46,7 @@ export function OnboardingHint() {
       <div className="mb-2.5 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-[var(--gold)]" />
-          <h3 className="font-display text-sm font-bold">New to Pandora&apos;s Box?</h3>
+          <h3 className="font-display text-sm font-bold">New to PBox?</h3>
         </div>
         <button
           onClick={dismiss}
