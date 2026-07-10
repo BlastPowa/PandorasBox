@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { usePathname } from "next/navigation";
 import { Search, User as UserIcon, LogIn, Library, Settings, LogOut, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -11,7 +12,18 @@ import type { Profile } from "@/lib/auth";
 
 export function Topbar({ profile }: { profile: Profile | null }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [q, setQ] = useState("");
+  const [scrolled, setScrolled] = useState(false);
+  const cinematic = pathname === "/";
+
+  useEffect(() => {
+    if (!cinematic) return;
+    const onScroll = () => setScrolled(window.scrollY > 48);
+    queueMicrotask(onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [cinematic]);
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -20,7 +32,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-base)]/80 px-3 py-2.5 backdrop-blur-xl md:gap-3 md:px-6 md:py-3">
+    <header className={`${cinematic ? "fixed left-0 right-0 top-0 md:left-20" : "sticky top-0"} z-30 flex items-center gap-2 px-3 py-2.5 transition-[background-color,border-color,backdrop-filter] duration-300 md:gap-3 md:px-6 md:py-3 ${!cinematic || scrolled ? "border-b border-[var(--border)] bg-[var(--bg-base)]/88 backdrop-blur-xl" : "border-b border-transparent bg-transparent"}`}>
       <div className="shrink-0 md:hidden">
         <Brand compact />
       </div>

@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { truncateText } from "@core/utils/formatters";
 import { TypeBadge } from "@/components/ui-fx/badge";
-import { ArrowRight, Star, Calendar } from "lucide-react";
+import { Sparkles, Star, Calendar } from "lucide-react";
 import { HERO_SLIDE_EVENT } from "@/components/home/ambient-background";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
+import { HomeHeroActions } from "./home-hero-actions";
 
 export function Hero({ items }: { items: UnifiedSearchResult[] }) {
   // Only titles with wide 16:9 artwork can headline — the hero image is the
@@ -58,8 +58,9 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
           full-viewport .pb-ambient__scrim instead — this <section> is inside a
           max-w-[1400px] container, so scrims placed here would stop short of
           the image's edges and read as a hard-edged box on wide screens. */}
-      <div className="relative flex flex-col gap-4 px-4 pb-10 sm:max-w-xl sm:px-8 sm:pb-20 md:px-12">
-        <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight drop-shadow-lg sm:text-6xl">
+      <div className="relative flex flex-col gap-4 px-4 pb-28 sm:max-w-2xl sm:px-8 sm:pb-36 md:px-12">
+        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-black/25 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/75 backdrop-blur"><Sparkles className="size-3.5 text-[var(--accent)]" /> PBox Spotlight</span>
+        <h1 className="font-display text-4xl font-extrabold leading-[1.02] tracking-[-0.04em] drop-shadow-lg sm:text-7xl">
           {active.title}
         </h1>
 
@@ -86,22 +87,15 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
           </p>
         )}
 
-        <div className="mt-1 flex items-center gap-3">
-          <Link
-            href={href}
-            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-7 py-3 text-sm font-bold uppercase tracking-wide text-[#0a0a0f] transition hover:brightness-110"
-          >
-            View details <ArrowRight className="size-4" />
-          </Link>
-        </div>
+        <HomeHeroActions item={active} href={href} />
 
         {/* Clears the fixed mobile bottom nav so the CTAs are never obscured
             or unclickable underneath it — desktop has no bottom nav. */}
-        <div className="h-14 sm:hidden" aria-hidden="true" />
+        <div className="h-8 sm:hidden" aria-hidden="true" />
       </div>
 
       {slides.length > 1 && (
-        <div className="absolute bottom-24 right-4 flex gap-1.5 sm:bottom-24 sm:right-10">
+        <div className="absolute bottom-28 right-4 flex gap-1.5 sm:bottom-36 sm:right-10">
           {slides.map((s, i) => (
             <button
               key={s.id}

@@ -14,6 +14,7 @@ import { MyPanel } from "@/components/home/my-panel";
 import { FriendsActivity } from "@/components/home/friends-activity";
 import { AnnouncementsBar } from "@/components/home/announcements-bar";
 import { AmbientBackground } from "@/components/home/ambient-background";
+import { LandscapeMediaRail } from "@/components/discovery/landscape-media-rail";
 
 export const revalidate = 1800;
 
@@ -61,12 +62,16 @@ async function HomeContent() {
     .map(scheduleToResult);
 
   const heroItems = heroPool.length > 0 ? heroPool : anime.filter((i) => i.backdropUrl);
+  const spotlightShelf = [...movies.slice(0, 4), ...series.slice(0, 3), ...anime.filter((item) => item.backdropUrl).slice(0, 3)];
 
   return (
     <div className="space-y-8">
       <AmbientBackground imageUrl={heroItems[0]?.backdropUrl ?? null} />
       <AnnouncementsBar />
       <Hero items={heroItems} />
+      <div className="relative z-10 -mt-28 sm:-mt-36">
+        <LandscapeMediaRail title="Trending on PBox" items={spotlightShelf} />
+      </div>
       <PosterRow
         title="Trending Anime"
         subtitle="What everyone's watching right now"

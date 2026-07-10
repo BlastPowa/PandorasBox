@@ -63,7 +63,7 @@ function seedToItem(seed: LibrarySeed, status: ReelItemStatus): Omit<ReelItem, "
   };
 }
 
-export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
+export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; compact?: boolean }) {
   const { signedIn, getById, add, setStatus, setRating, remove, markEpisode, markChapter, markComplete } =
     useLibrary();
   const [busy, setBusy] = useState(false);
@@ -127,7 +127,7 @@ export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
         href={`/login?next=${nextPath}`}
         className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-5 text-sm font-semibold text-[#0a0a0f]"
       >
-        <Plus className="size-4" /> Sign in to track
+        <Plus className="size-4" /> {compact ? "Track" : "Sign in to track"}
       </a>
     );
   }
@@ -140,7 +140,7 @@ export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
           disabled={busy}
           className="inline-flex h-11 items-center gap-2 rounded-l-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-5 text-sm font-semibold text-[#0a0a0f] disabled:opacity-60"
         >
-          <Plus className="size-4" /> Add to Library
+          <Plus className="size-4" /> {compact ? "Add" : "Add to Library"}
         </button>
         <StatusDropdown onSelect={onAdd} trigger={
           <button className="inline-flex h-11 items-center rounded-r-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] pr-3 pl-1 text-[#0a0a0f]">
@@ -148,6 +148,15 @@ export function AddToLibrary({ seed }: { seed: LibrarySeed }) {
           </button>
         } />
       </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <StatusDropdown
+        onSelect={onSetStatus}
+        trigger={<button className="glass inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold" aria-label={`Tracking status: ${getStatusLabel(existing.status)}`}><Check className="size-4 text-[var(--completed)]" /><span className="hidden sm:inline">{getStatusLabel(existing.status)}</span><ChevronDown className="size-4 opacity-60" /></button>}
+      />
     );
   }
 
