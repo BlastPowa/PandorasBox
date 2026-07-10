@@ -10,6 +10,8 @@ export default async function SettingsPage() {
         username={profile?.username ?? null}
         country={profile?.country ?? "IE"}
         avatarUrl={profile?.avatar_url ?? null}
+        profileBackgroundUrl={profile?.profile_background_url ?? null}
+        profileBackgroundPosition={profile?.profile_background_position ?? "center"}
       />
     </div>
   );

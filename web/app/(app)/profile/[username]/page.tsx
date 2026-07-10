@@ -11,6 +11,8 @@ interface ProfileRow {
   avatar_url: string | null;
   bio: string | null;
   banner_url: string | null;
+  profile_background_url: string | null;
+  profile_background_position: "top" | "center" | "bottom";
   privacy: "public" | "friends" | "private";
   created_at: string;
 }
@@ -21,7 +23,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const [{ data: profile }, viewer] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, username, avatar_url, bio, banner_url, privacy, created_at")
+      .select("*")
       .eq("username", decodeURIComponent(username))
       .maybeSingle(),
     getCurrentUser(),
@@ -29,7 +31,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   if (!profile) notFound();
 
-  const row = profile as ProfileRow;
+  const raw = profile as Omit<ProfileRow, "profile_background_url" | "profile_background_position"> & Partial<Pick<ProfileRow, "profile_background_url" | "profile_background_position">>;
+  const row: ProfileRow = {
+    ...raw,
+    profile_background_url: raw.profile_background_url ?? null,
+    profile_background_position: raw.profile_background_position ?? "center",
+  };
   const isOwner = viewer?.id === row.id;
 
   let visible = row.privacy === "public" || isOwner;

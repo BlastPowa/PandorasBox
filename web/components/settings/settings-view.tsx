@@ -11,6 +11,7 @@ import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { Input } from "@/components/ui-fx/input";
 import { AvatarUpload } from "@/components/settings/avatar-upload";
+import { ProfileBackgroundUpload, type ProfileBackgroundPosition } from "@/components/settings/profile-background-upload";
 import { UsernameEditor } from "@/components/settings/username-editor";
 import { BulkImportModal } from "@/components/settings/bulk-import-modal";
 import { IntegrationsSection } from "@/components/settings/integrations-section";
@@ -58,10 +59,14 @@ export function SettingsView({
   username,
   country,
   avatarUrl,
+  profileBackgroundUrl,
+  profileBackgroundPosition,
 }: {
   username: string | null;
   country: string;
   avatarUrl: string | null;
+  profileBackgroundUrl: string | null;
+  profileBackgroundPosition: ProfileBackgroundPosition;
 }) {
   const { items, signedIn, add } = useLibrary();
   const [qr, setQr] = useState<string | null>(null);
@@ -107,6 +112,8 @@ export function SettingsView({
       for (const item of parsed) {
         if (existing.has(item.id)) continue;
         const { addedAt: _a, updatedAt: _u, ...rest } = item;
+        void _a;
+        void _u;
         await add(rest);
         n += 1;
       }
@@ -245,6 +252,7 @@ export function SettingsView({
             <GlassCard macDots title="Profile">
               <div className="space-y-4 p-5">
                 {signedIn && <AvatarUpload initialUrl={avatarUrl} username={username} />}
+                {signedIn && <ProfileBackgroundUpload initialUrl={profileBackgroundUrl} initialPosition={profileBackgroundPosition} />}
                 {signedIn ? (
                   <UsernameEditor initialUsername={username} />
                 ) : (

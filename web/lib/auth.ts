@@ -8,6 +8,8 @@ export interface Profile {
   avatar_url: string | null;
   role: "user" | "admin";
   country: string;
+  profile_background_url: string | null;
+  profile_background_position: "top" | "center" | "bottom";
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -28,10 +30,16 @@ export async function getProfile(): Promise<Profile | null> {
   if (!user) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, avatar_url, role, country")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
-  return (data as Profile | null) ?? null;
+  if (!data) return null;
+  const row = data as Omit<Profile, "profile_background_url" | "profile_background_position"> & Partial<Pick<Profile, "profile_background_url" | "profile_background_position">>;
+  return {
+    ...row,
+    profile_background_url: row.profile_background_url ?? null,
+    profile_background_position: row.profile_background_position ?? "center",
+  };
 }
 
 export async function requireAdmin(): Promise<boolean> {

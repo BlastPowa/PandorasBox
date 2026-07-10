@@ -10,7 +10,7 @@ import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { BackButton } from "@/components/shell/back-button";
 
-interface ProfileRow { id: string; username: string | null; avatar_url: string | null; bio: string | null; banner_url: string | null; privacy: "public" | "friends" | "private"; created_at: string; }
+interface ProfileRow { id: string; username: string | null; avatar_url: string | null; bio: string | null; banner_url: string | null; profile_background_url: string | null; profile_background_position: "top" | "center" | "bottom"; privacy: "public" | "friends" | "private"; created_at: string; }
 interface CollectionRow { id: string; name: string; description: string | null; cover_url: string | null; visibility?: string; created_at: string; }
 interface ActivityRow { id: string; verb: string; title: string | null; poster_url: string | null; media_type: string | null; media_key: string | null; created_at: string; }
 
@@ -45,11 +45,19 @@ export function PublicProfile({ profile, isOwner, visible, collections, activity
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not send request"); }
   }
 
+  const hasBackground = Boolean(profile.profile_background_url);
+
   return (
-    <div className="mx-auto max-w-[1200px] px-4 pb-12 pt-4 md:px-8">
+    <div className={`relative isolate min-h-[calc(100dvh-68px)] overflow-hidden ${hasBackground ? "profile-has-background" : ""}`}>
+      {profile.profile_background_url && <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+        <div className="absolute inset-x-0 top-0 h-[72vh] bg-cover bg-no-repeat" style={{ backgroundImage: `url(${JSON.stringify(profile.profile_background_url)})`, backgroundPosition: `center ${profile.profile_background_position}` }} />
+        <div className="absolute inset-x-[-4%] top-[38vh] h-[95vh] scale-105 bg-cover bg-no-repeat opacity-45 blur-2xl" style={{ backgroundImage: `url(${JSON.stringify(profile.profile_background_url)})`, backgroundPosition: `center ${profile.profile_background_position}` }} />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgb(7_7_12/0.2)_0%,rgb(7_7_12/0.72)_32%,var(--bg-base)_78%),linear-gradient(90deg,rgb(7_7_12/0.48),transparent_48%,rgb(7_7_12/0.45))]" />
+      </div>}
+      <div className="mx-auto max-w-[1200px] px-4 pb-12 pt-4 md:px-8">
       <BackButton className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]" />
 
-      <header className="relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--media-border)] bg-[var(--bg-surface)] shadow-2xl">
+      <header className={`relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--media-border)] shadow-2xl ${hasBackground ? "bg-[rgb(12_12_18/0.84)] backdrop-blur-xl" : "bg-[var(--bg-surface)]"}`}>
         <div className="relative h-56 sm:h-72 lg:h-80">
           {profile.banner_url ? <Image src={profile.banner_url} alt="" fill priority sizes="(max-width: 1200px) 100vw, 1200px" className="object-cover" /> : <div className="size-full bg-[radial-gradient(circle_at_70%_20%,rgb(var(--accent-2-rgb)/0.5),transparent_38%),radial-gradient(circle_at_20%_80%,rgb(var(--accent-rgb)/0.55),transparent_42%),linear-gradient(145deg,#171724,#08080d)]" />}
           <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-surface)_0%,rgb(10_10_15/0.62)_42%,transparent_76%)]" />
@@ -89,6 +97,7 @@ export function PublicProfile({ profile, isOwner, visible, collections, activity
           </aside>
         </div>
       )}
+      </div>
     </div>
   );
 }
