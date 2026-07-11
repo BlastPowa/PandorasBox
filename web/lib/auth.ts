@@ -6,6 +6,7 @@ export interface Profile {
   id: string;
   username: string | null;
   avatar_url: string | null;
+  banner_url: string | null;
   role: "user" | "admin";
   country: string;
   profile_background_url: string | null;

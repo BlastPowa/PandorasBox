@@ -15,6 +15,8 @@ import { FriendsActivity } from "@/components/home/friends-activity";
 import { AnnouncementsBar } from "@/components/home/announcements-bar";
 import { AmbientBackground } from "@/components/home/ambient-background";
 import { LandscapeMediaRail } from "@/components/discovery/landscape-media-rail";
+import { getGames } from "@/lib/igdb";
+import { GameRow } from "@/components/games/game-row";
 
 export const revalidate = 1800;
 
@@ -39,12 +41,13 @@ function scheduleToResult(e: ScheduleEntry): UnifiedSearchResult {
 }
 
 async function HomeContent() {
-  const [anime, popular, manga, movies, series, upAnime, upMovies] = await Promise.all([
+  const [anime, popular, manga, movies, series, games, upAnime, upMovies] = await Promise.all([
     getTrendingAnime(),
     getPopularAnime(),
     getTrendingManga(),
     getTrendingMovies(),
     getTrendingSeries(),
+    getGames("popular", 18),
     getUpcomingAnime(),
     getUpcomingMovies("US"),
   ]);
@@ -84,6 +87,7 @@ async function HomeContent() {
         <PosterRow title="Coming Soon" subtitle="Announced & upcoming releases" items={comingSoon} />
       )}
       {movies.length > 0 && <PosterRow title="Trending Movies" items={movies} viewAllHref="/browse/trending-movies" />}
+      <GameRow games={games} />
       {series.length > 0 && <PosterRow title="Trending Series" items={series} viewAllHref="/browse/trending-series" />}
       <PosterRow title="Popular Anime" subtitle="All-time favourites" items={popular} viewAllHref="/browse/popular-anime" />
       <PosterRow title="Trending Manga" items={manga} viewAllHref="/browse/trending-manga" />
@@ -106,6 +110,7 @@ export default function HomePage() {
             <div className="skeleton h-[340px] w-full rounded-[var(--radius-xl)]" />
             <PosterRowSkeleton title="Trending Anime" />
             <PosterRowSkeleton title="Trending Movies" />
+            <PosterRowSkeleton title="Trending Games" />
           </div>
         }
       >

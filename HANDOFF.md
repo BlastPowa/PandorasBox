@@ -140,8 +140,9 @@ All routes are rate-limited where noted in source (typically 30–60 requests/mi
 | `0011_gemini_usage_limit.sql` | `api_usage_counters` table + `increment_usage_counter()` — protects shared Gemini quota. |
 | `0012_rankings_comic.sql` | Adds `'comic'` to `user_rankings`'s category check constraint. |
 | `0013_profile_backgrounds.sql` | Adds independent profile-background URL/position fields and the public, owner-managed `profile-backgrounds` Storage bucket. |
+| `0014_profile_banners.sql` | Adds the public, owner-managed `profile-banners` Storage bucket for custom profile-header artwork. |
 
-**⚠️ Run in Supabase if not already applied:** 0008, 0009, 0010, 0011, 0012, 0013.
+**⚠️ Run in Supabase if not already applied:** 0008, 0009, 0010, 0011, 0012, 0013, 0014.
 
 ### Main tables
 `profiles`, `library`, `list_items`, `collections`, `collection_items`, `watch_links`, `site_directory`, `announcements`, `availability`, `user_issues`, `user_rankings`, `integrations`, `sync_queue`, `sync_log`, `sync_conflicts`, `friendships`, `activity`, `memory_search_index`, `person_cache`, `reviews`, `api_usage_counters` — one line each in the migrations table above; see `0001`/`0008` for full column definitions.
@@ -221,6 +222,6 @@ Small, self-contained UI additions layered onto existing surfaces:
 
 ## 8. Deploy checklist
 
-- [ ] Run Supabase migrations `0008`–`0013` if not already applied.
+- [ ] Run Supabase migrations `0008`–`0014` if not already applied.
 - [ ] Vercel env vars set for every service in section 2: `TMDB_API_KEY`, `IGDB_CLIENT_ID`/`SECRET`, `COMICVINE_API_KEY`, `OMDB_API_KEY`, `ANILIST_CLIENT_ID`/`SECRET`, `MAL_CLIENT_ID`/`SECRET`, `GEMINI_API_KEY`, `RESEND_API_KEY`, `CONTACT_EMAIL`, `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and confirm `NEXT_PUBLIC_SITE_URL` is set and actually consumed (see flag in section 2).
 - [ ] Vercel Cron configured for `/api/cron/refresh-availability` and `/api/cron/sync-integrations`, both requiring `CRON_SECRET`.

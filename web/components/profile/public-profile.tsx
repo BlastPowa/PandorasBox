@@ -59,10 +59,10 @@ export function PublicProfile({ profile, isOwner, visible, collections, activity
 
       <header className={`relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--media-border)] shadow-2xl ${hasBackground ? "bg-[rgb(12_12_18/0.84)] backdrop-blur-xl" : "bg-[var(--bg-surface)]"}`}>
         <div className="relative h-56 sm:h-72 lg:h-80">
-          {profile.banner_url ? <Image src={profile.banner_url} alt="" fill priority sizes="(max-width: 1200px) 100vw, 1200px" className="object-cover" /> : <div className="size-full bg-[radial-gradient(circle_at_70%_20%,rgb(var(--accent-2-rgb)/0.5),transparent_38%),radial-gradient(circle_at_20%_80%,rgb(var(--accent-rgb)/0.55),transparent_42%),linear-gradient(145deg,#171724,#08080d)]" />}
+          {profile.banner_url ? <Image src={profile.banner_url} alt={`${profile.username ?? "User"}'s profile banner`} fill priority sizes="(max-width: 1200px) 100vw, 1200px" className="object-cover" /> : <div className="size-full bg-[radial-gradient(circle_at_70%_20%,rgb(var(--accent-2-rgb)/0.5),transparent_38%),radial-gradient(circle_at_20%_80%,rgb(var(--accent-rgb)/0.55),transparent_42%),linear-gradient(145deg,#171724,#08080d)]" />}
           <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-surface)_0%,rgb(10_10_15/0.62)_42%,transparent_76%)]" />
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 sm:gap-6 sm:p-8">
-            <div className="relative size-24 shrink-0 overflow-hidden rounded-2xl border-4 border-[var(--bg-surface)] bg-[var(--bg-elevated)] shadow-2xl sm:size-32">
+            <div className="relative size-24 shrink-0 overflow-hidden rounded-full border-4 border-[var(--accent)] bg-[var(--bg-elevated)] shadow-[0_0_0_4px_rgb(10_10_15/0.88),0_0_30px_rgb(var(--accent-rgb)/0.45)] sm:size-32">
               {profile.avatar_url ? <Image src={profile.avatar_url} alt={`${profile.username ?? "User"}'s avatar`} fill priority sizes="128px" className="object-cover" /> : <div className="grid size-full place-items-center font-display text-4xl font-bold text-[var(--text-muted)]">{profile.username?.[0]?.toUpperCase() ?? "?"}</div>}
             </div>
             <div className="min-w-0 flex-1 pb-1">
