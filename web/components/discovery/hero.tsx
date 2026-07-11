@@ -48,7 +48,7 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}
-      className="relative -mx-4 -mt-6 flex h-[min(78vh,calc(100dvh-190px))] min-h-[380px] flex-col justify-end sm:h-[min(86vh,calc(100dvh-170px))] sm:min-h-[460px] md:-mx-8"
+      className="relative -mx-4 -mt-6 flex h-[calc(100svh-64px)] min-h-[600px] flex-col justify-end sm:h-[min(86vh,calc(100dvh-170px))] sm:min-h-[460px] md:-mx-8"
     >
       {/* No image here — AmbientBackground (fixed, full-viewport) is the one and
           only copy of this artwork, matching the reference site's "the
@@ -58,9 +58,9 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
           full-viewport .pb-ambient__scrim instead — this <section> is inside a
           max-w-[1400px] container, so scrims placed here would stop short of
           the image's edges and read as a hard-edged box on wide screens. */}
-      <div className="relative flex flex-col gap-4 px-4 pb-28 sm:max-w-2xl sm:px-8 sm:pb-36 md:px-12">
+      <div className="relative flex flex-col gap-4 px-4 pb-24 sm:max-w-2xl sm:px-8 sm:pb-36 md:px-12">
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-black/25 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/75 backdrop-blur"><Sparkles className="size-3.5 text-[var(--accent)]" /> PBox Spotlight</span>
-        <h1 className="font-display text-4xl font-extrabold leading-[1.02] tracking-[-0.04em] drop-shadow-lg sm:text-7xl">
+        <h1 className="max-w-[90vw] font-display text-4xl font-extrabold leading-[0.98] tracking-[-0.04em] drop-shadow-lg sm:text-7xl">
           {active.title}
         </h1>
 
@@ -95,7 +95,7 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
       </div>
 
       {slides.length > 1 && (
-        <div className="absolute bottom-28 right-4 flex gap-1.5 sm:bottom-36 sm:right-10">
+        <div className="absolute bottom-24 right-4 flex gap-1.5 sm:bottom-36 sm:right-10">
           {slides.map((s, i) => (
             <button
               key={s.id}

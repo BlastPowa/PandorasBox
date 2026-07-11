@@ -67,7 +67,7 @@ export default async function TitlePage({
   return (
     <div>
       {/* Hero backdrop */}
-      <div className="relative h-[500px] w-full overflow-hidden sm:h-[580px] lg:h-[640px]">
+      <div className="relative h-[590px] w-full overflow-hidden sm:h-[580px] lg:h-[640px]">
         {detail.backdropUrl || detail.posterUrl ? (
           <Image
             src={detail.backdropUrl ?? detail.posterUrl!}
@@ -86,7 +86,7 @@ export default async function TitlePage({
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto -mt-[290px] max-w-[1200px] px-4 md:-mt-[330px] md:px-8 lg:-mt-[350px]">
+      <div className="relative z-10 mx-auto -mt-[370px] max-w-[1200px] px-4 sm:-mt-[330px] md:px-8 lg:-mt-[350px]">
         <div className="flex items-end gap-4 sm:gap-6">
           {/* Poster */}
           <div className="relative hidden w-36 shrink-0 sm:block lg:w-44">
@@ -116,7 +116,7 @@ export default async function TitlePage({
               {(detail.ratings ?? []).map((r) => (
                 <span
                   key={r.source}
-                  className="flex items-center gap-1 rounded-full bg-[var(--glass)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)]"
+                  className="hidden items-center gap-1 rounded-full bg-[var(--glass)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)] sm:flex"
                   title={r.source}
                 >
                   {r.source === "Rotten Tomatoes" ? "🍅" : r.source === "Internet Movie Database" ? "IMDb" : r.source === "Metacritic" ? "Metacritic" : r.source}{" "}
@@ -124,7 +124,7 @@ export default async function TitlePage({
                 </span>
               ))}
             </div>
-            <h1 className="max-w-4xl font-display text-4xl font-extrabold leading-[0.95] tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.8)] sm:text-5xl lg:text-6xl">{detail.title}</h1>
+            <h1 className="max-w-4xl font-display text-3xl font-extrabold leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.8)] sm:text-5xl lg:text-6xl">{detail.title}</h1>
 
             {/* Availability badges (live) */}
             {availability && (
@@ -157,7 +157,7 @@ export default async function TitlePage({
               {detail.totalChapters !== null && (
                 <span className="flex items-center gap-1.5"><Layers className="size-4" /> {detail.totalChapters} ch</span>
               )}
-              {detail.studios.length > 0 && <span>{detail.studios.join(", ")}</span>}
+              {detail.studios.length > 0 && <span className="hidden sm:inline">{detail.studios.join(", ")}</span>}
             </div>
 
             {detail.genres.length > 0 && (
@@ -196,7 +196,7 @@ export default async function TitlePage({
         </div>
 
         {/* Body */}
-        <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="mt-8 grid gap-6 sm:mt-12 lg:grid-cols-[1fr_360px]">
           <div className="min-w-0 space-y-8">
             {(detail.cast ?? []).length > 0 && (
               <section>
