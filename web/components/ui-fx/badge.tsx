@@ -3,12 +3,12 @@ import { getTypeLabel, getStatusLabel } from "@core/utils/formatters";
 import { cn } from "@/lib/utils";
 
 const TYPE_STYLES: Record<ReelItemType, string> = {
-  movie: "bg-[rgba(34,211,238,0.15)] text-[#67e8f9]",
-  series: "bg-[rgb(var(--accent-rgb)/0.18)] text-[var(--accent)]",
-  anime: "bg-[rgb(var(--accent-2-rgb)/0.15)] text-[var(--accent-2)]",
-  manga: "bg-[rgba(52,211,153,0.14)] text-[#6ee7b7]",
-  manhwa: "bg-[rgb(var(--gold-rgb)/0.15)] text-[var(--gold)]",
-  comic: "bg-[rgba(239,68,68,0.14)] text-[#fca5a5]",
+  movie: "text-[#67e8f9] shadow-[inset_0_0_10px_rgba(34,211,238,0.18)]",
+  series: "text-[var(--accent)] shadow-[inset_0_0_10px_rgb(var(--accent-rgb)/0.2)]",
+  anime: "text-[var(--accent-2)] shadow-[inset_0_0_10px_rgb(var(--accent-2-rgb)/0.2)]",
+  manga: "text-[#6ee7b7] shadow-[inset_0_0_10px_rgba(52,211,153,0.18)]",
+  manhwa: "text-[var(--gold)] shadow-[inset_0_0_10px_rgb(var(--gold-rgb)/0.2)]",
+  comic: "text-[#fca5a5] shadow-[inset_0_0_10px_rgba(239,68,68,0.18)]",
 };
 
 const STATUS_COLORS: Record<ReelItemStatus, string> = {
@@ -24,7 +24,7 @@ export function TypeBadge({ type, className }: { type: ReelItemType; className?:
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+        "inline-flex items-center rounded-full border border-current/45 bg-[rgba(5,7,12,0.88)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] shadow-[0_2px_10px_rgba(0,0,0,0.65)] backdrop-blur-md",
         TYPE_STYLES[type],
         className
       )}
