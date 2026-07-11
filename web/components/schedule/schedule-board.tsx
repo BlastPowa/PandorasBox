@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { CalendarDays, Film, Tv, Sparkles, Bookmark, Rocket } from "lucide-react";
@@ -25,6 +25,23 @@ function dayKey(ts: number): string {
   return new Date(ts * 1000).toDateString();
 }
 
+function releaseState(entry: ScheduleEntry, now: number) {
+  if (/delay/i.test(entry.label)) return { label: "Delayed", tone: "text-[var(--dropped)]" };
+  const difference = entry.timestamp * 1000 - now;
+  if (!entry.hasTime && dayKey(entry.timestamp) === new Date(now).toDateString()) return { label: "Releases today", tone: "text-[var(--gold)]" };
+  if (difference <= 0) return { label: "Released", tone: "text-[var(--completed)]" };
+  if (difference <= 2 * 60 * 60 * 1000) return { label: "Airing soon", tone: "text-[var(--accent)]" };
+  const days = Math.floor(difference / 86_400_000);
+  const hours = Math.floor((difference % 86_400_000) / 3_600_000);
+  const minutes = Math.max(1, Math.floor((difference % 3_600_000) / 60_000));
+  return { label: days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`, tone: "text-[var(--text-secondary)]" };
+}
+
+function ReleaseCountdown({ entry, now }: { entry: ScheduleEntry; now: number }) {
+  const state = releaseState(entry, now);
+  return <span className={`inline-flex rounded-full border border-current/40 bg-black/55 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wide backdrop-blur ${state.tone}`}>{state.label}</span>;
+}
+
 export function ScheduleBoard({
   anime,
   movies,
@@ -38,6 +55,14 @@ export function ScheduleBoard({
 }) {
   const { items, signedIn } = useLibrary();
   const [tab, setTab] = useState<Tab>("anime");
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+    const interval = window.setInterval(update, 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // Build the next 7 day buckets starting today
   const days = useMemo(() => {
@@ -119,7 +144,7 @@ export function ScheduleBoard({
           description="Sign in and add shows, anime and movies to your library — their upcoming releases will collect here."
         />
       ) : tab === "upcoming" ? (
-        <UpcomingView groups={byMonth} />
+        <UpcomingView groups={byMonth} now={now} />
       ) : (
         <>
           {/* Day picker */}
@@ -180,6 +205,7 @@ export function ScheduleBoard({
                     <div className="min-w-0 flex-1">
                       <div className="line-clamp-2 text-sm font-semibold">{e.title}</div>
                       <div className="mt-0.5 text-xs text-[var(--accent)]">{e.label}</div>
+                      {now > 0 && <div className="mt-1"><ReleaseCountdown entry={e} now={now} /></div>}
                       <div className="font-mono text-[10px] text-[var(--text-muted)]">
                         {e.hasTime
                           ? new Date(e.timestamp * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -202,7 +228,7 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-function UpcomingView({ groups }: { groups: [string, ScheduleEntry[]][] }) {
+function UpcomingView({ groups, now }: { groups: [string, ScheduleEntry[]][]; now: number }) {
   if (groups.length === 0) {
     return (
       <EmptyState
@@ -235,6 +261,7 @@ function UpcomingView({ groups }: { groups: [string, ScheduleEntry[]][] }) {
                     <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--accent)]">
                       {e.label}
                     </span>
+                    {now > 0 && <span className="absolute bottom-1.5 left-1.5"><ReleaseCountdown entry={e} now={now} /></span>}
                   </div>
                   <p className="mt-1 line-clamp-1 text-xs font-medium">{e.title}</p>
                   <p className="font-mono text-[10px] text-[var(--text-muted)]">
