@@ -16,6 +16,7 @@ import {
   type SortKey,
 } from "@/lib/browse-filters";
 import type { DiscoverPage } from "@/lib/discover";
+import { DiscoveryPageHeader } from "./discovery-page-header";
 
 interface Props {
   kind: MediaKind;
@@ -160,17 +161,7 @@ export function DiscoverGrid({ kind, initial }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            {kind === "movie" ? "Movies" : "Shows"}
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Discover new {kind === "movie" ? "movies" : "shows"} to watch
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+      <DiscoveryPageHeader title={kind === "movie" ? "Movies" : "TV Shows"} description={`Discover ${kind === "movie" ? "films" : "series"} by genre, year, popularity, and streaming provider.`} actions={<div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={surpriseMe}
@@ -216,8 +207,7 @@ export function DiscoverGrid({ kind, initial }: Props) {
               Reset
             </button>
           )}
-        </div>
-      </div>
+        </div>} />
 
       {loading ? (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">

@@ -6,6 +6,8 @@ import type { ComicSeries, Publisher } from "@/lib/comics-shared";
 import { ComicCard } from "./comic-card";
 import { PosterSkeleton } from "@/components/ui-fx/feedback";
 import { cn } from "@/lib/utils";
+import { SearchInput } from "@/components/ui-fx/input";
+import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
 
 const TABS: { value: Publisher; label: string }[] = [
   { value: "marvel", label: "Marvel" },
@@ -56,33 +58,25 @@ export function ComicsBrowser({ initial }: { initial: ComicSeries[] }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Comics</h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Browse series across publishers — covers &amp; info from Comic Vine. We link out to legitimate reading platforms.
-            </p>
-          </div>
-          <label className="relative w-full max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" />
-            <input
+        <DiscoveryPageHeader title="Comics" description="Browse series across major publishers with Comic Vine metadata and legitimate reading links." actions={<SearchInput
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search all comics…"
-              className="w-full rounded-full border border-[var(--border)] bg-[var(--glass)] py-2 pl-9 pr-9 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
-            />
-            {query && (
+              aria-label="Search comics"
+              icon={<Search className="size-4" aria-hidden="true" />}
+              trailing={query ? (
               <button
+                type="button"
                 onClick={() => setQuery("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]"
+                aria-label="Clear comic search"
+                className="grid size-8 place-items-center rounded-full text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text)]"
               >
-                <X className="size-4" />
+                <X className="size-4" aria-hidden="true" />
               </button>
-            )}
-          </label>
-        </div>
+              ) : null}
+              className="sm:w-80"
+            />} />
 
         {!searching && (
           <div className="flex flex-wrap gap-1.5">

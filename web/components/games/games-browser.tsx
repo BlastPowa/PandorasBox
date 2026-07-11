@@ -7,6 +7,7 @@ import { GameCard } from "./game-card";
 import { PosterSkeleton } from "@/components/ui-fx/feedback";
 import { SearchInput } from "@/components/ui-fx/input";
 import { cn } from "@/lib/utils";
+import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
 
 const TABS: { value: GameSort; label: string }[] = [
   { value: "popular", label: "Popular" },
@@ -55,14 +56,7 @@ export function GamesBrowser({ initial }: { initial: GameCardData[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Games</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Discover games — powered by IGDB. Links out to Steam &amp; official stores.
-          </p>
-        </div>
-        <SearchInput
+      <DiscoveryPageHeader title="Games" description="Discover popular, acclaimed, new, and upcoming games from IGDB, with links to legitimate stores." actions={<SearchInput
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -82,8 +76,7 @@ export function GamesBrowser({ initial }: { initial: GameCardData[] }) {
             ) : null
           }
           className="sm:w-80"
-        />
-      </div>
+        />} />
 
       {!searching && (
         <div className="flex flex-wrap gap-1.5">

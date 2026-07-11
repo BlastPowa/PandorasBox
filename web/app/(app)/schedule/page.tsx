@@ -9,6 +9,7 @@ import {
 } from "@/lib/schedule";
 import { getProfile } from "@/lib/auth";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
+import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
 
 export const revalidate = 1800;
 
@@ -27,14 +28,8 @@ export default async function SchedulePage() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
-      <div className="mb-2 flex items-center gap-2">
-        <CalendarDays className="size-6 text-[var(--accent)]" />
-        <h1 className="font-display text-2xl font-bold">Release Calendar</h1>
-      </div>
-      <p className="mb-5 text-sm text-[var(--text-secondary)]">
-        Upcoming anime episodes, movie releases and TV premieres — switch tabs, pick a day, or check
-        <span className="text-[var(--text)]"> My List</span> for just the titles you track.
-      </p>
+      <DiscoveryPageHeader eyebrow="PBox Schedule" title="Release Calendar" description="Upcoming anime episodes, movie releases, and TV premieres—with a personal calendar for titles you track." actions={<div className="hidden size-12 place-items-center rounded-2xl bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent)] sm:grid"><CalendarDays className="size-6" /></div>} />
+      <div className="h-5" />
       <ScheduleBoard anime={anime} movies={movies} tv={tv} upcoming={upcoming} />
     </div>
   );
