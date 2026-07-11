@@ -104,6 +104,18 @@ export async function getGames(sort: GameSort, limit = 24): Promise<GameCard[]> 
   return rows.map(mapCard);
 }
 
+export async function searchGames(query: string, limit = 24): Promise<GameCard[]> {
+  const normalized = query.trim().slice(0, 100).replace(/[\\"]/g, " ");
+  if (normalized.length < 2) return [];
+
+  const rows = await igdbQuery<RawCard>(
+    "games",
+    `search "${normalized}"; fields name, cover.image_id, rating, first_release_date; where ${BASE_GAME}; limit ${limit};`,
+    300
+  );
+  return rows.map(mapCard);
+}
+
 export interface GameDlc {
   id: number;
   name: string;
