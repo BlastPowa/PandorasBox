@@ -1,6 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import type { FranchiseDef } from "@/lib/franchises";
 import { PosterGrid } from "@/components/discovery/poster-row";
@@ -27,6 +28,8 @@ function toCollectionItem(r: UnifiedSearchResult): AddToCollectionItem {
 
 export function FranchisePage({ franchise, items }: { franchise: FranchiseDef; items: UnifiedSearchResult[] }) {
   const { signedIn } = useLibrary();
+  const [filter, setFilter] = useState<"all" | "movie" | "series">("all");
+  const visibleItems = useMemo(() => items.filter((item) => filter === "all" || item.type === filter).sort((a, b) => (a.year ?? 9999) - (b.year ?? 9999)), [filter, items]);
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
@@ -34,10 +37,11 @@ export function FranchisePage({ franchise, items }: { franchise: FranchiseDef; i
       <DiscoveryPageHeader eyebrow="PBox Franchise" title={franchise.name} description={franchise.description} actions={signedIn && items.length > 0 ? <BulkAddToCollection items={items.map(toCollectionItem)} /> : <Sparkles className="hidden size-6 text-[var(--gold)] sm:block" />} />
 
       <div className="mt-6">
+        {franchise.slug === "dystopian" && <div className="mb-5 flex gap-2">{(["all", "movie", "series"] as const).map((value) => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-full border px-4 py-2 text-xs font-bold capitalize ${filter === value ? "border-[var(--accent)] bg-[var(--accent)] text-[#08090d]" : "border-[var(--border)] bg-[var(--glass)]"}`}>{value === "all" ? "All in release order" : value === "movie" ? "Movies" : "TV Shows"}</button>)}</div>}
         {items.length === 0 ? (
           <EmptyState title="Nothing found" description="TMDB may be temporarily unavailable — try again shortly." />
         ) : (
-          <PosterGrid items={items} />
+          <PosterGrid items={visibleItems} />
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Compass, Sparkles } from "lucide-react";
+import { ArrowRight, Compass } from "lucide-react";
 import {
   getTrendingAnime,
   getPopularAnime,
@@ -22,6 +22,7 @@ import { getStreamingProvider } from "@/lib/streaming-providers";
 import { FRANCHISES } from "@/lib/franchises";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
 import { ProviderSwitcher } from "@/components/discovery/provider-switcher";
+import { FranchiseExplorer } from "@/components/discovery/franchise-explorer";
 
 export const revalidate = 3600;
 
@@ -58,7 +59,7 @@ async function BrowseContent() {
     getDcMovies(),
     getDcTv(),
     getDisneyMovies(),
-    getNostalgiaShows(),
+    getNostalgiaShows(60),
     // Only the default provider is fetched server-side; the switcher lazily
     // loads the rest on click instead of firing 10 TMDB calls on every render.
     getByStreamingProvider(NETFLIX.tmdbId),
@@ -88,38 +89,22 @@ async function BrowseContent() {
         </p>
       )}
 
-      <section>
-        <h2 className="mb-3 flex items-center gap-2 px-1 font-display text-lg font-bold">
-          <Sparkles className="size-5 text-[var(--gold)]" /> Franchise Collections
-        </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {FRANCHISES.map((f) => (
-            <Link
-              key={f.slug}
-              href={`/browse/franchise/${f.slug}`}
-              className="glass glow-ring rounded-[var(--radius-lg)] p-4 hover:border-[var(--accent)]"
-            >
-              <h3 className="font-display font-bold">{f.name}</h3>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">{f.description}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <FranchiseExplorer franchises={FRANCHISES} />
 
       <PosterRow title="Popular Movies" items={movies} viewAllHref="/browse/popular-movies" />
       <PosterRow title="Popular TV & Series" items={series} viewAllHref="/browse/popular-series" />
+      <ProviderSwitcher initialProvider="netflix" initialResults={netflix} />
       <PosterRow title="K-Drama" subtitle="Trending from Korea" items={kdrama} viewAllHref="/browse/kdrama" />
       <PosterRow title="Animation & Cartoons" subtitle="Western & all-ages" items={cartoons} viewAllHref="/browse/cartoons" />
       <PosterRow title="Marvel" subtitle="Movies & TV" items={marvel} viewAllHref="/browse/marvel" />
       <PosterRow title="DC" subtitle="Movies & TV" items={dc} viewAllHref="/browse/dc" />
       <PosterRow title="Disney Movies" items={disneyMovies} viewAllHref="/browse/disney-movies" />
-      <PosterRow title="OG TV Shows" subtitle="2000s Nickelodeon, Disney Channel & Disney XD" items={nostalgia} viewAllHref="/browse/og-tv" />
+      <PosterRow title="OG TV Shows" subtitle="Nickelodeon, Disney XD, Kix-era action, Cartoon Network & more" items={nostalgia} viewAllHref="/browse/og-tv" randomize />
       <PosterRow title="Trending Anime" items={anime} viewAllHref="/browse/trending-anime" />
       <PosterRow title="Popular Anime" items={popAnime} viewAllHref="/browse/popular-anime" />
       <PosterRow title="Trending Manga" items={manga} viewAllHref="/browse/trending-manga" />
       <PosterRow title="Top Rated Movies" items={topMovies} viewAllHref="/browse/top-rated-movies" />
 
-      <ProviderSwitcher initialProvider="netflix" initialResults={netflix} />
     </div>
   );
 }

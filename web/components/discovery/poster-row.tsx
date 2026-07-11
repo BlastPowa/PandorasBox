@@ -41,14 +41,24 @@ export function PosterRow({
   subtitle,
   items,
   viewAllHref,
+  randomize = false,
+  action,
 }: {
   title: string;
   subtitle?: string;
   items: UnifiedSearchResult[];
   viewAllHref?: string;
+  randomize?: boolean;
+  action?: React.ReactNode;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const { ref: rowRef, visible } = useRevealOnScroll<HTMLDivElement>();
+  const [displayItems, setDisplayItems] = useState(items);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setDisplayItems(randomize ? [...items].sort(() => Math.random() - 0.5) : items));
+    return () => cancelAnimationFrame(frame);
+  }, [items, randomize]);
 
   if (items.length === 0) return null;
 
@@ -74,6 +84,7 @@ export function PosterRow({
               View All
             </Link>
           )}
+          {action}
           <div className="hidden gap-1 sm:flex">
             <button
               onClick={() => nudge(-1)}
@@ -100,7 +111,7 @@ export function PosterRow({
           ref={rowRef}
           className={cn("pb-stagger flex snap-x snap-mandatory gap-3 scroll-smooth", visible && "is-visible")}
         >
-          {items.map((item, i) => (
+          {displayItems.map((item, i) => (
             <PosterCard
               key={item.id}
               item={item}
@@ -127,8 +138,10 @@ export function PosterRowSkeleton({ title }: { title: string }) {
   );
 }
 
-export function PosterGrid({ items }: { items: UnifiedSearchResult[] }) {
+export function PosterGrid({ items, randomize = false }: { items: UnifiedSearchResult[]; randomize?: boolean }) {
   const { ref, visible } = useRevealOnScroll<HTMLDivElement>();
+  const [displayItems, setDisplayItems] = useState(items);
+  useEffect(() => { const frame = requestAnimationFrame(() => setDisplayItems(randomize ? [...items].sort(() => Math.random() - 0.5) : items)); return () => cancelAnimationFrame(frame); }, [items, randomize]);
   return (
     <div
       ref={ref}
@@ -137,7 +150,7 @@ export function PosterGrid({ items }: { items: UnifiedSearchResult[] }) {
         visible && "is-visible"
       )}
     >
-      {items.map((item, i) => (
+      {displayItems.map((item, i) => (
         <PosterCard key={item.id} item={item} style={{ "--i": Math.min(i, 14) } as React.CSSProperties} />
       ))}
     </div>

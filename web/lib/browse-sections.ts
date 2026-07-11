@@ -15,6 +15,7 @@ import {
   getDcMovies,
   getDcTv,
   getDisneyMovies,
+  getDisneyTv,
   getNostalgiaShows,
   getByStreamingProvider,
 } from "@/lib/discovery";
@@ -38,15 +39,15 @@ const CORE_SECTIONS: BrowseSection[] = [
   { slug: "kdrama", title: "K-Drama", subtitle: "Trending from Korea", fetch: getKdrama },
   { slug: "cartoons", title: "Animation & Cartoons", subtitle: "Western & all-ages", fetch: getWesternAnimation },
   { slug: "top-rated-movies", title: "Top Rated Movies", fetch: getTopRatedMovies },
-  { slug: "disney-movies", title: "Disney Movies", fetch: getDisneyMovies },
-  { slug: "og-tv", title: "OG TV Shows", subtitle: "2000s Nickelodeon, Disney Channel & Disney XD", fetch: getNostalgiaShows },
+  { slug: "disney-movies", title: "Disney", subtitle: "Animation, Pixar, Disney Channel & live action", fetch: async (limit) => { const [movies, tv] = await Promise.all([getDisneyMovies(limit), getDisneyTv(limit)]); return [...movies, ...tv]; } },
+  { slug: "og-tv", title: "OG TV Shows", subtitle: "Nickelodeon, Disney XD, Kix-era action, Cartoon Network & more", fetch: getNostalgiaShows },
   {
     slug: "marvel",
     title: "Marvel",
     subtitle: "Movies & TV",
     fetch: async (limit) => {
       const [m, t] = await Promise.all([getMarvelMovies(limit), getMarvelTv(limit)]);
-      return [...m, ...t].slice(0, limit);
+      return [...m, ...t];
     },
   },
   {

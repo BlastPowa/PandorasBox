@@ -187,23 +187,39 @@ export const getTopRatedMovies = (limit = 18) => tmdbDiscover("movie", "movie/to
 // Highlight rows — curated by TMDB production company / network so they stay
 // accurate without needing an admin to hand-tag every title.
 export const getMarvelMovies = (limit = 18) =>
-  tmdbDiscover("movie", "discover/movie?with_companies=420&sort_by=popularity.desc", limit);
+  tmdbDiscover("movie", "discover/movie?with_companies=420|7505&sort_by=popularity.desc", limit);
 export const getMarvelTv = (limit = 18) =>
-  tmdbDiscover("tv", "discover/tv?with_companies=420&sort_by=popularity.desc", limit);
+  tmdbDiscover("tv", "discover/tv?with_companies=420|7505&sort_by=popularity.desc", limit);
 export const getDcMovies = (limit = 18) =>
   tmdbDiscover("movie", "discover/movie?with_companies=9993|128064&sort_by=popularity.desc", limit);
 export const getDcTv = (limit = 18) =>
   tmdbDiscover("tv", "discover/tv?with_companies=9993|128064&sort_by=popularity.desc", limit);
 export const getDisneyMovies = (limit = 18) =>
-  tmdbDiscover("movie", "discover/movie?with_companies=2&sort_by=popularity.desc", limit);
-// "OG" 2000s-era nostalgia: Nickelodeon, Disney Channel and Disney XD shows that
-// first aired on or before 2015, ranked by popularity.
+  tmdbDiscover("movie", "discover/movie?with_companies=2|3&sort_by=popularity.desc", limit);
+export const getDisneyTv = (limit = 18) =>
+  tmdbDiscover("tv", "discover/tv?with_companies=2|670&sort_by=popularity.desc", limit);
+// "OG" youth-TV nostalgia. Network IDs include Nickelodeon, Disney Channel,
+// Disney XD (legacy + current), Cartoon Network, Toon Disney/Jetix, ABC Family,
+// Fox Kids, Family Channel and Family CHRGD. Results remain server-cached; the
+// row randomizes this pool locally without generating more TMDB traffic.
 export const getNostalgiaShows = (limit = 18) =>
   tmdbDiscover(
     "tv",
-    "discover/tv?with_networks=13|54|44&first_air_date.lte=2015-01-01&sort_by=popularity.desc",
+    "discover/tv?with_networks=13|54|44|5137|56|142|2686|75|1508&first_air_date.gte=1998-01-01&first_air_date.lte=2017-12-31&sort_by=popularity.desc",
     limit
   );
+
+export async function getNostalgiaGroups(limit = 60) {
+  const window = "&first_air_date.gte=1998-01-01&first_air_date.lte=2017-12-31&sort_by=popularity.desc";
+  const groups = await Promise.all([
+    ["Disney Channel", "54"], ["Disney XD", "44|5137"], ["Nickelodeon", "13"],
+    ["Disney Junior", "281"], ["Cartoon Network", "56"], ["Action & Kix Era", "1508|142|2686|75"],
+  ].map(async ([label, networks]) => ({ label, items: await tmdbDiscover("tv", `discover/tv?with_networks=${networks}${window}`, limit) })));
+  const nickelodeon = groups.find((group) => group.label === "Nickelodeon")?.items ?? [];
+  const juniorTerms = ["dora", "paw patrol", "bubble guppies", "blaze", "shimmer", "blue's clues", "wonder pets", "backyardigans", "team umizoomi", "max and ruby"];
+  groups.splice(4, 0, { label: "Nick Jr.", items: nickelodeon.filter((item) => juniorTerms.some((term) => item.title.toLowerCase().includes(term))) });
+  return groups;
+}
 
 /** Movies/TV available on a given streaming service (TMDB watch-provider filter). */
 export const getByStreamingProvider = (providerId: number, kind: "movie" | "tv" = "movie", limit = 18) =>
