@@ -199,7 +199,7 @@ function Sites() {
           <Input placeholder="Site name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input placeholder="https://..." value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
           <select className="h-11 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 text-sm" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-            {["movies", "anime", "manga", "manhwa", "mixed"].map((c) => <option key={c} value={c}>{c}</option>)}
+            {["movies", "anime", "manga", "manhwa", "comics", "games", "mixed"].map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_free} onChange={(e) => setForm({ ...form, is_free: e.target.checked })} /> Free site</label>
         </div>

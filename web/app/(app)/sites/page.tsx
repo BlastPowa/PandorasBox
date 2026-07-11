@@ -19,6 +19,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   anime: "Anime",
   manga: "Manga",
   manhwa: "Manhwa",
+  comics: "Comics",
+  games: "Games",
   mixed: "Everything",
 };
 
@@ -45,10 +47,10 @@ export default async function SitesPage() {
     <div className="mx-auto max-w-[1200px] px-4 py-6 md:px-8">
       <div className="mb-2 flex items-center gap-2">
         <Globe className="size-6 text-[var(--accent)]" />
-        <h1 className="font-display text-2xl font-bold">Streaming &amp; Reading Sites</h1>
+        <h1 className="font-display text-2xl font-bold">Streaming, Reading &amp; Game Sites</h1>
       </div>
       <p className="mb-6 text-sm text-[var(--text-secondary)]">
-        A curated directory of places to watch and read. Managed by admins.
+        A curated directory of places to watch, read, and find games. Managed by admins.
       </p>
 
       {sites.length === 0 ? (
