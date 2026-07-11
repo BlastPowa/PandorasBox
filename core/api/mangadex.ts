@@ -37,7 +37,7 @@ export interface MangaDexChapter {
 
 async function mangaDexFetch<T>(path: string): Promise<T> {
   try {
-    const response = await fetch(`${MANGADEX_API_BASE_URL}${path}`);
+    const response = await fetch(`${MANGADEX_API_BASE_URL}${path}`, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`MangaDex request failed with status ${response.status}: ${path}`);
     }

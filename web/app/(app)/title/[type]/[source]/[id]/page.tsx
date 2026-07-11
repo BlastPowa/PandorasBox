@@ -68,8 +68,15 @@ export default async function TitlePage({
     <div>
       {/* Hero backdrop */}
       <div className="relative h-[240px] w-full overflow-hidden sm:h-[340px]">
-        {detail.backdropUrl ? (
-          <Image src={detail.backdropUrl} alt="" fill priority sizes="100vw" className="object-cover object-top" />
+        {detail.backdropUrl || detail.posterUrl ? (
+          <Image
+            src={detail.backdropUrl ?? detail.posterUrl!}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className={detail.backdropUrl ? "object-cover object-top" : "scale-110 object-cover opacity-45 blur-xl"}
+          />
         ) : (
           <div className="size-full bg-[linear-gradient(160deg,#16121f,#1c1230)]" />
         )}

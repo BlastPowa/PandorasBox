@@ -319,6 +319,20 @@ export async function getDetail(
         }
       }
 
+      // Jikan can lag behind AniList for brand-new seasonal shows. AniList's
+      // next-airing record still tells us exactly how many episodes have aired,
+      // so keep the tracker usable until full episode metadata arrives.
+      if (!isManga && animeEpisodes.length === 0 && media.nextAiringEpisode?.episode) {
+        const releasedCount = Math.max(0, media.nextAiringEpisode.episode - 1);
+        animeEpisodes = Array.from({ length: releasedCount }, (_, index) => ({
+          mal_id: index + 1,
+          title: `Episode ${index + 1}`,
+          aired: "",
+          filler: false,
+          recap: false,
+        }));
+      }
+
       const anilistTitle = media.title.english ?? media.title.romaji;
       indexTitle({
         mediaKey: `anilist-${media.id}`,

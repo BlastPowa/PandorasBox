@@ -88,9 +88,9 @@ function buildUrl(path: string, apiKey: string, extraParams?: Record<string, str
   return url.toString();
 }
 
-async function tmdbFetch<T>(path: string, apiKey: string, extraParams?: Record<string, string>): Promise<T> {
+async function tmdbFetch<T>(path: string, apiKey: string, extraParams?: Record<string, string>, fresh = false): Promise<T> {
   try {
-    const response = await fetch(buildUrl(path, apiKey, extraParams));
+    const response = await fetch(buildUrl(path, apiKey, extraParams), fresh ? { cache: "no-store" } : undefined);
     if (!response.ok) {
       throw new Error(`TMDB request failed with status ${response.status}: ${path}`);
     }
@@ -123,12 +123,12 @@ export async function searchSeries(query: string, apiKey: string): Promise<TMDBS
 
 export async function getMovieDetails(id: number, apiKey: string): Promise<TMDBMovie> {
   const resolvedKey = resolveApiKey(apiKey);
-  return tmdbFetch<TMDBMovie>(`/movie/${id}`, resolvedKey, { append_to_response: "credits" });
+  return tmdbFetch<TMDBMovie>(`/movie/${id}`, resolvedKey, { append_to_response: "credits" }, true);
 }
 
 export async function getSeriesDetails(id: number, apiKey: string): Promise<TMDBSeries> {
   const resolvedKey = resolveApiKey(apiKey);
-  return tmdbFetch<TMDBSeries>(`/tv/${id}`, resolvedKey, { append_to_response: "credits,seasons" });
+  return tmdbFetch<TMDBSeries>(`/tv/${id}`, resolvedKey, { append_to_response: "credits,seasons" }, true);
 }
 
 export async function getSeasonDetails(
@@ -137,7 +137,7 @@ export async function getSeasonDetails(
   apiKey: string
 ): Promise<TMDBSeason> {
   const resolvedKey = resolveApiKey(apiKey);
-  return tmdbFetch<TMDBSeason>(`/tv/${seriesId}/season/${seasonNumber}`, resolvedKey);
+  return tmdbFetch<TMDBSeason>(`/tv/${seriesId}/season/${seasonNumber}`, resolvedKey, undefined, true);
 }
 
 export async function getMovieWatchProviders(
