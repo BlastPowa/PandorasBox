@@ -105,9 +105,9 @@ export function AnimeEpisodesSection({
       {selectMode && (
         <div className="mb-3 flex items-center justify-between rounded-[var(--radius-md)] bg-[var(--glass)] px-3 py-2 text-xs text-[var(--text-secondary)]">
           <span>{checked.size} selected — marks everything up to the highest pick as watched</span>
-          <Button size="sm" onClick={markSelected} disabled={checked.size === 0}>
+          <div className="flex items-center gap-2"><button type="button" onClick={() => setChecked(checked.size === episodes.length ? new Set() : new Set(episodes.map((episode) => episode.mal_id)))} className="rounded-full px-3 py-1.5 font-semibold text-[var(--accent)] hover:bg-[var(--glass-strong)]">{checked.size === episodes.length ? "Clear all" : "Select all"}</button><Button size="sm" onClick={markSelected} disabled={checked.size === 0}>
             <Check className="size-3.5" /> Mark selected
-          </Button>
+          </Button></div>
         </div>
       )}
 
