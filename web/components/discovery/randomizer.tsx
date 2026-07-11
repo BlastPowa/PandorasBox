@@ -10,6 +10,7 @@ import { Button } from "@/components/ui-fx/button";
 import { BoxLoader } from "@/components/ui-fx/box-loader";
 import { PosterGrid } from "@/components/discovery/poster-row";
 import { EmptyState } from "@/components/ui-fx/feedback";
+import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 
 const TYPES: { key: RandomType; label: string }[] = [
   { key: "any", label: "Surprise Me" },
@@ -28,6 +29,7 @@ const LOADING_LINES = [
 ];
 
 export function Randomizer() {
+  const reducedMotion = useReducedMotion();
   const [type, setType] = useState<RandomType>("any");
   const [genres, setGenres] = useState<string[]>([]);
   const [mode, setMode] = useState<GenreMode>("any");
@@ -47,6 +49,7 @@ export function Randomizer() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<UnifiedSearchResult[] | null>(null);
   const [line, setLine] = useState(LOADING_LINES[0]);
+  const [reveal, setReveal] = useState(0);
 
   async function openBox() {
     setLoading(true);
@@ -59,6 +62,7 @@ export function Randomizer() {
       const json = (await res.json()) as { results: UnifiedSearchResult[]; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed");
       setResults(json.results);
+      setReveal((value) => value + 1);
       if (json.results.length === 0) toast.info("No matches — try a different genre or type.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not open the box");
@@ -137,7 +141,7 @@ export function Randomizer() {
 
       {!loading && results !== null && (
         results.length > 0 ? (
-          <div className="fade-up space-y-4">
+          <div key={reveal} className={`${reducedMotion ? "" : "pb-random-deck-reveal"} space-y-4`}>
             <div className="flex items-center justify-between">
               <h3 className="font-display text-xl font-bold">Your picks</h3>
               <Button variant="glass" size="sm" onClick={openBox}><Dices className="size-4" /> Reshuffle</Button>

@@ -9,6 +9,7 @@ import { BulkAddToCollection } from "@/components/collections/bulk-add-to-collec
 import type { AddToCollectionItem } from "@/components/collections/add-to-collection";
 import { useLibrary } from "@/lib/library/use-library";
 import { BackButton } from "@/components/shell/back-button";
+import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
 
 function toCollectionItem(r: UnifiedSearchResult): AddToCollectionItem {
   return {
@@ -30,18 +31,7 @@ export function FranchisePage({ franchise, items }: { franchise: FranchiseDef; i
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
       <BackButton fallbackHref="/browse" label="Browse" className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]" />
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <Sparkles className="size-5 text-[var(--gold)]" />
-            <h1 className="font-display text-2xl font-bold">{franchise.name}</h1>
-          </div>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">{franchise.description}</p>
-        </div>
-        {signedIn && items.length > 0 && (
-          <BulkAddToCollection items={items.map(toCollectionItem)} />
-        )}
-      </div>
+      <DiscoveryPageHeader eyebrow="PBox Franchise" title={franchise.name} description={franchise.description} actions={signedIn && items.length > 0 ? <BulkAddToCollection items={items.map(toCollectionItem)} /> : <Sparkles className="hidden size-6 text-[var(--gold)] sm:block" />} />
 
       <div className="mt-6">
         {items.length === 0 ? (
