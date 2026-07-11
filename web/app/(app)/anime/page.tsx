@@ -71,7 +71,7 @@ async function AnimeContent({ season, year }: { season: AnimeSeason; year: numbe
         </div>
 
         {seasonal.length > 0 ? (
-          <PosterGrid items={seasonal} />
+          <><div className="sm:hidden"><PosterRow title="Season picks" subtitle="Swipe to explore" items={seasonal} /></div><div className="hidden sm:block"><PosterGrid items={seasonal} /></div></>
         ) : (
           <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--glass)] px-4 py-8 text-center text-sm text-[var(--text-secondary)]">
             No anime found for {seasonLabel}.
