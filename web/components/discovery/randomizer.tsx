@@ -73,15 +73,15 @@ export function Randomizer() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="fx-glow-border glass rounded-[var(--radius-xl)] p-5 sm:p-7">
+    <div className="min-w-0 space-y-5 overflow-x-clip sm:space-y-6">
+      <div className="fx-glow-border glass rounded-[var(--radius-xl)] p-3 sm:p-7">
         <div className="mb-4 flex items-center gap-2">
           <Sparkles className="size-5 text-[var(--gold)]" />
           <h2 className="font-display text-lg font-bold">Tune your box</h2>
         </div>
 
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Type</p>
-        <div className="mb-5 flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap gap-1.5 sm:mb-5 sm:gap-2">
           {TYPES.map((t) => (
             <Pill key={t.key} active={type === t.key} onClick={() => changeType(t.key)}>{t.label}</Pill>
           ))}
@@ -124,12 +124,14 @@ export function Randomizer() {
           </div>
         )}
 
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-5 max-h-32 overflow-y-auto overscroll-contain pr-1 sm:mb-6 sm:max-h-none sm:overflow-visible">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {genreOptions
             .filter((g) => !genres.includes(g))
             .map((g) => (
               <Pill key={g} active={false} onClick={() => toggleGenre(g)}>{g}</Pill>
             ))}
+          </div>
         </div>
 
         <Button size="lg" onClick={openBox} loading={loading} className="w-full sm:w-auto">

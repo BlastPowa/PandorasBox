@@ -52,7 +52,7 @@ async function AnimeContent({ season, year }: { season: AnimeSeason; year: numbe
       <AmbientBackground imageUrl={heroItems[0]?.backdropUrl ?? null} />
       <Hero items={heroItems} />
 
-      <LatestEpisodes episodes={latest} />
+      <div className="relative z-10 -mt-20 rounded-t-[28px] bg-[linear-gradient(to_bottom,rgb(7_7_12/0.96),var(--bg-base))] px-1 pt-5 sm:mt-0 sm:rounded-none sm:bg-none sm:p-0"><LatestEpisodes episodes={latest} /></div>
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3 px-1">
