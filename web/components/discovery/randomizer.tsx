@@ -146,7 +146,7 @@ export function Randomizer() {
               <h3 className="font-display text-xl font-bold">Your picks</h3>
               <Button variant="glass" size="sm" onClick={openBox}><Dices className="size-4" /> Reshuffle</Button>
             </div>
-            <PosterGrid items={results} />
+            <PosterGrid items={results} mobileColumns={2} />
           </div>
         ) : (
           <EmptyState

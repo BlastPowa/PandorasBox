@@ -148,7 +148,7 @@ export function ScheduleBoard({
       ) : (
         <>
           {/* Day picker */}
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
             {days.map((d, i) => {
               const count = (byDay.get(d.key) ?? []).length;
               const isToday = i === 0;
@@ -156,7 +156,7 @@ export function ScheduleBoard({
                 <button
                   key={d.key}
                   onClick={() => setActiveDay(d.key)}
-                  className={`flex min-w-[64px] flex-col items-center rounded-[var(--radius-md)] px-3 py-2 text-center transition ${
+                  className={`flex min-w-0 flex-col items-center rounded-[var(--radius-md)] px-2 py-2 text-center transition ${
                     activeDay === d.key
                       ? "bg-[var(--glass-strong)] ring-1 ring-[var(--accent)]"
                       : "glass hover:bg-[var(--glass-strong)]"
@@ -168,6 +168,7 @@ export function ScheduleBoard({
                   <span className="font-display text-lg font-bold leading-none">
                     {new Date(d.ts * 1000).getDate()}
                   </span>
+                  <span className="mt-0.5 text-[9px] uppercase text-[var(--text-muted)]">{new Date(d.ts * 1000).toLocaleDateString(undefined, { month: "short" })}</span>
                   <span className={`mt-1 text-[10px] ${count > 0 ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
                     {count > 0 ? `${count}` : "—"}
                   </span>

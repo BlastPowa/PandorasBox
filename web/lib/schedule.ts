@@ -249,9 +249,13 @@ export async function getTvWindow(days = 14): Promise<ScheduleEntry[]> {
   const rows = await tmdb(
     `discover/tv?air_date.gte=${start}&air_date.lte=${endDate}&sort_by=popularity.desc&vote_count.gte=20`
   );
-  return rows.slice(0, 40).map((r) => {
+  const key = process.env.TMDB_API_KEY ?? "";
+  const details = await Promise.all(rows.slice(0, 24).map(async (row) => { try { const response = await fetch(`https://api.themoviedb.org/3/tv/${row.id}?api_key=${key}`, { next: { revalidate: 60 * 30 } }); if (!response.ok) return { row, episode: null }; const detail = await response.json() as { next_episode_to_air?: { air_date?: string; episode_number?: number; season_number?: number } | null }; return { row, episode: detail.next_episode_to_air ?? null }; } catch { return { row, episode: null }; } }));
+  return details.flatMap(({ row: r, episode }) => {
     const premiere = r.first_air_date && r.first_air_date >= start && r.first_air_date <= endDate;
-    return {
+    const airDate = episode?.air_date ?? (premiere ? r.first_air_date : null);
+    if (!airDate || airDate < start || airDate > endDate) return [];
+    return [{
       id: `tmdb-${r.id}`,
       kind: "series" as const,
       detailType: "series" as const,
@@ -259,9 +263,9 @@ export async function getTvWindow(days = 14): Promise<ScheduleEntry[]> {
       refId: String(r.id),
       title: r.name ?? r.title ?? "Untitled",
       posterUrl: r.poster_path ? getPosterUrl(r.poster_path) : null,
-      timestamp: premiere ? dateToUnix(r.first_air_date as string) : dateToUnix(start),
-      label: premiere ? "Premiere" : "New episodes",
+      timestamp: dateToUnix(airDate),
+      label: premiere ? "Premiere" : episode ? `S${episode.season_number ?? "?"} · Ep ${episode.episode_number ?? "?"}` : "New episode",
       hasTime: false,
-    };
+    }];
   });
 }

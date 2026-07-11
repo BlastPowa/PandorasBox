@@ -68,6 +68,7 @@ export function FilterDropdown({
       >
         {showDot && <span className="size-1.5 rounded-full bg-[var(--accent)]" />}
         {active?.iconUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={active.iconUrl} alt="" aria-hidden="true" className="size-4 rounded-[4px] object-cover" />
         )}
         {label}
@@ -77,7 +78,7 @@ export function FilterDropdown({
       {open && (
         <div
           role="listbox"
-          className="absolute right-0 z-30 mt-2 max-h-72 w-52 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] p-1 shadow-2xl backdrop-blur-xl"
+          className="fixed inset-x-3 bottom-[calc(72px+env(safe-area-inset-bottom))] z-50 max-h-[55dvh] w-auto overflow-y-auto rounded-[var(--radius-xl)] border border-[rgb(var(--accent-rgb)/0.3)] bg-[var(--bg-elevated)] p-2 shadow-2xl backdrop-blur-xl md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:mt-2 md:max-h-72 md:w-52 md:rounded-[var(--radius-md)] md:p-1"
         >
           {[{ value: "", label: allLabel }, ...options].map((opt) => {
             const optValue = opt.value === "" ? null : opt.value;
@@ -92,7 +93,7 @@ export function FilterDropdown({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] px-3 py-2 text-left text-xs font-medium transition-colors",
+                  "flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm font-medium transition-colors md:min-h-0 md:text-xs",
                   selected
                     ? "bg-[var(--glass)] text-[var(--text)]"
                     : "text-[var(--text-secondary)] hover:bg-[var(--glass)] hover:text-[var(--text)]"
@@ -100,6 +101,7 @@ export function FilterDropdown({
               >
                 <span className="flex min-w-0 items-center gap-2">
                   {"iconUrl" in opt && opt.iconUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={opt.iconUrl} alt="" aria-hidden="true" className="size-5 shrink-0 rounded-full object-cover" />
                   )}
                   <span className="truncate">{opt.label}</span>

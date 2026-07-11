@@ -138,7 +138,7 @@ export function PosterRowSkeleton({ title }: { title: string }) {
   );
 }
 
-export function PosterGrid({ items, randomize = false }: { items: UnifiedSearchResult[]; randomize?: boolean }) {
+export function PosterGrid({ items, randomize = false, mobileColumns = 3 }: { items: UnifiedSearchResult[]; randomize?: boolean; mobileColumns?: 2 | 3 }) {
   const { ref, visible } = useRevealOnScroll<HTMLDivElement>();
   const [displayItems, setDisplayItems] = useState(items);
   useEffect(() => { const frame = requestAnimationFrame(() => setDisplayItems(randomize ? [...items].sort(() => Math.random() - 0.5) : items)); return () => cancelAnimationFrame(frame); }, [items, randomize]);
@@ -146,7 +146,8 @@ export function PosterGrid({ items, randomize = false }: { items: UnifiedSearchR
     <div
       ref={ref}
       className={cn(
-        "pb-stagger grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7",
+        "pb-stagger grid gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7",
+        mobileColumns === 2 ? "grid-cols-2" : "grid-cols-3",
         visible && "is-visible"
       )}
     >
