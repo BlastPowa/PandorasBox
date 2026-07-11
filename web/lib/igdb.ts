@@ -120,6 +120,7 @@ export interface GameDlc {
   id: number;
   name: string;
   coverUrl: string | null;
+  artworkUrl: string | null;
   summary: string | null;
   year: number | null;
   platforms: string[];
@@ -199,7 +200,7 @@ export async function getGameDetail(id: number): Promise<GameDetail | null> {
   const sites = g.websites ?? [];
   const shots = g.screenshots ?? [];
   const seenDlc = new Set<number>();
-  const mapDlc = (entries: RawDlc[], kind: GameDlc["kind"]) => entries.filter((entry) => !seenDlc.has(entry.id) && seenDlc.add(entry.id)).map((entry) => ({ id: entry.id, name: entry.name, coverUrl: entry.cover ? igdbImage(entry.cover.image_id, "cover_big") : entry.artworks?.[0] ? igdbImage(entry.artworks[0].image_id, "cover_big") : null, summary: entry.summary ?? null, year: entry.first_release_date ? new Date(entry.first_release_date * 1000).getUTCFullYear() : null, platforms: (entry.platforms ?? []).map((platform) => platform.abbreviation ?? platform.name), kind }));
+  const mapDlc = (entries: RawDlc[], kind: GameDlc["kind"]) => entries.filter((entry) => !seenDlc.has(entry.id) && seenDlc.add(entry.id)).map((entry) => ({ id: entry.id, name: entry.name, coverUrl: entry.cover ? igdbImage(entry.cover.image_id, "720p") : null, artworkUrl: entry.artworks?.[0] ? igdbImage(entry.artworks[0].image_id, "1080p") : null, summary: entry.summary ?? null, year: entry.first_release_date ? new Date(entry.first_release_date * 1000).getUTCFullYear() : null, platforms: (entry.platforms ?? []).map((platform) => platform.abbreviation ?? platform.name), kind }));
   const featuresForEdition = (editionId: number) => versionRows.flatMap((row) => row.features ?? []).flatMap((feature) => (feature.values ?? []).filter((value) => value.game === editionId && value.included_feature !== 0).map((value) => ({ title: feature.title, description: value.note ?? feature.description ?? null })));
 
   return {
@@ -222,6 +223,6 @@ export async function getGameDetail(id: number): Promise<GameDetail | null> {
     videos: (g.videos ?? []).map((v) => ({ id: v.id, name: v.name ?? "Trailer", youtubeId: v.video_id })),
     dlcs: [...mapDlc(g.dlcs ?? [], "DLC"), ...mapDlc(g.expansions ?? [], "Expansion"), ...mapDlc(g.standalone_expansions ?? [], "Standalone expansion")],
     editions: versionRows.flatMap((row) => row.games ?? []).filter((edition) => edition.id !== g.id).map((edition) => ({ id: edition.id, name: edition.name, versionTitle: edition.version_title ?? null, coverUrl: edition.cover ? igdbImage(edition.cover.image_id, "cover_big") : null, summary: edition.summary ?? null, features: featuresForEdition(edition.id) })),
-    screenshots: shots.map((s) => igdbImage(s.image_id, "screenshot_big")),
+    screenshots: shots.map((s) => igdbImage(s.image_id, "1080p")),
   };
 }
