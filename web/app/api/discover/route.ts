@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
   // Validate every client-supplied value against a server-side allowlist —
   // never interpolate raw query params into the TMDB request.
   const genreParam = searchParams.get("genre");
-  const genre = genreParam && genresFor(kind).includes(genreParam) ? genreParam : null;
+  const allowedGenres = genresFor(kind);
+  const selectedGenres = genreParam?.split(",").filter((value) => allowedGenres.includes(value)) ?? [];
+  const genre = selectedGenres.length > 0 ? selectedGenres.join(",") : null;
 
   const sortParam = searchParams.get("sort") ?? "popular";
   const sort = isSortKey(sortParam) ? sortParam : "popular";

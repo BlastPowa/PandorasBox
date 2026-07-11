@@ -22,6 +22,7 @@ export function FilterDropdown({
   value,
   onChange,
   showDot = false,
+  multiple = false,
 }: {
   allLabel: string;
   options: FilterOption[];
@@ -29,6 +30,7 @@ export function FilterDropdown({
   onChange: (value: string | null) => void;
   /** Renders an accent dot before the label (matches the Sort pill). */
   showDot?: boolean;
+  multiple?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -49,8 +51,9 @@ export function FilterDropdown({
     };
   }, [open]);
 
+  const selectedValues = value?.split(",").filter(Boolean) ?? [];
   const active = options.find((o) => o.value === value);
-  const label = active?.label ?? allLabel;
+  const label = multiple && selectedValues.length > 0 ? `${selectedValues.length} Genres` : active?.label ?? allLabel;
 
   return (
     <div ref={ref} className="relative">
@@ -82,15 +85,20 @@ export function FilterDropdown({
         >
           {[{ value: "", label: allLabel }, ...options].map((opt) => {
             const optValue = opt.value === "" ? null : opt.value;
-            const selected = optValue === value;
+            const selected = optValue === null ? selectedValues.length === 0 : multiple ? selectedValues.includes(optValue) : optValue === value;
             return (
               <button
                 key={opt.value || "__all"}
                 role="option"
                 aria-selected={selected}
                 onClick={() => {
-                  onChange(optValue);
-                  setOpen(false);
+                  if (multiple && optValue) {
+                    const next = selected ? selectedValues.filter((item) => item !== optValue) : [...selectedValues, optValue];
+                    onChange(next.length > 0 ? next.join(",") : null);
+                  } else {
+                    onChange(optValue);
+                    setOpen(false);
+                  }
                 }}
                 className={cn(
                   "flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm font-medium transition-colors md:min-h-0 md:text-xs",

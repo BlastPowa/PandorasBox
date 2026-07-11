@@ -38,6 +38,7 @@ export function DiscoverGrid({ kind, initial }: Props) {
   }));
 
   const genre = params.get("genre");
+  const selectedGenres = genre?.split(",").filter(Boolean) ?? [];
   const year = params.get("year");
   const provider = params.get("provider");
   const sortParam = params.get("sort") ?? "popular";
@@ -54,7 +55,10 @@ export function DiscoverGrid({ kind, initial }: Props) {
   // duplicate fetch on mount and only refetch when a filter actually changes.
   const hydrated = useRef(false);
 
+  // URL-derived filter strings are stable for a render; preserving this callback
+  // prevents the fetch effect and infinite-scroll observer from refiring needlessly.
   const queryFor = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     (nextPage: number) => {
       const q = new URLSearchParams({ kind, sort, page: String(nextPage) });
       if (genre) q.set("genre", genre);
@@ -62,6 +66,7 @@ export function DiscoverGrid({ kind, initial }: Props) {
       if (provider) q.set("provider", provider);
       return q.toString();
     },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     [kind, sort, genre, year, provider]
   );
 
@@ -89,9 +94,14 @@ export function DiscoverGrid({ kind, initial }: Props) {
   }, [queryFor]);
 
   function setParam(key: string, value: string | null) {
+    let nextValue = value;
+    if (key === "genre" && filtersOpen && value && !value.includes(",")) {
+      const combined = selectedGenres.includes(value) ? selectedGenres.filter((item) => item !== value) : [...selectedGenres, value];
+      nextValue = combined.length > 0 ? combined.join(",") : null;
+    }
     const next = new URLSearchParams(params.toString());
-    if (value === null) next.delete(key);
-    else next.set(key, value);
+    if (nextValue === null) next.delete(key);
+    else next.set(key, nextValue);
     next.delete("page");
     router.replace(`?${next.toString()}`, { scroll: false });
   }
@@ -181,6 +191,7 @@ export function DiscoverGrid({ kind, initial }: Props) {
             options={genreOptions}
             value={genre}
             onChange={(v) => setParam("genre", v)}
+            multiple
           />
           <FilterDropdown
             allLabel="All Years"

@@ -25,7 +25,9 @@ function GridSkeleton() {
 async function DiscoverContent({ kind, sp }: { kind: MediaKind; sp: DiscoverSearchParams }) {
   // Same allowlist validation as /api/discover — the first page is rendered on
   // the server, so an unvalidated query param would reach TMDB here too.
-  const genre = sp.genre && genresFor(kind).includes(sp.genre) ? sp.genre : null;
+  const allowedGenres = genresFor(kind);
+  const selectedGenres = sp.genre?.split(",").filter((value) => allowedGenres.includes(value)) ?? [];
+  const genre = selectedGenres.length > 0 ? selectedGenres.join(",") : null;
   const sort: SortKey = sp.sort && isSortKey(sp.sort) ? sp.sort : "popular";
   const parsedYear = Number.parseInt(sp.year ?? "", 10);
   const year = browseYears().includes(parsedYear) ? parsedYear : null;

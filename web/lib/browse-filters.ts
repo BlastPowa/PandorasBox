@@ -67,8 +67,8 @@ export function buildDiscoverQuery(f: Omit<DiscoverFilters, "page">): string {
   }
 
   if (f.genre) {
-    const id = genreId(f.kind, f.genre);
-    if (id !== undefined) params.set("with_genres", String(id));
+    const ids = f.genre.split(",").map((name) => genreId(f.kind, name)).filter((id): id is number => id !== undefined);
+    if (ids.length > 0) params.set("with_genres", ids.join(","));
   }
 
   if (f.year) {
