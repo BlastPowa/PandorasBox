@@ -101,12 +101,11 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
               key={s.id}
               aria-label={`Show slide ${i + 1}`}
               onClick={() => setIndex(i)}
-              className="h-1 rounded-full transition-all duration-300"
-              style={{
-                width: i === index ? 28 : 8,
-                background: i === index ? "#ffffff" : "rgba(255,255,255,0.35)",
-              }}
-            />
+              aria-current={i === index ? "true" : undefined}
+              className={`relative h-1 overflow-hidden rounded-full bg-white/35 transition-[width] duration-300 ${i === index ? "w-12" : "w-2"}`}
+            >
+              {i === index && <span key={`${index}-${paused}`} className={`absolute inset-y-0 left-0 rounded-full bg-white ${reducedMotion || paused ? "w-full" : "pb-hero-slide-progress"}`} />}
+            </button>
           ))}
         </div>
       )}

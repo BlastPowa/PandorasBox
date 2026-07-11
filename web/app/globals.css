@@ -611,3 +611,11 @@ html.pb-reduce-motion .pb-stagger.is-visible > * {
   transform: none;
   animation: none;
 }
+
+@keyframes pb-hero-slide-timer {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.pb-hero-slide-progress {
+  animation: pb-hero-slide-timer 6s linear forwards;
+}
