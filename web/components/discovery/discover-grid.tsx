@@ -25,6 +25,16 @@ interface Props {
   initial: DiscoverPage;
 }
 
+function uniqueItems(items: DiscoverPage["results"]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.source}:${item.type}:${item.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function DiscoverGrid({ kind, initial }: Props) {
   const router = useRouter();
   const params = useSearchParams();
@@ -44,12 +54,37 @@ export function DiscoverGrid({ kind, initial }: Props) {
   const sortParam = params.get("sort") ?? "popular";
   const sort: SortKey = isSortKey(sortParam) ? sortParam : "popular";
 
-  const [items, setItems] = useState(initial.results);
+  const [items, setItems] = useState(() => uniqueItems(initial.results));
   const [totalPages, setTotalPages] = useState(initial.totalPages);
   const [page, setPage] = useState(initial.page);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftGenres, setDraftGenres] = useState<string[]>(selectedGenres);
+  const [draftYear, setDraftYear] = useState(year ?? "");
+  const [draftProvider, setDraftProvider] = useState(provider ?? "");
+  const [draftSort, setDraftSort] = useState<SortKey>(sort);
+
+  function handleFiltersOpen(open: boolean) {
+    setFiltersOpen(open);
+    if (open) {
+      setDraftGenres(selectedGenres);
+      setDraftYear(year ?? "");
+      setDraftProvider(provider ?? "");
+      setDraftSort(sort);
+    }
+  }
+
+  function applyMobileFilters() {
+    const next = new URLSearchParams(params.toString());
+    if (draftGenres.length) next.set("genre", draftGenres.join(",")); else next.delete("genre");
+    if (draftYear) next.set("year", draftYear); else next.delete("year");
+    if (draftProvider) next.set("provider", draftProvider); else next.delete("provider");
+    if (draftSort !== "popular") next.set("sort", draftSort); else next.delete("sort");
+    next.delete("page");
+    router.replace(`?${next.toString()}`, { scroll: false });
+    setFiltersOpen(false);
+  }
 
   // The server already rendered page 1 for the current filters, so skip the
   // duplicate fetch on mount and only refetch when a filter actually changes.
@@ -58,7 +93,6 @@ export function DiscoverGrid({ kind, initial }: Props) {
   // URL-derived filter strings are stable for a render; preserving this callback
   // prevents the fetch effect and infinite-scroll observer from refiring needlessly.
   const queryFor = useCallback(
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     (nextPage: number) => {
       const q = new URLSearchParams({ kind, sort, page: String(nextPage) });
       if (genre) q.set("genre", genre);
@@ -66,7 +100,6 @@ export function DiscoverGrid({ kind, initial }: Props) {
       if (provider) q.set("provider", provider);
       return q.toString();
     },
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     [kind, sort, genre, year, provider]
   );
 
@@ -80,7 +113,7 @@ export function DiscoverGrid({ kind, initial }: Props) {
     fetch(`/api/discover?${queryFor(1)}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data: DiscoverPage) => {
-        setItems(data.results ?? []);
+        setItems(uniqueItems(data.results ?? []));
         setTotalPages(data.totalPages ?? 0);
         setPage(1);
       })
@@ -184,7 +217,7 @@ export function DiscoverGrid({ kind, initial }: Props) {
           >
             <Shuffle className="size-4" />
           </button>
-          <Dialog.Root open={filtersOpen} onOpenChange={setFiltersOpen}><Dialog.Trigger asChild><button type="button" className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 text-xs font-bold text-[#08090d] md:hidden"><SlidersHorizontal className="size-4" /> Filters{hasFilters ? " · Active" : ""}</button></Dialog.Trigger><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" /><Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-[28px] border-t border-[rgb(var(--accent-rgb)/0.35)] bg-[var(--bg-elevated)] p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-2xl"><div className="mb-5 flex items-center justify-between"><Dialog.Title className="font-display text-xl font-bold">Filters</Dialog.Title><div className="flex items-center gap-3">{hasFilters && <button type="button" onClick={() => router.replace("?", { scroll: false })} className="text-xs font-semibold text-[var(--text-muted)]">Clear all</button>}<Dialog.Close className="grid size-9 place-items-center rounded-full bg-[var(--glass)]"><X className="size-4" /></Dialog.Close></div></div><section className="space-y-3"><p className="text-xs font-bold text-[var(--text-secondary)]">Content</p><span className="inline-flex rounded-full bg-white px-4 py-2 text-xs font-bold text-black">{kind === "movie" ? "Movies" : "TV Shows"}</span></section><section className="mt-5 space-y-3"><p className="text-xs font-bold text-[var(--text-secondary)]">Genres</p><div className="flex flex-wrap gap-2">{genreOptions.map((option) => <button key={option.value} type="button" onClick={() => setParam("genre", genre === option.value ? null : option.value)} className={`rounded-full px-3 py-2 text-xs font-semibold ${genre === option.value ? "bg-white text-black" : "bg-[var(--glass)] text-[var(--text-secondary)]"}`}>{option.label}</button>)}</div></section><div className="mt-5 grid gap-4"><label className="space-y-2 text-xs font-bold text-[var(--text-secondary)]">Sort by<select value={sort} onChange={(event) => setParam("sort", event.target.value === "popular" ? null : event.target.value)} className="block h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-4 text-sm text-[var(--text)]">{SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="space-y-2 text-xs font-bold text-[var(--text-secondary)]">Year<select value={year ?? ""} onChange={(event) => setParam("year", event.target.value || null)} className="block h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-4 text-sm text-[var(--text)]"><option value="">All years</option>{yearOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="space-y-2 text-xs font-bold text-[var(--text-secondary)]">Provider<select value={provider ?? ""} onChange={(event) => setParam("provider", event.target.value || null)} className="block h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-4 text-sm text-[var(--text)]"><option value="">All providers</option>{providerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div><Dialog.Close className="mt-6 h-12 w-full rounded-xl bg-white text-sm font-bold text-black">Show results</Dialog.Close></Dialog.Content></Dialog.Portal></Dialog.Root>
+          <Dialog.Root open={filtersOpen} onOpenChange={handleFiltersOpen}><Dialog.Trigger asChild><button type="button" className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 text-xs font-bold text-[#08090d] md:hidden"><SlidersHorizontal className="size-4" /> Filters{hasFilters ? " · Active" : ""}</button></Dialog.Trigger><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" /><Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-[28px] border-t border-[rgb(var(--accent-rgb)/0.35)] bg-[var(--bg-elevated)] p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-2xl"><div className="mb-5 flex items-center justify-between"><Dialog.Title className="font-display text-xl font-bold">Filters</Dialog.Title><div className="flex items-center gap-3"><button type="button" onClick={() => { setDraftGenres([]); setDraftYear(""); setDraftProvider(""); setDraftSort("popular"); }} className="text-xs font-semibold text-[var(--text-muted)]">Clear all</button><Dialog.Close className="grid size-9 place-items-center rounded-full bg-[var(--glass)]"><X className="size-4" /></Dialog.Close></div></div><section className="space-y-3"><p className="text-xs font-bold text-[var(--text-secondary)]">Content</p><span className="inline-flex rounded-full bg-white px-4 py-2 text-xs font-bold text-black">{kind === "movie" ? "Movies" : "TV Shows"}</span></section><section className="mt-5 space-y-3"><p className="text-xs font-bold text-[var(--text-secondary)]">Genres</p><div className="flex flex-wrap gap-2">{genreOptions.map((option) => { const active = draftGenres.includes(option.value); return <button key={option.value} type="button" aria-pressed={active} onClick={() => setDraftGenres((current) => active ? current.filter((value) => value !== option.value) : [...current, option.value])} className={`rounded-full px-3 py-2 text-xs font-semibold ${active ? "bg-white text-black" : "bg-[var(--glass)] text-[var(--text-secondary)]"}`}>{option.label}</button>; })}</div></section><div className="mt-5 grid gap-4"><label className="space-y-2 text-xs font-bold text-[var(--text-secondary)]">Sort by<select value={draftSort} onChange={(event) => setDraftSort(event.target.value as SortKey)} className="block h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-4 text-sm text-[var(--text)]">{SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="space-y-2 text-xs font-bold text-[var(--text-secondary)]">Year<select value={draftYear} onChange={(event) => setDraftYear(event.target.value)} className="block h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-4 text-sm text-[var(--text)]"><option value="">All years</option>{yearOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="space-y-2 text-xs font-bold text-[var(--text-secondary)]">Provider<select value={draftProvider} onChange={(event) => setDraftProvider(event.target.value)} className="block h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-4 text-sm text-[var(--text)]"><option value="">All providers</option>{providerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div><button type="button" onClick={applyMobileFilters} className="mt-6 h-12 w-full rounded-xl bg-white text-sm font-bold text-black">Show results</button></Dialog.Content></Dialog.Portal></Dialog.Root>
           <div className="hidden flex-wrap items-center gap-2 md:flex">
           <FilterDropdown
             allLabel="All Genres"
@@ -237,8 +270,8 @@ export function DiscoverGrid({ kind, initial }: Props) {
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-          {items.map((item) => (
-            <PosterCard key={item.id} item={item} />
+          {uniqueItems(items).map((item) => (
+            <PosterCard key={`${item.source}:${item.type}:${item.id}`} item={item} />
           ))}
           {/* Skeletons occupy the incoming row so the grid never jumps. */}
           {loadingMore && Array.from({ length: 6 }).map((_, i) => <PosterSkeleton key={`sk-${i}`} />)}

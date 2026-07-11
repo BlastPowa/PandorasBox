@@ -12,6 +12,20 @@ import { cn } from "@/lib/utils";
  * Appearance "Compact poster rows" toggle actually changes density. */
 const CARD_WIDTH = "w-[var(--poster-w-sm)] sm:w-[var(--poster-w)]";
 
+function uniqueItems(items: UnifiedSearchResult[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.source}:${item.type}:${item.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function itemKey(item: UnifiedSearchResult) {
+  return `${item.source}:${item.type}:${item.id}`;
+}
+
 /** Adds `is-visible` once the row scrolls into view, kicking off the stagger. */
 function useRevealOnScroll<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -53,10 +67,13 @@ export function PosterRow({
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const { ref: rowRef, visible } = useRevealOnScroll<HTMLDivElement>();
-  const [displayItems, setDisplayItems] = useState(items);
+  const [displayItems, setDisplayItems] = useState(() => uniqueItems(items));
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setDisplayItems(randomize ? [...items].sort(() => Math.random() - 0.5) : items));
+    const frame = requestAnimationFrame(() => {
+      const unique = uniqueItems(items);
+      setDisplayItems(randomize ? [...unique].sort(() => Math.random() - 0.5) : unique);
+    });
     return () => cancelAnimationFrame(frame);
   }, [items, randomize]);
 
@@ -113,7 +130,7 @@ export function PosterRow({
         >
           {displayItems.map((item, i) => (
             <PosterCard
-              key={item.id}
+              key={itemKey(item)}
               item={item}
               style={{ "--i": i } as React.CSSProperties}
               className={cn(CARD_WIDTH, "shrink-0 snap-start")}
@@ -140,8 +157,14 @@ export function PosterRowSkeleton({ title }: { title: string }) {
 
 export function PosterGrid({ items, randomize = false, mobileColumns = 3 }: { items: UnifiedSearchResult[]; randomize?: boolean; mobileColumns?: 2 | 3 }) {
   const { ref, visible } = useRevealOnScroll<HTMLDivElement>();
-  const [displayItems, setDisplayItems] = useState(items);
-  useEffect(() => { const frame = requestAnimationFrame(() => setDisplayItems(randomize ? [...items].sort(() => Math.random() - 0.5) : items)); return () => cancelAnimationFrame(frame); }, [items, randomize]);
+  const [displayItems, setDisplayItems] = useState(() => uniqueItems(items));
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const unique = uniqueItems(items);
+      setDisplayItems(randomize ? [...unique].sort(() => Math.random() - 0.5) : unique);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [items, randomize]);
   return (
     <div
       ref={ref}
@@ -152,7 +175,7 @@ export function PosterGrid({ items, randomize = false, mobileColumns = 3 }: { it
       )}
     >
       {displayItems.map((item, i) => (
-        <PosterCard key={item.id} item={item} style={{ "--i": Math.min(i, 14) } as React.CSSProperties} />
+        <PosterCard key={itemKey(item)} item={item} style={{ "--i": Math.min(i, 14) } as React.CSSProperties} />
       ))}
     </div>
   );

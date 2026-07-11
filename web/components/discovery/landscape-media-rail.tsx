@@ -28,12 +28,15 @@ export function LandscapeMediaCard({ item }: { item: UnifiedSearchResult }) {
 
 export function LandscapeMediaRail({ title, items }: { title: string; items: UnifiedSearchResult[] }) {
   const scroller = useRef<HTMLDivElement>(null);
-  if (items.length === 0) return null;
+  const uniqueItems = items.filter((item, index) =>
+    items.findIndex((candidate) => candidate.source === item.source && candidate.type === item.type && candidate.id === item.id) === index
+  );
+  if (uniqueItems.length === 0) return null;
   const nudge = (direction: -1 | 1) => scroller.current?.scrollBy({ left: direction * 640, behavior: "smooth" });
   return (
     <section className="relative space-y-3">
       <div className="flex items-center justify-between px-1"><h2 className="font-display text-lg font-bold">{title}</h2><div className="hidden gap-2 sm:flex"><button onClick={() => nudge(-1)} aria-label={`Scroll ${title} left`} className="glass grid size-8 place-items-center rounded-full"><ChevronLeft className="size-4" /></button><button onClick={() => nudge(1)} aria-label={`Scroll ${title} right`} className="glass grid size-8 place-items-center rounded-full"><ChevronRight className="size-4" /></button></div></div>
-      <div ref={scroller} className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{items.map((item) => <LandscapeMediaCard key={`${item.source}-${item.id}`} item={item} />)}</div>
+      <div ref={scroller} className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{uniqueItems.map((item) => <LandscapeMediaCard key={`${item.source}:${item.type}:${item.id}`} item={item} />)}</div>
     </section>
   );
 }
