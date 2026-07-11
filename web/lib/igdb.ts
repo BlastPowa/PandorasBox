@@ -121,6 +121,18 @@ export interface GameDlc {
   name: string;
   coverUrl: string | null;
   summary: string | null;
+  year: number | null;
+  platforms: string[];
+  kind: "DLC" | "Expansion" | "Standalone expansion";
+}
+
+export interface GameEdition {
+  id: number;
+  name: string;
+  versionTitle: string | null;
+  coverUrl: string | null;
+  summary: string | null;
+  features: { title: string; description: string | null }[];
 }
 
 export interface GameVideo {
@@ -146,6 +158,7 @@ export interface GameDetail {
   epicUrl: string | null;
   videos: GameVideo[];
   dlcs: GameDlc[];
+  editions: GameEdition[];
   screenshots: string[];
 }
 
@@ -157,28 +170,37 @@ interface RawDetail extends RawCard {
   involved_companies?: { company: { name: string }; developer: boolean; publisher: boolean }[];
   videos?: { video_id: string; name?: string; id: number }[];
   websites?: { url: string }[];
-  dlcs?: { id: number; name: string; cover?: { image_id: string }; summary?: string }[];
+  dlcs?: RawDlc[];
+  expansions?: RawDlc[];
+  standalone_expansions?: RawDlc[];
   screenshots?: { image_id: string }[];
 }
 
+interface RawDlc { id: number; name: string; cover?: { image_id: string }; artworks?: { image_id: string }[]; summary?: string; first_release_date?: number; platforms?: { abbreviation?: string; name: string }[]; }
+interface RawGameVersion { games?: { id: number; name: string; version_title?: string; cover?: { image_id: string }; summary?: string }[]; features?: { title: string; description?: string; values?: { game: number; included_feature: number; note?: string }[] }[]; }
+
 export async function getGameDetail(id: number): Promise<GameDetail | null> {
-  const rows = await igdbQuery<RawDetail>(
-    "games",
+  const [rows, versionRows] = await Promise.all([igdbQuery<RawDetail>("games",
     `fields name, summary, storyline, cover.image_id, rating, first_release_date,
       genres.name, platforms.abbreviation, platforms.name,
       involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
       videos.video_id, videos.name,
       websites.url,
-      dlcs.name, dlcs.cover.image_id, dlcs.summary,
+      dlcs.name, dlcs.cover.image_id, dlcs.artworks.image_id, dlcs.summary, dlcs.first_release_date, dlcs.platforms.abbreviation, dlcs.platforms.name,
+      expansions.name, expansions.cover.image_id, expansions.artworks.image_id, expansions.summary, expansions.first_release_date, expansions.platforms.abbreviation, expansions.platforms.name,
+      standalone_expansions.name, standalone_expansions.cover.image_id, standalone_expansions.artworks.image_id, standalone_expansions.summary, standalone_expansions.first_release_date, standalone_expansions.platforms.abbreviation, standalone_expansions.platforms.name,
       screenshots.image_id;
      where id = ${id};`
-  );
+  ), igdbQuery<RawGameVersion>("game_versions", `fields games.id, games.name, games.version_title, games.cover.image_id, games.summary, features.title, features.description, features.values.game, features.values.included_feature, features.values.note; where game = ${id};`)]);
   const g = rows[0];
   if (!g) return null;
 
   const companies = g.involved_companies ?? [];
   const sites = g.websites ?? [];
   const shots = g.screenshots ?? [];
+  const seenDlc = new Set<number>();
+  const mapDlc = (entries: RawDlc[], kind: GameDlc["kind"]) => entries.filter((entry) => !seenDlc.has(entry.id) && seenDlc.add(entry.id)).map((entry) => ({ id: entry.id, name: entry.name, coverUrl: entry.cover ? igdbImage(entry.cover.image_id, "cover_big") : entry.artworks?.[0] ? igdbImage(entry.artworks[0].image_id, "cover_big") : null, summary: entry.summary ?? null, year: entry.first_release_date ? new Date(entry.first_release_date * 1000).getUTCFullYear() : null, platforms: (entry.platforms ?? []).map((platform) => platform.abbreviation ?? platform.name), kind }));
+  const featuresForEdition = (editionId: number) => versionRows.flatMap((row) => row.features ?? []).flatMap((feature) => (feature.values ?? []).filter((value) => value.game === editionId && value.included_feature !== 0).map((value) => ({ title: feature.title, description: value.note ?? feature.description ?? null })));
 
   return {
     id: g.id,
@@ -198,12 +220,8 @@ export async function getGameDetail(id: number): Promise<GameDetail | null> {
     steamUrl: sites.find((w) => w.url.includes("store.steampowered.com"))?.url ?? null,
     epicUrl: sites.find((w) => w.url.includes("epicgames.com"))?.url ?? null,
     videos: (g.videos ?? []).map((v) => ({ id: v.id, name: v.name ?? "Trailer", youtubeId: v.video_id })),
-    dlcs: (g.dlcs ?? []).map((d) => ({
-      id: d.id,
-      name: d.name,
-      coverUrl: d.cover ? igdbImage(d.cover.image_id, "cover_big") : null,
-      summary: d.summary ?? null,
-    })),
+    dlcs: [...mapDlc(g.dlcs ?? [], "DLC"), ...mapDlc(g.expansions ?? [], "Expansion"), ...mapDlc(g.standalone_expansions ?? [], "Standalone expansion")],
+    editions: versionRows.flatMap((row) => row.games ?? []).filter((edition) => edition.id !== g.id).map((edition) => ({ id: edition.id, name: edition.name, versionTitle: edition.version_title ?? null, coverUrl: edition.cover ? igdbImage(edition.cover.image_id, "cover_big") : null, summary: edition.summary ?? null, features: featuresForEdition(edition.id) })),
     screenshots: shots.map((s) => igdbImage(s.image_id, "screenshot_big")),
   };
 }

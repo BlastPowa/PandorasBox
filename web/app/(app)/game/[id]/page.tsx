@@ -6,6 +6,7 @@ import { AmbientBackground } from "@/components/home/ambient-background";
 import { BackButton } from "@/components/shell/back-button";
 import { GameTrailers } from "@/components/games/game-trailers";
 import { ExpandableText } from "@/components/detail/expandable-text";
+import { GameContentGallery } from "@/components/games/game-content-gallery";
 
 export const revalidate = 86400;
 
@@ -121,45 +122,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
         <GameTrailers videos={game.videos} title={game.name} />
 
-        {game.dlcs.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="font-display text-lg font-bold">DLC &amp; Expansions</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {game.dlcs.map((d) => (
-                <div key={d.id} className="glass flex gap-3 rounded-[var(--radius-md)] p-3">
-                  {d.coverUrl ? (
-                    <div className="relative aspect-[3/4] w-16 shrink-0 overflow-hidden rounded-[var(--radius-sm)]">
-                      <Image src={d.coverUrl} alt={d.name} fill sizes="64px" className="object-cover" />
-                    </div>
-                  ) : (
-                    <div className="grid aspect-[3/4] w-16 shrink-0 place-items-center rounded-[var(--radius-sm)] bg-[var(--bg-surface)] font-display text-lg font-bold text-[var(--text-muted)]">
-                      {d.name.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-semibold leading-tight">{d.name}</h3>
-                    {d.summary && (
-                      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-[var(--text-muted)]">{d.summary}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {game.screenshots.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="font-display text-lg font-bold">Screenshots</h2>
-            <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {game.screenshots.map((src) => (
-                <div key={src} className="relative aspect-video w-80 shrink-0 snap-start overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)]">
-                  <Image src={src} alt="Screenshot" fill sizes="320px" className="object-cover" />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <GameContentGallery title={game.name} screenshots={game.screenshots} dlcs={game.dlcs} editions={game.editions} />
       </div>
     </div>
   );
