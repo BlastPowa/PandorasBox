@@ -94,17 +94,7 @@ export function EpisodesSection({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold">Episodes</h2>
         <div className="flex items-center gap-2">
-          {seasons.length > 1 && (
-            <select
-              value={season}
-              onChange={(e) => void changeSeason(Number.parseInt(e.target.value, 10))}
-              className="h-9 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 text-sm"
-            >
-              {seasons.map((s) => (
-                <option key={s} value={s}>Season {s}</option>
-              ))}
-            </select>
-          )}
+          {seasons.length > 1 && <div className="flex max-w-[60vw] gap-1 overflow-x-auto rounded-full border border-[var(--border)] bg-[var(--glass)] p-1 [scrollbar-width:none]">{seasons.map((value) => <button key={value} type="button" onClick={() => void changeSeason(value)} aria-pressed={season === value} className={`h-8 shrink-0 rounded-full px-3 text-xs font-semibold transition ${season === value ? "bg-[var(--accent)] text-[#08090d]" : "text-[var(--text-secondary)] hover:text-[var(--text)]"}`}>Season {value}</button>)}</div>}
           {item && (
             <button
               onClick={() => {
@@ -135,13 +125,13 @@ export function EpisodesSection({
       ) : episodes.length === 0 ? (
         <p className="text-sm text-[var(--text-muted)]">No episode data for this season.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {episodes.map((ep) => {
             const watched = isWatched(ep);
             return (
               <div
                 key={ep.id}
-                className={`glass glow-ring relative flex w-full gap-3 rounded-[var(--radius-md)] p-2.5 ${selectMode ? "pl-11" : "pr-9"} text-left ${watched ? "opacity-70" : ""}`}
+                className={`glass glow-ring relative w-[82vw] max-w-[390px] shrink-0 snap-start overflow-hidden rounded-[var(--radius-lg)] text-left ${selectMode ? "pl-9" : ""} ${watched ? "opacity-70" : ""}`}
               >
                 {selectMode && (
                   <input
@@ -151,8 +141,8 @@ export function EpisodesSection({
                     className="absolute left-3 top-1/2 size-4 -translate-y-1/2 accent-[var(--accent)]"
                   />
                 )}
-                <button onClick={() => !selectMode && setSelected(ep)} className="flex flex-1 gap-3 text-left">
-                  <div className="relative h-[62px] w-[110px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--bg-elevated)]">
+                <button onClick={() => !selectMode && setSelected(ep)} className="block w-full text-left">
+                  <div className="relative aspect-video w-full overflow-hidden bg-[var(--bg-elevated)]">
                     {ep.still_path ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={`https://image.tmdb.org/t/p/w300${ep.still_path}`} alt="" className="size-full object-cover" />
@@ -160,13 +150,14 @@ export function EpisodesSection({
                       <div className="grid size-full place-items-center font-mono text-xs text-[var(--text-muted)]">E{ep.episode_number}</div>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 p-3">
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-xs text-[var(--accent)]">E{ep.episode_number}</span>
                       <h3 className="truncate text-sm font-semibold">{ep.name}</h3>
                     </div>
                     {ep.air_date && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(ep.air_date)}</span>}
-                    {ep.overview && <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">{ep.overview}</p>}
+                    {ep.runtime !== null && <span className="ml-2 text-xs text-[var(--text-muted)]">{formatRuntime(ep.runtime)}</span>}
+                    {ep.overview && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-secondary)]">{ep.overview}</p>}
                   </div>
                 </button>
                 {!selectMode && watched && (

@@ -111,13 +111,13 @@ export function AnimeEpisodesSection({
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {episodes.map((ep) => {
           const watched = isWatched(ep);
           return (
             <div
               key={ep.mal_id}
-              className={`glass glow-ring relative flex w-full gap-3 rounded-[var(--radius-md)] p-2.5 ${selectMode ? "pl-11" : "pr-9"} text-left ${watched ? "opacity-70" : ""}`}
+              className={`glass glow-ring relative w-[78vw] max-w-[320px] shrink-0 snap-start rounded-[var(--radius-lg)] p-3 ${selectMode ? "pl-11" : "pr-9"} text-left ${watched ? "opacity-70" : ""}`}
             >
               {selectMode && (
                 <input
@@ -128,7 +128,7 @@ export function AnimeEpisodesSection({
                 />
               )}
               <button onClick={() => !selectMode && void openEpisode(ep)} className="flex flex-1 items-center gap-3 text-left">
-                <div className="grid h-[50px] w-[70px] shrink-0 place-items-center rounded-[8px] bg-[var(--bg-elevated)] font-mono text-xs text-[var(--text-muted)]">
+                <div className="grid aspect-video w-24 shrink-0 place-items-center rounded-[8px] bg-[linear-gradient(135deg,rgb(var(--accent-rgb)/0.18),var(--bg-elevated))] font-mono text-xs text-[var(--accent)]">
                   E{ep.mal_id}
                 </div>
                 <div className="min-w-0 flex-1">

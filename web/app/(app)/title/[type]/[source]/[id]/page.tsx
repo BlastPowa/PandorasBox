@@ -67,7 +67,7 @@ export default async function TitlePage({
   return (
     <div>
       {/* Hero backdrop */}
-      <div className="relative h-[240px] w-full overflow-hidden sm:h-[340px]">
+      <div className="relative h-[500px] w-full overflow-hidden sm:h-[580px] lg:h-[640px]">
         {detail.backdropUrl || detail.posterUrl ? (
           <Image
             src={detail.backdropUrl ?? detail.posterUrl!}
@@ -80,17 +80,17 @@ export default async function TitlePage({
         ) : (
           <div className="size-full bg-[linear-gradient(160deg,#16121f,#1c1230)]" />
         )}
-        <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base),rgba(10,10,15,0.5)_60%,rgba(10,10,15,0.4))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,rgba(8,8,13,0.82)_28%,rgba(8,8,13,0.28)_68%,rgba(8,8,13,0.5)_100%),linear-gradient(90deg,rgba(6,6,10,0.78)_0%,rgba(6,6,10,0.28)_58%,transparent_100%)]" />
         <div className="absolute left-4 top-4 md:left-8">
           <BackButton className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-white backdrop-blur" />
         </div>
       </div>
 
-      <div className="mx-auto -mt-24 max-w-[1200px] px-4 md:px-8">
-        <div className="flex flex-col gap-6 sm:flex-row">
+      <div className="relative z-10 mx-auto -mt-[290px] max-w-[1200px] px-4 md:-mt-[330px] md:px-8 lg:-mt-[350px]">
+        <div className="flex items-end gap-4 sm:gap-6">
           {/* Poster */}
-          <div className="relative mx-auto w-40 shrink-0 sm:mx-0 sm:w-52">
-            <div className="relative aspect-[2/3] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xl">
+          <div className="relative hidden w-36 shrink-0 sm:block lg:w-44">
+            <div className="relative aspect-[2/3] overflow-hidden rounded-[var(--radius-lg)] border border-white/15 shadow-2xl">
               {detail.posterUrl ? (
                 <Image src={detail.posterUrl} alt={detail.title} fill sizes="208px" className="object-cover" />
               ) : (
@@ -102,7 +102,7 @@ export default async function TitlePage({
           </div>
 
           {/* Headline */}
-          <div className="flex-1 pt-2 sm:pt-24">
+          <div className="min-w-0 flex-1 pb-2">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <TypeBadge type={detail.type} />
               {detail.year !== null && (
@@ -124,7 +124,7 @@ export default async function TitlePage({
                 </span>
               ))}
             </div>
-            <h1 className="font-display text-3xl font-extrabold leading-tight sm:text-4xl">{detail.title}</h1>
+            <h1 className="max-w-4xl font-display text-4xl font-extrabold leading-[0.95] tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.8)] sm:text-5xl lg:text-6xl">{detail.title}</h1>
 
             {/* Availability badges (live) */}
             {availability && (
@@ -147,7 +147,7 @@ export default async function TitlePage({
               </div>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-[var(--text-secondary)]">
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-white/75">
               {detail.runtime !== null && (
                 <span className="flex items-center gap-1.5"><Clock className="size-4" /> {formatRuntime(detail.runtime)}</span>
               )}
@@ -196,7 +196,7 @@ export default async function TitlePage({
         </div>
 
         {/* Body */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="min-w-0 space-y-8">
             {(detail.cast ?? []).length > 0 && (
               <section>
