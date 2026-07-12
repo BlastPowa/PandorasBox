@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, X } from "lucide-react";
+import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X } from "lucide-react";
 import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";
-import { formatProgress, getStatusLabel } from "@core/utils/formatters";
+import { formatProgress } from "@core/utils/formatters";
 import { useLibrary, useLibraryStats } from "@/lib/library/use-library";
 import { RatingStars } from "@/components/ui-fx/rating-stars";
 import { Pill, TypeBadge, StatusBadge } from "@/components/ui-fx/badge";
@@ -262,7 +262,7 @@ function advance(
   markEpisode: (id: string, ep: number) => Promise<void>,
   markChapter: (id: string, ch: number) => Promise<void>
 ) {
-  if (item.type === "manga" || item.type === "manhwa") {
+  if (item.type === "manga" || item.type === "manhwa" || item.type === "comic") {
     return markChapter(item.id, (item.progress.currentChapter ?? 0) + 1);
   }
   return markEpisode(item.id, (item.progress.currentEpisode ?? 0) + 1);
@@ -282,7 +282,9 @@ function LibraryRow({ item, index, selectMode, selected, onToggleSelect, onRate,
   selectMode: boolean; selected: boolean; onToggleSelect: () => void;
   onRate: (v: number) => void; onNext: () => void; onComplete: () => void; onRemove: () => void;
 }) {
-  const href = `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
+  const href = item.type === "comic"
+    ? `/comic/${item.id.replace("comicvine-", "")}`
+    : `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
   return (
     <tr className={`border-t border-[var(--border)] transition-colors hover:bg-[var(--glass)] ${selected ? "bg-[rgb(var(--accent-rgb)/0.12)]" : ""}`}>
       <td className="px-3 py-2 font-mono text-xs text-[var(--text-muted)]">
@@ -306,7 +308,7 @@ function LibraryRow({ item, index, selectMode, selected, onToggleSelect, onRate,
       <td className="px-2 py-2 font-mono text-xs text-[var(--text-secondary)]">{formatProgress(item.progress, item.type)}</td>
       <td className="px-2 py-2">
         <div className="flex items-center justify-end gap-1">
-          <button onClick={onNext} title="Mark next" className="rounded-md p-1.5 text-[var(--accent)] hover:bg-[var(--glass)]"><Plus className="size-4" /></button>
+          {item.type === "comic" ? <Link href={href} title="Open issue tracker" className="rounded-md p-1.5 text-[var(--accent)] hover:bg-[var(--glass)]"><ListChecks className="size-4" /></Link> : <button onClick={onNext} title="Mark next" className="rounded-md p-1.5 text-[var(--accent)] hover:bg-[var(--glass)]"><Plus className="size-4" /></button>}
           <button onClick={onComplete} title="Complete" className="rounded-md p-1.5 text-[var(--completed)] hover:bg-[var(--glass)]"><Check className="size-4" /></button>
           <button onClick={onRemove} title="Remove" className="rounded-md p-1.5 text-[var(--dropped)] hover:bg-[var(--glass)]"><Trash2 className="size-4" /></button>
         </div>
@@ -319,7 +321,9 @@ function LibraryCard({ item, selectMode, selected, onToggleSelect, onRate, onNex
   item: ReelItem; selectMode: boolean; selected: boolean; onToggleSelect: () => void;
   onRate: (v: number) => void; onNext: () => void; onRemove: () => void;
 }) {
-  const href = `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
+  const href = item.type === "comic"
+    ? `/comic/${item.id.replace("comicvine-", "")}`
+    : `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
   return (
     <div className={`glass flex gap-3 rounded-[var(--radius-md)] p-2.5 ${selected ? "ring-2 ring-[var(--accent)]" : ""}`}>
       {selectMode && (
@@ -337,7 +341,7 @@ function LibraryCard({ item, selectMode, selected, onToggleSelect, onRate, onNex
         <div className="mt-1.5 flex items-center justify-between">
           <RatingStars value={item.rating} onChange={onRate} size={14} />
           <div className="flex gap-1">
-            <button onClick={onNext} className="rounded-md p-1.5 text-[var(--accent)]"><Plus className="size-4" /></button>
+            {item.type === "comic" ? <Link href={href} aria-label="Open issue tracker" className="rounded-md p-1.5 text-[var(--accent)]"><ListChecks className="size-4" /></Link> : <button onClick={onNext} aria-label="Mark next" className="rounded-md p-1.5 text-[var(--accent)]"><Plus className="size-4" /></button>}
             <button onClick={onRemove} className="rounded-md p-1.5 text-[var(--dropped)]"><Trash2 className="size-4" /></button>
           </div>
         </div>

@@ -40,6 +40,11 @@ export function formatProgress(progress: ReelProgress, type: ReelItemType): stri
     return `Episode ${current}`;
   }
   const currentChapter = progress.currentChapter ?? 0;
+  if (type === "comic") {
+    const issue = progress.currentIssueNumber ?? String(currentChapter);
+    if (progress.totalChapters !== null) return `Issue ${issue} · ${currentChapter} of ${progress.totalChapters} read`;
+    return `Issue ${issue}`;
+  }
   if (progress.totalChapters !== null) {
     return `Chapter ${currentChapter} of ${progress.totalChapters}`;
   }

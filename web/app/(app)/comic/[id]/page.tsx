@@ -7,6 +7,7 @@ import { BackButton } from "@/components/shell/back-button";
 import { ExpandableText } from "@/components/detail/expandable-text";
 import { AddToLibrary, type LibrarySeed } from "@/components/library/add-to-library";
 import { AddToCollection } from "@/components/collections/add-to-collection";
+import { ComicIssuesSection } from "@/components/comics/comic-issues-section";
 
 export const revalidate = 86400;
 
@@ -128,38 +129,7 @@ export default async function ComicDetailPage({ params }: { params: Promise<{ id
           </section>
         )}
 
-        {issues.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="font-display text-lg font-bold">Recent Issues</h2>
-            <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {issues.map((iss) => (
-                <a
-                  key={iss.id}
-                  href={iss.comicVineUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group w-32 shrink-0 snap-start"
-                >
-                  <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)]">
-                    {iss.coverUrl ? (
-                      <Image src={iss.coverUrl} alt={iss.name ?? `Issue ${iss.issueNumber}`} fill sizes="128px" className="object-cover transition-transform duration-300 group-hover:scale-105" />
-                    ) : (
-                      <div className="grid size-full place-items-center font-display text-xl font-bold text-[var(--text-muted)]">
-                        #{iss.issueNumber}
-                      </div>
-                    )}
-                  </div>
-                  <p className="mt-1.5 line-clamp-1 text-xs font-semibold">
-                    {iss.issueNumber ? `#${iss.issueNumber}` : ""} {iss.name ?? ""}
-                  </p>
-                  {iss.coverDate && (
-                    <p className="font-mono text-[10px] text-[var(--text-muted)]">{iss.coverDate.slice(0, 7)}</p>
-                  )}
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
+        <ComicIssuesSection itemId={seed.id} issues={issues} />
       </div>
     </div>
   );

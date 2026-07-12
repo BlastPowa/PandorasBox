@@ -41,7 +41,8 @@ export default function imageLoader({ src, width }: { src: string; width: number
     return `${src}${src.includes("?") ? "&" : "?"}width=${width}`;
   }
 
-  // Everything else (AniList, MangaDex, MAL, Comic Vine, Supabase avatars) has
-  // no size-in-path convention we can safely rewrite. Serve as-is.
-  return src;
+  // Other providers have no size-in-path convention we can safely rewrite.
+  // Keep the source asset intact while varying the URL so Next can generate a
+  // valid responsive srcset without routing the request through Vercel.
+  return `${src}${src.includes("?") ? "&" : "?"}width=${width}`;
 }

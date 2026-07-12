@@ -82,7 +82,7 @@ export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; com
       } else if (isReading) {
         const next = (existing.progress.currentChapter ?? 0) + 1;
         await markChapter(seed.id, next);
-        toast.success(`Chapter ${next} read`);
+        toast.success(seed.type === "comic" ? `Issue ${next} read` : `Chapter ${next} read`);
       } else {
         const next = (existing.progress.currentEpisode ?? 0) + 1;
         await markEpisode(seed.id, next);
@@ -172,7 +172,7 @@ export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; com
           </button>
         }
       />
-      {existing.status !== "completed" && (
+      {existing.status !== "completed" && seed.type !== "comic" && (
         <button
           onClick={onMarkNext}
           disabled={busy}
@@ -199,7 +199,7 @@ export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; com
       {!isMovie && (
         <span className="w-full font-mono text-xs text-[var(--text-muted)]">
           {isReading
-            ? `Chapter ${existing.progress.currentChapter ?? 0}${existing.totalChapters ? ` / ${existing.totalChapters}` : ""}`
+            ? `${seed.type === "comic" ? "Issue" : "Chapter"} ${seed.type === "comic" && existing.progress.currentIssueNumber ? existing.progress.currentIssueNumber : existing.progress.currentChapter ?? 0}${existing.totalChapters ? ` · ${existing.progress.currentChapter ?? 0} / ${existing.totalChapters} read` : ""}`
             : `Episode ${existing.progress.currentEpisode ?? 0}${existing.totalEpisodes ? ` / ${existing.totalEpisodes}` : ""}`}
         </span>
       )}

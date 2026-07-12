@@ -110,8 +110,29 @@ async function fetchSeries(query: string, publisher: Publisher): Promise<ComicSe
 }
 
 export async function getComics(publisher: Publisher): Promise<ComicSeries[]> {
-  const results = await Promise.all(CURATED[publisher].map((n) => fetchSeries(n, publisher)));
-  return results.filter((c): c is ComicSeries => c !== null);
+  const url = cvUrl("volumes", {
+    filter: `publisher:${PUBLISHER_ID[publisher]}`,
+    sort: "start_year:desc",
+    limit: "100",
+    field_list: VOLUME_FIELDS,
+  });
+  if (url) {
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
+      if (res.ok) {
+        const json = (await res.json()) as { results?: ComicVineVolume[] };
+        const seen = new Set<number>();
+        const catalog = (json.results ?? [])
+          .filter((volume) => volume.count_of_issues > 0 && !seen.has(volume.id) && seen.add(volume.id))
+          .map((volume) => mapVolume(volume, publisher));
+        if (catalog.length > 0) return catalog;
+      }
+    } catch {
+      // Preserve the curated fallback when Comic Vine's catalog endpoint fails.
+    }
+  }
+  const results = await Promise.all(CURATED[publisher].map((name) => fetchSeries(name, publisher)));
+  return results.filter((comic): comic is ComicSeries => comic !== null);
 }
 
 /** Free-text search across Comic Vine volumes, newest/most-issued first. */
@@ -121,7 +142,7 @@ export async function searchComics(query: string): Promise<ComicSeries[]> {
   const url = cvUrl("search", {
     resources: "volume",
     query: trimmed,
-    limit: "40",
+    limit: "100",
     field_list: VOLUME_FIELDS,
   });
   if (!url) return [];
@@ -132,7 +153,7 @@ export async function searchComics(query: string): Promise<ComicSeries[]> {
     return (json.results ?? [])
       .filter((v) => v.count_of_issues > 0)
       .sort((a, b) => b.count_of_issues - a.count_of_issues)
-      .slice(0, 30)
+      .slice(0, 75)
       .map((v) => {
         const pub = v.publisher ? ID_TO_PUBLISHER[v.publisher.id] : undefined;
         return mapVolume(v, pub ?? "other");
@@ -185,20 +206,41 @@ interface ComicVineIssue {
   site_detail_url?: string;
 }
 
-/** Recent issues for a series, newest first. */
+/** Ordered issue catalog for a series, oldest first, capped for exceptionally long-running volumes. */
 export async function getComicIssues(volumeId: number): Promise<ComicIssue[]> {
-  const url = cvUrl("issues", {
+  const fields = "id,name,issue_number,cover_date,image,site_detail_url";
+  const buildUrl = (offset: number) => cvUrl("issues", {
     filter: `volume:${volumeId}`,
-    sort: "cover_date:desc",
-    limit: "24",
-    field_list: "id,name,issue_number,cover_date,image,site_detail_url",
+    sort: "cover_date:asc",
+    limit: "100",
+    offset: String(offset),
+    field_list: fields,
   });
-  if (!url) return [];
+  const firstUrl = buildUrl(0);
+  if (!firstUrl) return [];
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
+    const res = await fetch(firstUrl, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
     if (!res.ok) return [];
-    const json = (await res.json()) as { results?: ComicVineIssue[] };
-    return (json.results ?? []).map((i) => ({
+    const first = (await res.json()) as { results?: ComicVineIssue[]; number_of_total_results?: number };
+    const total = Math.min(first.number_of_total_results ?? first.results?.length ?? 0, 1000);
+    const offsets = Array.from({ length: Math.max(0, Math.ceil(total / 100) - 1) }, (_, index) => (index + 1) * 100);
+    const additional = await Promise.all(offsets.map(async (offset) => {
+      const url = buildUrl(offset);
+      if (!url) return [];
+      const page = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
+      if (!page.ok) return [];
+      const json = (await page.json()) as { results?: ComicVineIssue[] };
+      return json.results ?? [];
+    }));
+    const seen = new Set<number>();
+    const issues = [...(first.results ?? []), ...additional.flat()]
+      .filter((issue) => !seen.has(issue.id) && seen.add(issue.id))
+      .sort((a, b) => {
+        const byDate = (a.cover_date ?? "9999-12-31").localeCompare(b.cover_date ?? "9999-12-31");
+        if (byDate !== 0) return byDate;
+        return (Number.parseFloat(a.issue_number ?? "") || Number.MAX_SAFE_INTEGER) - (Number.parseFloat(b.issue_number ?? "") || Number.MAX_SAFE_INTEGER);
+      });
+    return issues.map((i) => ({
       id: i.id,
       name: i.name,
       issueNumber: i.issue_number,

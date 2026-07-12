@@ -14,6 +14,8 @@ export interface ReelProgress {
   currentSeason: number | null;
   episodeTimestamp: number | null;
   currentChapter: number | null;
+  currentIssueId?: number | null;
+  currentIssueNumber?: string | null;
   currentVolume: number | null;
   totalEpisodes: number | null;
   totalSeasons: number | null;
@@ -73,6 +75,8 @@ export function createDefaultProgress(): ReelProgress {
     currentSeason: null,
     episodeTimestamp: null,
     currentChapter: null,
+    currentIssueId: null,
+    currentIssueNumber: null,
     currentVolume: null,
     totalEpisodes: null,
     totalSeasons: null,
