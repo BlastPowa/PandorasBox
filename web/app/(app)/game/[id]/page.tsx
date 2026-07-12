@@ -30,7 +30,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           </div>
         )}
 
-        <div className="min-w-0 flex-1 space-y-4">
+        <div className="min-w-0 flex-1 space-y-4 rounded-[var(--radius-xl)] border border-white/10 bg-black/55 p-5 shadow-2xl backdrop-blur-md sm:p-6">
           <h1 className="font-display text-3xl font-extrabold leading-tight sm:text-5xl">{game.name}</h1>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-[var(--text-secondary)]">
@@ -63,7 +63,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           )}
 
           {game.summary && (
-            <div className="max-w-2xl">
+            <div className="max-w-3xl text-[15px] leading-7 text-white/90 [text-shadow:0_1px_2px_rgb(0_0_0/0.8)]">
               <ExpandableText text={game.summary} />
             </div>
           )}
@@ -112,9 +112,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
       <div className="mt-10 space-y-10">
         {game.storyline && game.storyline !== game.summary && (
-          <section className="space-y-2">
+          <section className="max-w-4xl space-y-2 rounded-[var(--radius-xl)] border border-white/10 bg-black/60 p-5 shadow-xl backdrop-blur-md">
             <h2 className="font-display text-lg font-bold">Story</h2>
-            <div className="max-w-3xl">
+            <div className="max-w-3xl text-[15px] leading-7 text-white/90 [text-shadow:0_1px_2px_rgb(0_0_0/0.8)]">
               <ExpandableText text={game.storyline} />
             </div>
           </section>

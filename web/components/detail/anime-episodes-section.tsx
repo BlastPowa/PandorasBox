@@ -84,7 +84,7 @@ export function AnimeEpisodesSection({
   if (episodes.length === 0) return null;
 
   return (
-    <section>
+    <section className="mt-10 border-t border-[var(--border)] pt-8">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold">Episodes</h2>
         {item && (
@@ -111,13 +111,13 @@ export function AnimeEpisodesSection({
         </div>
       )}
 
-      <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
         {episodes.map((ep) => {
           const watched = isWatched(ep);
           return (
             <div
               key={ep.mal_id}
-              className={`glass glow-ring relative w-[78vw] max-w-[320px] shrink-0 snap-start rounded-[var(--radius-lg)] p-3 ${selectMode ? "pl-11" : "pr-9"} text-left ${watched ? "opacity-70" : ""}`}
+              className={`glass glow-ring relative w-[78vw] shrink-0 snap-start rounded-[var(--radius-lg)] p-3 sm:w-[300px] lg:w-[calc((100%_-_3rem)/4)] ${selectMode ? "pl-11" : "pr-9"} text-left ${watched ? "opacity-70" : ""}`}
             >
               {selectMode && (
                 <input

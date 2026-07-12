@@ -246,23 +246,6 @@ export default async function TitlePage({
               </section>
             )}
 
-            {detail.type === "series" && detail.tmdbId !== null && (detail.episodes.length > 0 || (detail.totalSeasons ?? 0) > 0) && (
-              <EpisodesSection
-                itemId={detail.id}
-                tmdbId={detail.tmdbId}
-                totalSeasons={detail.totalSeasons ?? 1}
-                initialEpisodes={detail.episodes}
-              />
-            )}
-
-            {detail.type === "anime" && detail.malId !== null && (detail.animeEpisodes ?? []).length > 0 && (
-              <AnimeEpisodesSection
-                itemId={detail.id}
-                malId={detail.malId}
-                initialEpisodes={detail.animeEpisodes ?? []}
-              />
-            )}
-
             {detail.chapters.length > 0 && (
               <section>
                 <h2 className="mb-3 font-display text-xl font-bold">Chapters</h2>
@@ -306,6 +289,23 @@ export default async function TitlePage({
             </GlassCard>
           </aside>
         </div>
+
+        {detail.type === "series" && detail.tmdbId !== null && (detail.episodes.length > 0 || (detail.totalSeasons ?? 0) > 0) && (
+          <EpisodesSection
+            itemId={detail.id}
+            tmdbId={detail.tmdbId}
+            totalSeasons={detail.totalSeasons ?? 1}
+            initialEpisodes={detail.episodes}
+          />
+        )}
+
+        {detail.type === "anime" && detail.malId !== null && (detail.animeEpisodes ?? []).length > 0 && (
+          <AnimeEpisodesSection
+            itemId={detail.id}
+            malId={detail.malId}
+            initialEpisodes={detail.animeEpisodes ?? []}
+          />
+        )}
       </div>
     </div>
   );
