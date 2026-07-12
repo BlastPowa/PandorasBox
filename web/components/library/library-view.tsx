@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X } from "lucide-react";
@@ -13,6 +14,7 @@ import { EmptyState } from "@/components/ui-fx/feedback";
 import { Button } from "@/components/ui-fx/button";
 import { BulkAddToCollection } from "@/components/collections/bulk-add-to-collection";
 import type { AddToCollectionItem } from "@/components/collections/add-to-collection";
+import { libraryItemHref } from "@/lib/library/item-href";
 
 const STATUS_TABS: { key: ReelItemStatus | "all"; label: string }[] = [
   { key: "all", label: "All" },
@@ -31,6 +33,7 @@ const TYPE_TABS: { key: ReelItemType | "all"; label: string }[] = [
   { key: "anime", label: "Anime" },
   { key: "manga", label: "Manga" },
   { key: "manhwa", label: "Manhwa" },
+  { key: "comic", label: "Comics" },
 ];
 
 type SortKey = "title" | "score" | "progress" | "updated";
@@ -44,6 +47,29 @@ export function LibraryView() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [removing, setRemoving] = useState<Set<string>>(new Set());
+
+  async function removeFromLibrary(item: ReelItem) {
+    if (removing.has(item.id)) return;
+    setRemoving((current) => new Set(current).add(item.id));
+    try {
+      await remove(item.id);
+      setSelected((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
+      toast.success(`${item.title} removed from your library`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not remove this library item");
+    } finally {
+      setRemoving((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -217,7 +243,8 @@ export function LibraryView() {
                     onRate={(v) => void setRating(item.id, v)}
                     onNext={() => void advance(item, markEpisode, markChapter)}
                     onComplete={() => void markComplete(item.id)}
-                    onRemove={() => void remove(item.id)}
+                    removing={removing.has(item.id)}
+                    onRemove={() => void removeFromLibrary(item)}
                   />
                 ))}
               </tbody>
@@ -233,7 +260,8 @@ export function LibraryView() {
                 onToggleSelect={() => toggleSelect(item.id)}
                 onRate={(v) => void setRating(item.id, v)}
                 onNext={() => void advance(item, markEpisode, markChapter)}
-                onRemove={() => void remove(item.id)}
+                removing={removing.has(item.id)}
+                onRemove={() => void removeFromLibrary(item)}
               />
             ))}
           </div>
@@ -277,14 +305,12 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function LibraryRow({ item, index, selectMode, selected, onToggleSelect, onRate, onNext, onComplete, onRemove }: {
+function LibraryRow({ item, index, selectMode, selected, removing, onToggleSelect, onRate, onNext, onComplete, onRemove }: {
   item: ReelItem; index: number;
-  selectMode: boolean; selected: boolean; onToggleSelect: () => void;
+  selectMode: boolean; selected: boolean; removing: boolean; onToggleSelect: () => void;
   onRate: (v: number) => void; onNext: () => void; onComplete: () => void; onRemove: () => void;
 }) {
-  const href = item.type === "comic"
-    ? `/comic/${item.id.replace("comicvine-", "")}`
-    : `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
+  const href = libraryItemHref(item);
   return (
     <tr className={`border-t border-[var(--border)] transition-colors hover:bg-[var(--glass)] ${selected ? "bg-[rgb(var(--accent-rgb)/0.12)]" : ""}`}>
       <td className="px-3 py-2 font-mono text-xs text-[var(--text-muted)]">
@@ -310,20 +336,18 @@ function LibraryRow({ item, index, selectMode, selected, onToggleSelect, onRate,
         <div className="flex items-center justify-end gap-1">
           {item.type === "comic" ? <Link href={href} title="Open issue tracker" className="rounded-md p-1.5 text-[var(--accent)] hover:bg-[var(--glass)]"><ListChecks className="size-4" /></Link> : <button onClick={onNext} title="Mark next" className="rounded-md p-1.5 text-[var(--accent)] hover:bg-[var(--glass)]"><Plus className="size-4" /></button>}
           <button onClick={onComplete} title="Complete" className="rounded-md p-1.5 text-[var(--completed)] hover:bg-[var(--glass)]"><Check className="size-4" /></button>
-          <button onClick={onRemove} title="Remove" className="rounded-md p-1.5 text-[var(--dropped)] hover:bg-[var(--glass)]"><Trash2 className="size-4" /></button>
+          <button onClick={onRemove} disabled={removing} title="Remove" aria-label={`Remove ${item.title} from library`} className="rounded-md p-1.5 text-[var(--dropped)] hover:bg-[var(--glass)] disabled:cursor-wait disabled:opacity-40"><Trash2 className="size-4" /></button>
         </div>
       </td>
     </tr>
   );
 }
 
-function LibraryCard({ item, selectMode, selected, onToggleSelect, onRate, onNext, onRemove }: {
-  item: ReelItem; selectMode: boolean; selected: boolean; onToggleSelect: () => void;
+function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onRate, onNext, onRemove }: {
+  item: ReelItem; selectMode: boolean; selected: boolean; removing: boolean; onToggleSelect: () => void;
   onRate: (v: number) => void; onNext: () => void; onRemove: () => void;
 }) {
-  const href = item.type === "comic"
-    ? `/comic/${item.id.replace("comicvine-", "")}`
-    : `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`;
+  const href = libraryItemHref(item);
   return (
     <div className={`glass flex gap-3 rounded-[var(--radius-md)] p-2.5 ${selected ? "ring-2 ring-[var(--accent)]" : ""}`}>
       {selectMode && (
@@ -342,7 +366,7 @@ function LibraryCard({ item, selectMode, selected, onToggleSelect, onRate, onNex
           <RatingStars value={item.rating} onChange={onRate} size={14} />
           <div className="flex gap-1">
             {item.type === "comic" ? <Link href={href} aria-label="Open issue tracker" className="rounded-md p-1.5 text-[var(--accent)]"><ListChecks className="size-4" /></Link> : <button onClick={onNext} aria-label="Mark next" className="rounded-md p-1.5 text-[var(--accent)]"><Plus className="size-4" /></button>}
-            <button onClick={onRemove} className="rounded-md p-1.5 text-[var(--dropped)]"><Trash2 className="size-4" /></button>
+            <button onClick={onRemove} disabled={removing} aria-label={`Remove ${item.title} from library`} className="rounded-md p-1.5 text-[var(--dropped)] disabled:cursor-wait disabled:opacity-40"><Trash2 className="size-4" /></button>
           </div>
         </div>
       </div>
