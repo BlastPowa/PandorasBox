@@ -6,6 +6,7 @@ import { OnboardingHint } from "@/components/onboarding/onboarding-hint";
 import { BackToTop } from "@/components/shell/back-to-top";
 import { getProfile, getCurrentUser } from "@/lib/auth";
 import { LibraryProvider } from "@/lib/library/use-library";
+import { FriendRequestNotifications } from "@/components/friends/friend-request-notifications";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [profile, user] = await Promise.all([getProfile(), getCurrentUser()]);
@@ -23,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <CommandPaletteLoader />
         <OnboardingHint />
         <BackToTop />
+        {user && <FriendRequestNotifications userId={user.id} />}
       </div>
     </LibraryProvider>
   );

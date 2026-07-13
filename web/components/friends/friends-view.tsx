@@ -50,6 +50,12 @@ export function FriendsView() {
     if (signedIn) queueMicrotask(() => void load());
   }, [signedIn, load]);
 
+  useEffect(() => {
+    const reload = () => { void load(); };
+    window.addEventListener("pbox:friendship-change", reload);
+    return () => window.removeEventListener("pbox:friendship-change", reload);
+  }, [load]);
+
   const accepted = useMemo(() => friendships.filter((f) => f.status === "accepted"), [friendships]);
   const incoming = useMemo(() => friendships.filter((f) => f.status === "pending" && f.addressee === myId), [friendships, myId]);
   const outgoing = useMemo(() => friendships.filter((f) => f.status === "pending" && f.requester === myId), [friendships, myId]);

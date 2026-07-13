@@ -1,0 +1,15 @@
+-- Realtime friend-request and acceptance notifications.
+alter table public.friendships replica identity full;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'friendships'
+  ) then
+    alter publication supabase_realtime add table public.friendships;
+  end if;
+end $$;
