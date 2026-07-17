@@ -7,6 +7,7 @@ import { BackButton } from "@/components/shell/back-button";
 import { GameTrailers } from "@/components/games/game-trailers";
 import { ExpandableText } from "@/components/detail/expandable-text";
 import { GameContentGallery } from "@/components/games/game-content-gallery";
+import { ShareDialog } from "@/components/social/share-dialog";
 
 export const revalidate = 86400;
 
@@ -89,6 +90,16 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 <ExternalLink className="size-4" /> Epic Games
               </a>
             )}
+            <ShareDialog entity={{
+              kind: "title",
+              mediaKey: `igdb-${gameId}`,
+              mediaType: "game",
+              source: "igdb",
+              sourceId: id,
+              title: game.name,
+              year: game.year,
+              posterUrl: game.coverUrl,
+            }} />
           </div>
 
           {(game.developers.length > 0 || game.publishers.length > 0) && (

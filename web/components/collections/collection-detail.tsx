@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { FolderOpen, Share2, Globe, Lock, Users, EyeOff } from "lucide-react";
+import { FolderOpen, Globe, Lock, Users, EyeOff } from "lucide-react";
 import { BackButton } from "@/components/shell/back-button";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import {
@@ -22,6 +22,7 @@ import { PosterGrid } from "@/components/discovery/poster-row";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { Button } from "@/components/ui-fx/button";
 import { Pill } from "@/components/ui-fx/badge";
+import { ShareDialog } from "@/components/social/share-dialog";
 
 type SortKey = "added" | "title" | "title_desc" | "year" | "score";
 
@@ -77,7 +78,8 @@ export function CollectionDetail({ id }: { id: string }) {
   }, [id]);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   // Live status/rating overlay from the viewer's own library when they own the item.
@@ -123,16 +125,6 @@ export function CollectionDetail({ id }: { id: string }) {
     }
   }
 
-  function share() {
-    if (!collection) return;
-    const canShare = collection.visibility !== "private";
-    void navigator.clipboard.writeText(window.location.href).then(() =>
-      canShare
-        ? toast.success("Share link copied")
-        : toast.warning("This collection is private — set it to Public or Unlisted to share.")
-    );
-  }
-
   if (loading) return <div className="skeleton h-64 w-full rounded-[var(--radius-lg)]" />;
   if (!collection) {
     return (
@@ -156,9 +148,15 @@ export function CollectionDetail({ id }: { id: string }) {
             {items.length} {items.length === 1 ? "title" : "titles"} · {collection.visibility}
           </p>
         </div>
-        <Button variant="glass" size="sm" onClick={share}>
-          <Share2 className="size-4" /> Share
-        </Button>
+        <ShareDialog entity={{
+          kind: "collection",
+          collectionId: collection.id,
+          title: collection.name,
+          description: collection.description,
+          posterUrl: collection.cover_url,
+          visibility: collection.visibility,
+          shareSlug: collection.share_slug,
+        }} />
       </div>
 
       {isOwner && (

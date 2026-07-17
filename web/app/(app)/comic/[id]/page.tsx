@@ -8,6 +8,7 @@ import { ExpandableText } from "@/components/detail/expandable-text";
 import { AddToLibrary, type LibrarySeed } from "@/components/library/add-to-library";
 import { AddToCollection } from "@/components/collections/add-to-collection";
 import { ComicIssuesSection } from "@/components/comics/comic-issues-section";
+import { ShareDialog } from "@/components/social/share-dialog";
 
 export const revalidate = 86400;
 
@@ -85,6 +86,16 @@ export default async function ComicDetailPage({ params }: { params: Promise<{ id
                 mangadexId: null,
               }}
             />
+            <ShareDialog entity={{
+              kind: "title",
+              mediaKey: seed.id,
+              mediaType: "comic",
+              source: "comicvine",
+              sourceId: id,
+              title: comic.name,
+              year: comic.startYear,
+              posterUrl: comic.coverUrl,
+            }} />
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

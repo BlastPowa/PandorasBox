@@ -20,6 +20,7 @@ import { PosterRow } from "@/components/discovery/poster-row";
 import { ExpandableText } from "@/components/detail/expandable-text";
 import { BackButton } from "@/components/shell/back-button";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
+import { ShareDialog } from "@/components/social/share-dialog";
 
 const VALID_TYPES: ReelItemType[] = ["movie", "series", "anime", "manga", "manhwa"];
 
@@ -191,6 +192,16 @@ export default async function TitlePage({
                   mangadexId: detail.mangadexId,
                 }}
               />
+              <ShareDialog entity={{
+                kind: "title",
+                mediaKey: detail.id,
+                mediaType: detail.type,
+                source: detail.source,
+                sourceId: decodeURIComponent(id),
+                title: detail.title,
+                year: detail.year,
+                posterUrl: detail.posterUrl,
+              }} />
             </div>
           </div>
         </div>
