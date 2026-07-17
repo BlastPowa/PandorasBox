@@ -27,7 +27,7 @@ export function SocialNotifications({ userId }: { userId: string }) {
           const [{ data: actor }, { data: share }, { data: message }, { data: conversation }] = await Promise.all([
             row.actor_id ? supabase.from("profiles").select("username").eq("id", row.actor_id).maybeSingle() : Promise.resolve({ data: null }),
             row.share_id ? supabase.from("social_shares").select("title, message").eq("id", row.share_id).maybeSingle() : Promise.resolve({ data: null }),
-            row.message_id ? supabase.from("messages").select("body, shared_entity").eq("id", row.message_id).maybeSingle() : Promise.resolve({ data: null }),
+            row.message_id ? supabase.from("messages").select("body, shared_entity, media_attachment").eq("id", row.message_id).maybeSingle() : Promise.resolve({ data: null }),
             row.conversation_id ? supabase.from("conversations").select("name").eq("id", row.conversation_id).maybeSingle() : Promise.resolve({ data: null }),
           ]);
           const name = actor?.username ?? "Someone";
@@ -35,7 +35,7 @@ export function SocialNotifications({ userId }: { userId: string }) {
             : row.type === "friend_accepted" ? `${name} has accepted your friend request`
             : row.type === "share_received" ? `${name} shared ${share?.title ?? "something"} with you${share?.message ? ` — “${share.message.slice(0, 100)}”` : ""}`
             : row.type === "group_invitation" ? `${name} invited you to ${conversation?.name ?? "a group"}`
-            : `${name}: ${(message?.body ?? (message?.shared_entity as { title?: string } | null)?.title ?? "Sent a message").slice(0, 100)}`;
+            : `${name}: ${(message?.body ?? (message?.shared_entity as { title?: string } | null)?.title ?? ((message?.media_attachment as { kind?: string } | null)?.kind === "sticker" ? "Sent a sticker" : (message?.media_attachment as { kind?: string } | null)?.kind === "gif" ? "Sent a GIF" : message?.media_attachment ? "Sent an image" : "Sent a message")).slice(0, 100)}`;
           const href = row.type === "share_received" ? "/friends?tab=shared" : row.conversation_id ? `/messages/${row.conversation_id}` : "/notifications";
           toast(row.type === "friend_accepted" ? "Friend request accepted" : row.type === "message_received" ? "New message" : "PBox notification", {
             description: text,

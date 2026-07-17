@@ -22,9 +22,21 @@ export interface Message {
   sender_id: string;
   body: string | null;
   shared_entity: MessageShareCard | null;
+  media_attachment: MessageMedia | null;
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
+}
+
+export interface MessageMedia {
+  kind: "image" | "gif" | "sticker";
+  provider: "upload" | "giphy" | "builtin";
+  storagePath?: string;
+  url?: string;
+  sticker?: string;
+  alt?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface MessageShareCard {

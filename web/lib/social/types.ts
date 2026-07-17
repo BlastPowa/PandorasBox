@@ -67,7 +67,7 @@ export interface SocialNotification {
   actor?: ShareProfile | null;
   share?: SocialShare | null;
   conversation?: { id: string; type: "direct" | "group"; name: string | null } | null;
-  message?: { id: string; body: string | null; shared_entity?: { title?: string } | null; deleted_at: string | null } | null;
+  message?: { id: string; body: string | null; shared_entity?: { title?: string } | null; media_attachment?: { kind?: "image" | "gif" | "sticker" } | null; deleted_at: string | null } | null;
 }
 
 export function shareHref(entity: ShareEntity): string {

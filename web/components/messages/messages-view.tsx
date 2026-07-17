@@ -5,14 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, Loader2, MessageCircle, MoreHorizontal, Plus, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";
+import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, ImagePlus, Laugh, Loader2, MessageCircle, MoreHorizontal, Plus, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProfilesByIds, listMyFriendships, type ProfileSummary } from "@/lib/friends/friends";
 import { conversationAction, createConversation, getConversation, listConversations, messageAction, sendMessage } from "@/lib/messages/client";
-import type { Conversation, ConversationDetail, Message } from "@/lib/messages/types";
+import type { Conversation, ConversationDetail, Message, MessageMedia } from "@/lib/messages/types";
 import { cn } from "@/lib/utils";
 
 function useMobileChatViewport(active: boolean) {
@@ -153,7 +153,7 @@ function ConversationRow({ conversation, myId, active, onClick }: { conversation
           <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{new Date(conversation.updated_at).toLocaleDateString()}</span>
         </span>
         <span className="mt-1 flex items-center justify-between gap-2">
-          <span className="line-clamp-1 text-xs text-[var(--text-muted)]">{mine?.status === "invited" ? "Group invitation" : conversation.latestMessage?.deleted_at ? "Message removed" : (conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? "Start the conversation")}</span>
+          <span className="line-clamp-1 text-xs text-[var(--text-muted)]">{mine?.status === "invited" ? "Group invitation" : conversation.latestMessage?.deleted_at ? "Message removed" : (conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? (conversation.latestMessage?.media_attachment?.kind === "sticker" ? "Sticker" : conversation.latestMessage?.media_attachment?.kind === "gif" ? "GIF" : conversation.latestMessage?.media_attachment ? "Image" : "Start the conversation"))}</span>
           {conversation.unreadCount > 0 && <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[var(--accent)] px-1 font-mono text-[10px] font-bold text-black">{conversation.unreadCount}</span>}
         </span>
         {conversation.deliveryStatus && (
@@ -175,6 +175,8 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   const [manageOpen, setManageOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const [mediaBusy, setMediaBusy] = useState(false);
   const typingSentAt = useRef(0);
   const messageListRef = useRef<HTMLDivElement>(null);
   const refresh = useCallback(async () => {
@@ -285,6 +287,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
       sender_id: myId ?? "",
       body,
       shared_entity: null,
+      media_attachment: null,
       edited_at: null,
       deleted_at: null,
       created_at: createdAt,
@@ -414,9 +417,9 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
             const own = message.sender_id === myId;
             const sender = detail.members.find((member) => member.user_id === message.sender_id)?.profile;
             return (
-              <div key={message.id} className={cn("group flex items-end gap-2", own ? "justify-end" : "justify-start")}>
-                {detail.type === "group" && !own && <Avatar url={sender?.avatar_url ?? null} label={sender?.username ?? "Member"} />}
-                <div className={cn("max-w-[78%] rounded-2xl px-3.5 py-2.5 sm:max-w-[70%]", own ? "rounded-br-md bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] text-black" : "rounded-bl-md bg-[var(--bg-elevated)]")}>
+              <div key={message.id} className={cn("group flex min-w-0 items-end gap-2", own ? "justify-end" : "justify-start")}>
+                {!own && <Avatar small url={sender?.avatar_url ?? null} label={sender?.username ?? "Member"} />}
+                <div className={cn("min-w-0 max-w-[calc(100%-2.75rem)] rounded-2xl px-3.5 py-2.5 sm:max-w-[70%]", own ? "rounded-br-md bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] text-black" : "rounded-bl-md bg-[var(--bg-elevated)]")}>
                   {!own && detail.type === "group" && <p className="mb-1 text-[10px] font-bold text-[var(--accent)]">{sender?.username ?? "Member"}</p>}
                   {editingId === message.id ? (
                     <div className="flex gap-2">
@@ -431,6 +434,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
                     <>
                       {message.body && <MessageBody body={message.body} own={own} />}
                       {message.shared_entity && <SharedMessageCard card={message.shared_entity} own={own} />}
+                      {message.media_attachment && <MessageMediaView media={message.media_attachment} />}
                     </>
                   )}
                   <div className="mt-1 flex items-center justify-end gap-2 text-[9px] opacity-60">
@@ -461,7 +465,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
                     )}
                   </div>
                 </div>
-                {detail.type === "group" && own && <Avatar url={sender?.avatar_url ?? null} label={sender?.username ?? "You"} />}
+                {own && <Avatar small url={sender?.avatar_url ?? null} label={sender?.username ?? "You"} />}
               </div>
             );
           })}
@@ -473,13 +477,15 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
           </p>
         )}
       </div>
+      {mediaOpen && <MediaPicker conversationId={id} myId={myId} busy={mediaBusy} onClose={() => setMediaOpen(false)} onSend={async (media) => { setMediaBusy(true); try { await sendMessage(id, "", undefined, media); setMediaOpen(false); await load(); onChanged(); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not send attachment"); if (media.provider === "upload" && media.storagePath) void createClient().storage.from("message-media").remove([media.storagePath]); } finally { setMediaBusy(false); } }} />}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           void send();
         }}
-        className="flex items-end gap-2 border-t border-[var(--border)] bg-[var(--bg-surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4"
+        className="flex w-full min-w-0 items-end gap-2 overflow-hidden border-t border-[var(--border)] bg-[var(--bg-surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4"
       >
+        <Button size="icon" type="button" variant="ghost" className="h-12 w-12 shrink-0 rounded-full" onClick={() => setMediaOpen((current) => !current)} aria-label="Add image, GIF, or sticker"><ImagePlus className="size-5" /></Button>
         <label className="min-h-11 min-w-0 flex-1 rounded-2xl border border-[var(--border)] bg-[var(--bg-base)] px-4 py-3">
           <span className="sr-only">Message</span>
           <textarea
@@ -494,10 +500,10 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
             }}
             onFocus={() => window.requestAnimationFrame(scrollMessagesToBottom)}
             placeholder="Write a message"
-            className="block max-h-32 w-full resize-none bg-transparent text-sm outline-none"
+            className="block max-h-32 w-full resize-none bg-transparent text-base outline-none md:text-sm"
           />
         </label>
-        <Button size="icon" type="submit" disabled={!draft.trim() || sending} aria-label="Send message">
+        <Button size="icon" type="submit" className="h-12 w-12 shrink-0 rounded-full" disabled={!draft.trim() || sending} aria-label="Send message">
           {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
         </Button>
       </form>
@@ -520,7 +526,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
 function MessageBody({ body, own }: { body: string; own: boolean }) {
   const parts = body.split(/(https?:\/\/[^\s]+)/g);
   return (
-    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed [overflow-wrap:anywhere]">
       {parts.map((part, index) =>
         /^https?:\/\//i.test(part) ? (
           <a key={index} href={part} target="_blank" rel="noopener noreferrer nofollow" className={cn("underline underline-offset-2", own ? "text-black" : "text-[var(--accent)]")}>
@@ -551,8 +557,62 @@ function SharedMessageCard({ card, own }: { card: NonNullable<Message["shared_en
   );
 }
 
-function Avatar({ url, label, group = false }: { url: string | null; label: string; group?: boolean }) {
-  return <span className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-[rgb(var(--accent-rgb)/0.14)] font-bold text-[var(--accent)]">{url ? <Image src={url} alt="" fill sizes="44px" className="object-cover" /> : group ? <Users className="size-5" /> : label.charAt(0).toUpperCase()}</span>;
+function MessageMediaView({ media }: { media: MessageMedia }) {
+  if (media.provider === "builtin") return <div className="py-1 text-center text-6xl leading-none" role="img" aria-label={media.alt ?? "Sticker"}>{media.sticker}</div>;
+  if (!media.url) return <div className="rounded-xl bg-black/10 px-3 py-6 text-center text-xs opacity-60">Attachment unavailable</div>;
+  return <a href={media.url} target="_blank" rel="noopener noreferrer" className="mt-1 block overflow-hidden rounded-xl bg-black/20" aria-label={`Open ${media.kind}`}>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={media.url} alt={media.alt ?? "Shared media"} className="max-h-80 w-full max-w-[300px] object-contain" loading="lazy" />
+  </a>;
+}
+
+const BUILTIN_STICKERS = ["😂", "❤️", "🔥", "👍", "🎉", "😮", "😭", "👏", "💀", "✨", "🤝", "🍿"];
+
+function MediaPicker({ conversationId, myId, busy, onClose, onSend }: { conversationId: string; myId: string | null; busy: boolean; onClose: () => void; onSend: (media: MessageMedia) => Promise<void> }) {
+  const [tab, setTab] = useState<"sticker" | "gif" | "image">("sticker");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<{ id: string; preview: string; url: string; title: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const giphyKey = process.env.NEXT_PUBLIC_GIPHY_API_KEY;
+
+  async function upload(file: File) {
+    if (!myId) return;
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowed.includes(file.type) || file.size > 10 * 1024 * 1024) { toast.error("Use a JPG, PNG, WebP, or GIF up to 10 MB"); return; }
+    const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1] ?? "image";
+    const storagePath = `${conversationId}/${myId}/${crypto.randomUUID()}.${extension}`;
+    const { error } = await createClient().storage.from("message-media").upload(storagePath, file, { contentType: file.type, cacheControl: "3600" });
+    if (error) { toast.error(error.message); return; }
+    await onSend({ kind: file.type === "image/gif" ? "gif" : "image", provider: "upload", storagePath, alt: file.name.slice(0, 200) });
+  }
+
+  async function searchGiphy(event: React.FormEvent) {
+    event.preventDefault();
+    if (!giphyKey || !query.trim()) return;
+    setSearching(true);
+    try {
+      const endpoint = tab === "sticker" ? "stickers" : "gifs";
+      const response = await fetch(`https://api.giphy.com/v1/${endpoint}/search?api_key=${encodeURIComponent(giphyKey)}&q=${encodeURIComponent(query.trim().slice(0, 50))}&limit=18&rating=pg&lang=en`);
+      if (!response.ok) throw new Error("GIF search is unavailable");
+      const payload = await response.json() as { data?: { id: string; title?: string; images?: { fixed_width?: { url?: string }; original?: { url?: string; width?: string; height?: string } } }[] };
+      setResults((payload.data ?? []).flatMap((item) => {
+        const preview = item.images?.fixed_width?.url; const url = item.images?.original?.url;
+        return preview && url ? [{ id: item.id, preview, url, title: item.title ?? (tab === "sticker" ? "Sticker" : "GIF") }] : [];
+      }));
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not search GIFs"); }
+    finally { setSearching(false); }
+  }
+
+  return <section className="max-h-[42dvh] shrink-0 overflow-y-auto border-t border-[var(--border)] bg-[var(--bg-elevated)] p-3" aria-label="Add media">
+    <div className="flex items-center justify-between gap-2"><div className="flex gap-1">{(["sticker", "gif", "image"] as const).map((value) => <button key={value} type="button" onClick={() => { setTab(value); setResults([]); }} className={cn("min-h-11 rounded-full px-4 text-sm font-bold capitalize", tab === value ? "bg-[var(--accent)] text-black" : "bg-[var(--glass)]")}>{value === "image" ? "Photos" : `${value}s`}</button>)}</div><button type="button" onClick={onClose} className="grid size-11 shrink-0 place-items-center rounded-full" aria-label="Close media picker"><X className="size-5" /></button></div>
+    {tab === "sticker" && <div className="mt-3 grid grid-cols-6 gap-2">{BUILTIN_STICKERS.map((sticker) => <button key={sticker} type="button" disabled={busy} onClick={() => void onSend({ kind: "sticker", provider: "builtin", sticker, alt: "Sticker" })} className="grid aspect-square min-h-11 place-items-center rounded-xl bg-[var(--glass)] text-3xl transition hover:bg-[var(--glass-strong)]">{sticker}</button>)}</div>}
+    {tab === "image" && <label className="mt-3 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--glass)] text-center"><ImagePlus className="mb-2 size-6 text-[var(--accent)]" /><strong className="text-sm">Choose an image or GIF</strong><span className="mt-1 text-xs text-[var(--text-muted)]">JPG, PNG, WebP, or GIF up to 10 MB</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ""; }} /></label>}
+    {tab === "gif" && <>{giphyKey ? <><form onSubmit={(event) => void searchGiphy(event)} className="mt-3 flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search GIFs" className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3 text-base outline-none" /><Button type="submit" size="icon" disabled={!query.trim() || searching} aria-label="Search GIFs">{searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}</Button></form><div className="mt-3 columns-2 gap-2 sm:columns-3">{results.map((gif) => <button key={gif.id} type="button" disabled={busy} onClick={() => void onSend({ kind: "gif", provider: "giphy", url: gif.url, alt: gif.title.slice(0, 200) })} className="mb-2 block w-full overflow-hidden rounded-xl bg-black/20"><Image src={gif.preview} alt={gif.title} width={240} height={180} unoptimized className="h-auto w-full" /></button>)}</div><p className="mt-2 text-center text-[10px] font-bold tracking-wide text-[var(--text-muted)]">Powered by GIPHY</p></> : <div className="mt-3 rounded-xl bg-[var(--glass)] p-4 text-center"><Laugh className="mx-auto size-6 text-[var(--accent)]" /><p className="mt-2 text-sm font-bold">GIF search needs a GIPHY API key</p><p className="mt-1 text-xs text-[var(--text-muted)]">You can still upload a GIF from the Photos tab.</p></div>}</>}
+  </section>;
+}
+
+function Avatar({ url, label, group = false, small = false }: { url: string | null; label: string; group?: boolean; small?: boolean }) {
+  return <span className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-full bg-[rgb(var(--accent-rgb)/0.14)] font-bold text-[var(--accent)]", small ? "size-9 text-xs" : "size-11")}>{url ? <Image src={url} alt="" fill sizes={small ? "36px" : "44px"} className="object-cover" /> : group ? <Users className="size-5" /> : label.charAt(0).toUpperCase()}</span>;
 }
 
 function NewConversationDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (value: boolean) => void; onCreated: (id: string) => void }) {

@@ -13,9 +13,9 @@ const csp = [
   "font-src 'self' https://fonts.gstatic.com",
   // Images are now loaded straight from their source CDNs (see lib/image-loader.ts),
   // not proxied through /_next/image, so every host must be listed here.
-  "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://comicvine.gamespot.com https://static.comicvine.com https://images.igdb.com https://img.youtube.com https://*.supabase.co",
+  "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://comicvine.gamespot.com https://static.comicvine.com https://images.igdb.com https://img.youtube.com https://*.supabase.co https://*.giphy.com",
   "media-src 'self' https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.themoviedb.org https://graphql.anilist.co https://api.mangadex.org https://uploads.mangadex.org https://api.jikan.moe https://www.omdbapi.com https://openlibrary.org",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.themoviedb.org https://graphql.anilist.co https://api.mangadex.org https://uploads.mangadex.org https://api.jikan.moe https://www.omdbapi.com https://openlibrary.org https://api.giphy.com",
   "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
   "upgrade-insecure-requests",
 ].join("; ");
@@ -56,6 +56,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "static.comicvine.com" },
       { protocol: "https", hostname: "images.igdb.com" },
       { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "*.giphy.com" },
     ],
   },
   // Tree-shakes barrel-style imports from these packages so pages only ship

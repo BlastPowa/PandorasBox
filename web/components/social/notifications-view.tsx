@@ -21,7 +21,7 @@ function copy(notification: SocialNotification) {
   if (notification.type === "friend_request") return { text: `${name} sent you a friend request.`, href: "/friends?tab=requests" };
   if (notification.type === "friend_accepted") return { text: `${name} accepted your friend request.`, href: "/friends" };
   if (notification.type === "group_invitation") return { text: `${name} invited you to ${notification.conversation?.name ?? "a group"}.`, href: notification.conversation_id ? `/messages/${notification.conversation_id}` : "/messages" };
-  if (notification.type === "message_received") return { text: `${name}: ${(notification.message?.body ?? notification.message?.shared_entity?.title ?? "Sent a message").slice(0, 120)}`, href: notification.conversation_id ? `/messages/${notification.conversation_id}` : "/messages" };
+  if (notification.type === "message_received") return { text: `${name}: ${(notification.message?.body ?? notification.message?.shared_entity?.title ?? (notification.message?.media_attachment?.kind === "sticker" ? "Sent a sticker" : notification.message?.media_attachment?.kind === "gif" ? "Sent a GIF" : notification.message?.media_attachment ? "Sent an image" : "Sent a message")).slice(0, 120)}`, href: notification.conversation_id ? `/messages/${notification.conversation_id}` : "/messages" };
   return { text: `${name} shared ${notification.share?.title ?? "something"} with you.`, href: notification.share?.href ?? "/friends?tab=shared" };
 }
 

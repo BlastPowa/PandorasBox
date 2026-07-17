@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { sendPushToUsers } from "@/lib/push/send";
-import type { MessageShareCard } from "@/lib/messages/types";
+import type { MessageMedia, MessageShareCard } from "@/lib/messages/types";
 
 function validShare(value: unknown): value is MessageShareCard {
   if (!value || typeof value !== "object") return false;
@@ -11,6 +11,15 @@ function validShare(value: unknown): value is MessageShareCard {
     && typeof card.title === "string" && card.title.trim().length > 0 && card.title.length <= 200
     && typeof card.href === "string" && card.href.startsWith("/") && card.href.length <= 500
     && (card.posterUrl == null || (typeof card.posterUrl === "string" && card.posterUrl.startsWith("https://")));
+}
+
+function validMedia(value: unknown, conversationId: string, userId: string): value is MessageMedia {
+  if (!value || typeof value !== "object") return false;
+  const media = value as Record<string, unknown>;
+  if (!['image', 'gif', 'sticker'].includes(String(media.kind)) || !['upload', 'giphy', 'builtin'].includes(String(media.provider))) return false;
+  if (media.provider === "upload") return typeof media.storagePath === "string" && media.storagePath.startsWith(`${conversationId}/${userId}/`);
+  if (media.provider === "giphy") return typeof media.url === "string" && /^https:\/\/([a-z0-9-]+\.)?giphy\.com\//i.test(media.url);
+  return media.kind === "sticker" && typeof media.sticker === "string" && media.sticker.length >= 1 && media.sticker.length <= 16;
 }
 
 async function detail(id: string, cursor?: string | null) {
@@ -28,15 +37,22 @@ async function detail(id: string, cursor?: string | null) {
   if (cursor) query = query.lt("created_at", cursor);
   const { data: messageRows } = await query;
   const page = messageRows ?? [];
+  const storagePaths = page.map((message) => (message.media_attachment as { storagePath?: string } | null)?.storagePath).filter((path): path is string => Boolean(path));
+  const { data: signedMedia } = storagePaths.length ? await supabase.storage.from("message-media").createSignedUrls(storagePaths, 60 * 60) : { data: [] };
+  const signedByPath = new Map((signedMedia ?? []).map((item) => [item.path, item.signedUrl]));
+  const hydratedPage = page.map((message) => {
+    const media = message.media_attachment as MessageMedia | null;
+    return media?.storagePath ? { ...message, media_attachment: { ...media, url: signedByPath.get(media.storagePath) ?? null } } : message;
+  });
   const mine = members.find((member) => member.user_id === user.id);
   const other = members.find((member) => member.user_id !== user.id);
   return { supabase, user, value: {
     ...conversation,
     title: conversation.type === "group" ? conversation.name : profileMap.get(String(other?.user_id))?.username ?? "PBox friend",
     members: members.map((member) => ({ ...member, profile: profileMap.get(String(member.user_id)) ?? null })),
-    latestMessage: page[0] ?? null,
+    latestMessage: hydratedPage[0] ?? null,
     unreadCount: 0,
-    messages: page.slice(0, 50).reverse(),
+    messages: hydratedPage.slice(0, 50).reverse(),
     nextCursor: page.length > 50 ? String(page[49]?.created_at ?? "") : null,
     mine,
   } };
@@ -55,12 +71,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   const limit = rateLimit(request, `send-message:${user.id}`, 30, 60_000);
   if (!limit.ok) return tooManyRequests(limit);
-  const body = (await request.json().catch(() => null)) as { body?: string; share?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { body?: string; share?: unknown; media?: unknown } | null;
   const text = typeof body?.body === "string" ? body.body : "";
   const share = body?.share == null ? null : body.share;
-  if (!text.trim() && !validShare(share)) return NextResponse.json({ error: "Message or shared card required" }, { status: 400 });
+  const media = body?.media == null ? null : body.media;
+  if (!text.trim() && !validShare(share) && !validMedia(media, id, user.id)) return NextResponse.json({ error: "Message or attachment required" }, { status: 400 });
   if (share != null && !validShare(share)) return NextResponse.json({ error: "Invalid shared card" }, { status: 400 });
-  const { data, error } = share
+  if (media != null && !validMedia(media, id, user.id)) return NextResponse.json({ error: "Invalid media attachment" }, { status: 400 });
+  if (share && media) return NextResponse.json({ error: "Send one attachment at a time" }, { status: 400 });
+  const { data, error } = media
+    ? await supabase.rpc("send_media_message", { p_conversation_id: id, p_body: text, p_media: media })
+    : share
     ? await supabase.rpc("send_shared_message", { p_conversation_id: id, p_body: text, p_shared_entity: share })
     : await supabase.rpc("send_message", { p_conversation_id: id, p_body: text });
   if (error) return NextResponse.json({ error: error.message }, { status: 403 });
@@ -72,7 +93,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const sender = profile?.username ?? "Someone";
   await sendPushToUsers((memberships ?? []).filter((member) => !member.muted_at).map((member) => String(member.user_id)), "message", {
     title: conversation?.type === "group" ? String(conversation.name ?? "PBox group") : `${sender} on PBox`,
-    body: (text.trim() || `Shared ${share?.title ?? "a card"}`).slice(0, 160), url: `/messages/${id}`, tag: `conversation-${id}`,
+    body: (text.trim() || (media ? media.kind === "sticker" ? "Sent a sticker" : media.kind === "gif" ? "Sent a GIF" : "Sent an image" : `Shared ${share?.title ?? "a card"}`)).slice(0, 160), url: `/messages/${id}`, tag: `conversation-${id}`,
   });
   return NextResponse.json({ id: data });
 }
