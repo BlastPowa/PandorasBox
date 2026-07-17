@@ -9,6 +9,7 @@ import { sendFriendRequest } from "@/lib/friends/friends";
 import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { BackButton } from "@/components/shell/back-button";
+import { profileActivityHref } from "@/lib/profile/activity-href";
 
 interface ProfileRow { id: string; username: string | null; avatar_url: string | null; bio: string | null; banner_url: string | null; profile_background_url: string | null; profile_background_position: "top" | "center" | "bottom"; privacy: "public" | "friends" | "private"; created_at: string; }
 interface CollectionRow { id: string; name: string; description: string | null; cover_url: string | null; visibility?: string; created_at: string; }
@@ -17,9 +18,7 @@ interface ActivityRow { id: string; verb: string; title: string | null; poster_u
 const VERB_LABEL: Record<string, string> = { started: "started", finished: "completed", rated: "rated", added: "added", created_collection: "created a collection" };
 
 function activityHref(row: ActivityRow) {
-  if (!row.media_key || !row.media_type) return null;
-  const [source, id] = row.media_key.includes(":") ? row.media_key.split(":", 2) : ["tmdb", row.media_key];
-  return `/title/${row.media_type}/${source}/${id}`;
+  return profileActivityHref(row.media_type, row.media_key, row.title);
 }
 
 export function PublicProfile({ profile, isOwner, visible, collections, activity }: { profile: ProfileRow; isOwner: boolean; visible: boolean; collections: CollectionRow[]; activity: ActivityRow[]; }) {
