@@ -2,13 +2,22 @@ import "server-only";
 import { unifiedSearch, type UnifiedSearchResult } from "@core/utils/search";
 import { searchMangaDex, getMangaDexCoverUrl } from "@core/api/mangadex";
 import { searchComics } from "@/lib/comics";
+import type { ImportMediaType } from "@/lib/import/types";
 
-export async function runSearch(query: string): Promise<UnifiedSearchResult[]> {
+export async function runSearch(query: string, requestedTypes?: ImportMediaType[]): Promise<UnifiedSearchResult[]> {
   const tmdbKey = process.env.TMDB_API_KEY ?? "";
+  const types = requestedTypes?.length ? new Set(requestedTypes) : null;
+  const wants = (type: ImportMediaType) => !types || types.has(type);
   const [unified, mangadex, comics] = await Promise.allSettled([
-    unifiedSearch(query, tmdbKey),
-    searchMangaDex(query),
-    searchComics(query),
+    unifiedSearch(query, tmdbKey, {
+      includeMovies: wants("movie"),
+      includeSeries: wants("series"),
+      includeAnime: wants("anime"),
+      includeManga: wants("manga"),
+      includeManhwa: wants("manga"),
+    }),
+    wants("manga") ? searchMangaDex(query) : Promise.resolve([]),
+    wants("comic") ? searchComics(query) : Promise.resolve([]),
   ]);
 
   const results: UnifiedSearchResult[] = unified.status === "fulfilled" ? unified.value : [];
@@ -57,5 +66,5 @@ export async function runSearch(query: string): Promise<UnifiedSearchResult[]> {
     }
   }
 
-  return results;
+  return Array.from(new Map(results.map((result) => [`${result.source}:${result.type}:${result.id}`, result])).values());
 }

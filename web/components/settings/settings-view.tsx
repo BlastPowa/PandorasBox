@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, Upload, LogOut, QrCode, ClipboardList, Sparkles, FileCode2 } from "lucide-react";
+import { Download, Upload, LogOut, QrCode, ClipboardList, Sparkles, FileCode2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { encodeListToQR, decodeListFromQR, validateDecodedList } from "@core/sync/qrSync";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { createDefaultProgress, type ReelItem, type ReelItemStatus } from "@core/storage/schema";
@@ -14,21 +14,41 @@ import { AvatarUpload } from "@/components/settings/avatar-upload";
 import { ProfileBannerUpload } from "@/components/settings/profile-banner-upload";
 import { ProfileBackgroundUpload, type ProfileBackgroundPosition } from "@/components/settings/profile-background-upload";
 import { UsernameEditor } from "@/components/settings/username-editor";
-import { BulkImportModal } from "@/components/settings/bulk-import-modal";
+import { ImportReviewWorkspace } from "@/components/settings/import-review-workspace";
 import { IntegrationsSection } from "@/components/settings/integrations-section";
 import { AppearanceSection } from "@/components/settings/appearance-section";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
-import { MatchPickerModal, type AmbiguousEntry, type MatchDecision } from "@/components/settings/match-picker-modal";
-import { ImportSummary, type ImportSummaryData } from "@/components/settings/import-summary";
 import { parseMalXml, parseTxtList, type ParsedImportRow } from "@/lib/import/xml-parser";
-import { searchCandidates, classifyCandidates } from "@/lib/import/match";
+import { IMPORT_MEDIA_TYPES, type ImportMediaType, type ImportReviewRow } from "@/lib/import/types";
+import { normalizeTitle } from "@/lib/import/match";
+
+type ImportDraft = { pasteText: string; scope: ImportMediaType[]; preparedRows: ParsedImportRow[]; reviewRows: ImportReviewRow[] };
+
+function saveImportDraft(draft: ImportDraft) {
+  try {
+    const compact = { ...draft, reviewRows: draft.reviewRows.map((row) => ({ ...row, candidates: [] })) };
+    sessionStorage.setItem("pbox-import-review-v1", JSON.stringify(compact));
+  } catch {
+    // Private browsing and storage quotas can disable sessionStorage; importing still works in memory.
+  }
+}
+
+function markDuplicateRows(rows: ParsedImportRow[]): ParsedImportRow[] {
+  const seen = new Map<string, string>();
+  return rows.map((row) => {
+    const key = `${normalizeTitle(row.title)}|${row.year ?? ""}|${row.typeHint ?? ""}`;
+    const duplicateOf = seen.get(key) ?? null;
+    if (!duplicateOf && row.title.trim()) seen.set(key, row.id);
+    return { ...row, duplicateOf };
+  });
+}
 
 function resultToItem(r: UnifiedSearchResult, status: ReelItemStatus, progress?: number | null): Omit<ReelItem, "addedAt" | "updatedAt"> {
   const prog = createDefaultProgress();
   prog.totalEpisodes = r.totalEpisodes;
   prog.totalChapters = r.totalChapters;
   if (progress != null) {
-    if (r.type === "manga" || r.type === "manhwa") prog.currentChapter = progress;
+    if (r.type === "manga" || r.type === "manhwa" || r.type === "comic") prog.currentChapter = progress;
     else prog.currentEpisode = progress;
   }
   return {
@@ -76,13 +96,29 @@ export function SettingsView({
   const [pasteText, setPasteText] = useState("");
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [pendingMatches, setPendingMatches] = useState<UnifiedSearchResult[]>([]);
-  const [statusHints, setStatusHints] = useState<Map<string, ReelItemStatus>>(new Map());
-  const [progressHints, setProgressHints] = useState<Map<string, number>>(new Map());
-  const [ambiguousQueue, setAmbiguousQueue] = useState<AmbiguousEntry[]>([]);
-  const [summary, setSummary] = useState<ImportSummaryData | null>(null);
+  const [preparedRows, setPreparedRows] = useState<ParsedImportRow[]>([]);
+  const [reviewRows, setReviewRows] = useState<ImportReviewRow[]>([]);
+  const [scope, setScope] = useState<ImportMediaType[]>(["movie"]);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [savedDraft, setSavedDraft] = useState<ImportDraft | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = sessionStorage.getItem("pbox-import-review-v1");
+      return stored ? JSON.parse(stored) as ImportDraft : null;
+    } catch {
+      sessionStorage.removeItem("pbox-import-review-v1");
+      return null;
+    }
+  });
   const fileRef = useRef<HTMLInputElement>(null);
   const xmlRef = useRef<HTMLInputElement>(null);
+  const matchAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!preparedRows.length && !reviewRows.length) return;
+    const timer = window.setTimeout(() => saveImportDraft({ pasteText, scope, preparedRows, reviewRows }), 200);
+    return () => window.clearTimeout(timer);
+  }, [pasteText, scope, preparedRows, reviewRows]);
 
   function exportJson() {
     const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
@@ -126,63 +162,128 @@ export function SettingsView({
     }
   }
 
-  /** Shared engine for both pasted-text and MAL-XML imports. */
-  async function runImport(rows: ParsedImportRow[]) {
+  async function runImport(rows: ParsedImportRow[], requestedTypes = scope) {
+    rows = markDuplicateRows(rows);
+    setPreparedRows(rows);
     if (rows.length === 0) {
       toast.error("Nothing to import.");
       return;
     }
+    if (rows.some((row) => row.title.trim().length < 2)) {
+      setParseError("Every row needs a title with at least two characters.");
+      return;
+    }
+    if (rows.some((row) => row.year !== null && (row.year < 1888 || row.year > 2099))) {
+      setParseError("Release years must be between 1888 and 2099, or left blank.");
+      return;
+    }
+    setParseError(null);
+    if (rows.length > 500) {
+      setParseError(`This list contains ${rows.length} entries. PBox supports up to 500 at once; your text has not been cleared.`);
+      return;
+    }
     setImporting(true);
+    matchAbortRef.current?.abort();
+    const controller = new AbortController();
+    matchAbortRef.current = controller;
     setProgress({ done: 0, total: rows.length });
-    setSummary(null);
+    const initial: ImportReviewRow[] = rows.map((row) => ({
+      ...row, candidates: [], selected: null, confidence: 0, resolutionState: "matching",
+      importStatus: row.status ?? "planned", included: !row.duplicateOf, error: null,
+    }));
+    setReviewRows(initial);
+    const working = [...initial];
+    const existing = new Set(items.map((item) => item.id));
 
-    const existing = new Set(items.map((i) => i.id));
-    const matches: UnifiedSearchResult[] = [];
-    const newStatusHints = new Map<string, ReelItemStatus>();
-    const newProgressHints = new Map<string, number>();
-    const ambiguous: AmbiguousEntry[] = [];
-    const unmatched: string[] = [];
-    const duplicates: string[] = [];
-
-    for (let i = 0; i < rows.length; i += 1) {
-      const row = rows[i];
-      const candidates = await searchCandidates(row.title);
-      const outcome = classifyCandidates(row.title, candidates);
-      if (outcome.kind === "unmatched") {
-        unmatched.push(row.title);
-      } else if (outcome.kind === "ambiguous") {
-        ambiguous.push({ query: row.title, candidates: outcome.candidates });
-      } else {
-        const r = outcome.result;
-        if (existing.has(r.id)) {
-          duplicates.push(row.title);
-        } else if (!matches.some((m) => m.id === r.id)) {
-          matches.push(r);
-          existing.add(r.id);
-          if (row.status) newStatusHints.set(r.id, row.status);
-          if (row.progress != null) newProgressHints.set(r.id, row.progress);
+    for (let start = 0; start < rows.length; start += 20) {
+      const batch = rows.slice(start, start + 20);
+      try {
+        const response = await fetch("/api/import/match", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows: batch.map(({ id, title, year }) => ({ id, title, year })), types: requestedTypes }),
+          signal: controller.signal,
+        });
+        const payload = (await response.json().catch(() => null)) as { error?: string; matches?: Array<{ id: string; candidates: UnifiedSearchResult[]; selectedId: string | null; confidence: number; state: "ready" | "review" | "unmatched" | "failed"; error: string | null }> } | null;
+        if (!response.ok || !payload?.matches) throw new Error(payload?.error ?? "Matching failed");
+        for (const match of payload.matches) {
+          const index = working.findIndex((row) => row.id === match.id);
+          if (index < 0) continue;
+          const selected = match.candidates.find((candidate) => candidate.id === match.selectedId) ?? match.candidates[0] ?? null;
+          working[index] = {
+            ...working[index]!, candidates: match.candidates, selected, confidence: match.confidence,
+            resolutionState: selected && existing.has(selected.id) ? "existing" : match.state,
+            importStatus: working[index]!.status ?? "planned",
+            included: match.state === "ready" && !(selected && existing.has(selected.id)) && !working[index]!.duplicateOf,
+            error: match.error,
+          };
+        }
+      } catch (error) {
+        const cancelled = controller.signal.aborted;
+        const message = cancelled ? "Matching cancelled. Retry when ready." : error instanceof Error ? error.message : "Matching failed. Retry these titles.";
+        for (const row of batch) {
+          const index = working.findIndex((entry) => entry.id === row.id);
+          if (index >= 0) working[index] = { ...working[index]!, resolutionState: "failed", error: message, included: false };
         }
       }
-      setProgress({ done: i + 1, total: rows.length });
+      setProgress({ done: Math.min(start + batch.length, rows.length), total: rows.length });
+      setReviewRows([...working]);
+      if (controller.signal.aborted) break;
     }
-
+    if (controller.signal.aborted) {
+      const cancelled = working.map((row) => row.resolutionState === "matching" ? { ...row, resolutionState: "failed" as const, included: false, error: "Matching cancelled. Retry when ready." } : row);
+      setReviewRows(cancelled);
+    }
     setImporting(false);
     setProgress(null);
-    setStatusHints(newStatusHints);
-    setProgressHints(newProgressHints);
-    setSummary({ imported: [], skipped: [], unmatched, duplicates });
-
-    if (ambiguous.length > 0) {
-      setAmbiguousQueue(ambiguous);
-    } else if (matches.length > 0) {
-      setPendingMatches(matches);
-    } else if (unmatched.length === 0 && duplicates.length === 0) {
-      toast.info("Nothing new found.");
-    }
+    if (matchAbortRef.current === controller) matchAbortRef.current = null;
   }
 
-  async function importFromText() {
-    await runImport(parseTxtList(pasteText));
+  async function retryReviewMatches(ids: string[]) {
+    const retryRows = reviewRows.filter((row) => ids.includes(row.id));
+    if (!retryRows.length) return;
+    setImporting(true);
+    matchAbortRef.current?.abort();
+    const controller = new AbortController();
+    matchAbortRef.current = controller;
+    setProgress({ done: 0, total: retryRows.length });
+    const existing = new Set(items.map((item) => item.id));
+    let updated = [...reviewRows];
+    for (let start = 0; start < retryRows.length; start += 20) {
+      const batch = retryRows.slice(start, start + 20);
+      try {
+        const response = await fetch("/api/import/match", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows: batch.map(({ id, title, year }) => ({ id, title, year })), types: scope }),
+          signal: controller.signal,
+        });
+        const payload = (await response.json().catch(() => null)) as { error?: string; matches?: Array<{ id: string; candidates: UnifiedSearchResult[]; selectedId: string | null; confidence: number; state: "ready" | "review" | "unmatched" | "failed"; error: string | null }> } | null;
+        if (!response.ok || !payload?.matches) throw new Error(payload?.error ?? "Matching failed");
+        updated = updated.map((row) => {
+          const match = payload.matches!.find((entry) => entry.id === row.id);
+          if (!match) return row;
+          const selected = match.candidates.find((candidate) => candidate.id === match.selectedId) ?? match.candidates[0] ?? null;
+          const isExisting = selected ? existing.has(selected.id) : false;
+          return { ...row, candidates: match.candidates, selected, confidence: match.confidence, resolutionState: isExisting ? "existing" : match.state, included: match.state === "ready" && !isExisting && !row.duplicateOf, error: match.error };
+        });
+      } catch (error) {
+        const message = controller.signal.aborted ? "Matching cancelled. Retry when ready." : error instanceof Error ? error.message : "Matching failed. Retry these titles.";
+        updated = updated.map((row) => batch.some((entry) => entry.id === row.id) ? { ...row, resolutionState: "failed", included: false, error: message } : row);
+      }
+      setReviewRows([...updated]);
+      setProgress({ done: Math.min(start + batch.length, retryRows.length), total: retryRows.length });
+      if (controller.signal.aborted) break;
+    }
+    setImporting(false);
+    setProgress(null);
+    if (matchAbortRef.current === controller) matchAbortRef.current = null;
+  }
+
+  function prepareText() {
+    const rows = parseTxtList(pasteText, scope.length === 1 ? scope[0]! : null);
+    if (!rows.length) { setParseError("Add at least one title before preparing the list."); return; }
+    if (rows.length > 500) { setParseError(`This list contains ${rows.length} entries. The maximum is 500; your original text is still here.`); return; }
+    setParseError(null);
+    setPreparedRows(rows);
   }
 
   async function importFromXml(file: File) {
@@ -192,59 +293,38 @@ export function SettingsView({
       toast.error("That doesn't look like a MyAnimeList XML export.");
       return;
     }
-    await runImport(rows);
+    setPreparedRows(rows);
+    const inferred = Array.from(new Set(rows.map((row) => row.typeHint).filter(Boolean))) as ImportMediaType[];
+    setScope(inferred.length ? inferred : ["anime", "manga"]);
+    await runImport(rows, inferred.length ? inferred : ["anime", "manga"]);
   }
 
-  function resolveAmbiguous(decision: MatchDecision) {
-    const current = ambiguousQueue[0];
-    if (!current) return;
-
-    if (decision.action === "choose") {
-      const r = decision.result;
-      const existingIds = new Set(items.map((i) => i.id));
-      if (existingIds.has(r.id)) {
-        setSummary((s) => s && { ...s, duplicates: [...s.duplicates, current.query] });
-      } else {
-        setPendingMatches((pm) => (pm.some((m) => m.id === r.id) ? pm : [...pm, r]));
-      }
-    } else if (decision.action === "skip") {
-      setSummary((s) => s && { ...s, skipped: [...s.skipped, current.query] });
-    }
-    // "ignore" drops silently, not counted anywhere
-
-    setAmbiguousQueue((prev) => prev.slice(1));
-  }
-
-  async function confirmBulkImport(statuses: Map<string, ReelItemStatus>) {
-    const toAdd = pendingMatches;
-    setPendingMatches([]);
-    setPasteText("");
+  async function confirmReviewImport(ids: string[]) {
+    const requested = new Set(ids);
+    const latestExisting = new Set(items.map((item) => item.id));
     let added = 0;
-    const importedResults: UnifiedSearchResult[] = [];
-    for (const item of toAdd) {
+    const nextRows = [...reviewRows];
+    for (let index = 0; index < nextRows.length; index += 1) {
+      const row = nextRows[index]!;
+      if (!requested.has(row.id) || !row.selected) continue;
+      if (latestExisting.has(row.selected.id)) {
+        nextRows[index] = { ...row, resolutionState: "existing", included: false, error: "Already in your Library." };
+        continue;
+      }
       try {
-        const status = statuses.get(item.id) ?? statusHints.get(item.id) ?? "planned";
-        await add(resultToItem(item, status, progressHints.get(item.id)));
+        await add(resultToItem(row.selected, row.importStatus, row.progress));
+        latestExisting.add(row.selected.id);
         added += 1;
-        importedResults.push(item);
       } catch {
-        // skip failures silently, reflected in the final counts below
+        nextRows[index] = { ...row, resolutionState: "failed", included: false, error: "Could not add this title. Retry when ready." };
       }
     }
-    setSummary((s) => (s ? { ...s, imported: [...s.imported, ...importedResults] } : s));
-    toast.success(`Added ${added} title${added === 1 ? "" : "s"}`);
-  }
-
-  function retryMatch(query: string, result: UnifiedSearchResult) {
-    setSummary((s) => {
-      if (!s) return s;
-      return {
-        ...s,
-        unmatched: s.unmatched.filter((t) => t !== query),
-        skipped: s.skipped.filter((t) => t !== query),
-      };
-    });
-    setPendingMatches((pm) => (pm.some((m) => m.id === result.id) ? pm : [...pm, result]));
+    const remaining = nextRows.filter((row) => !requested.has(row.id) || row.resolutionState === "failed" || row.resolutionState === "existing");
+    setReviewRows(remaining);
+    if (!remaining.length) {
+      setPreparedRows([]); setPasteText(""); sessionStorage.removeItem("pbox-import-review-v1");
+    }
+    if (added) toast.success(`Added ${added} title${added === 1 ? "" : "s"}`);
   }
 
   return (
@@ -287,23 +367,38 @@ export function SettingsView({
                   <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgb(var(--accent-rgb)/0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
                     <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
                     <span>
-                      New here? Paste a list of titles from MyAnimeList, Letterboxd, iPhone Notes, a spreadsheet —
-                      anywhere — one per line, or upload a MyAnimeList XML export to bring statuses and progress with
-                      you. We&apos;ll find each title, flag anything ambiguous so you pick the right one, and show
-                      you exactly what was imported, skipped, unmatched, or already in your library.
+                      Paste up to 500 titles from Notes, Letterboxd, or a spreadsheet. Numbered lists can use one title
+                      per line or multiple titles on one line. PBox cleans the list locally, then lets you edit every
+                      row and review ambiguous, unmatched, duplicate, skipped, or failed results before importing.
                     </span>
+                  </div>
+                  {savedDraft && !reviewRows.length && !preparedRows.length && (
+                    <div className="flex flex-col gap-3 rounded-xl border border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.08)] p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div><p className="font-semibold">Resume your unfinished import?</p><p className="text-xs text-[var(--text-muted)]">Reviewed and unresolved rows are saved for this browser tab.</p></div>
+                      <div className="flex gap-2"><Button size="sm" onClick={() => { setPasteText(savedDraft.pasteText); setScope(savedDraft.scope); setPreparedRows(savedDraft.preparedRows); setReviewRows(savedDraft.reviewRows); setSavedDraft(null); }}>Resume</Button><Button size="sm" variant="ghost" onClick={() => { sessionStorage.removeItem("pbox-import-review-v1"); setSavedDraft(null); }}>Discard</Button></div>
+                    </div>
+                  )}
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Match as</p>
+                    <div className="flex snap-x gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+                      {[...IMPORT_MEDIA_TYPES, "all" as const].map((type) => {
+                        const active = type === "all" ? scope.length === IMPORT_MEDIA_TYPES.length : scope.length === 1 && scope[0] === type;
+                        const labels: Record<string, string> = { movie: "Movies", series: "TV", anime: "Anime", manga: "Manga / Manhwa", comic: "Comics", all: "Auto / All" };
+                        return <button key={type} type="button" onClick={() => { setPreparedRows([]); setScope(type === "all" ? [...IMPORT_MEDIA_TYPES] : [type]); }} className={`min-h-11 shrink-0 snap-start rounded-full border px-4 text-sm ${active ? "border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.16)] text-[var(--text)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>{labels[type]}</button>;
+                      })}
+                    </div>
                   </div>
                   <textarea
                     value={pasteText}
                     onChange={(e) => setPasteText(e.target.value)}
-                    placeholder={"One Piece\nBreaking Bad\nDune: Part Two\nSolo Leveling"}
+                    placeholder={"1. Grown Ups (2010)\n2. Death on the Nile (2022)\n3. Divergent (2014)\n4. Morbius (2022)"}
                     rows={6}
                     disabled={!signedIn || importing}
                     className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"
                   />
                   <div className="flex flex-wrap items-center gap-3">
-                    <Button onClick={importFromText} loading={importing} disabled={!signedIn}>
-                      <ClipboardList className="size-4" /> Import pasted list
+                    <Button onClick={prepareText} loading={importing} disabled={!signedIn || !pasteText.trim()}>
+                      <ClipboardList className="size-4" /> Prepare pasted list
                     </Button>
                     <Button variant="glass" onClick={() => xmlRef.current?.click()} disabled={!signedIn || importing}>
                       <FileCode2 className="size-4" /> Import MAL XML export
@@ -328,7 +423,26 @@ export function SettingsView({
                 </div>
               </GlassCard>
 
-              {summary && <ImportSummary data={summary} onRetryMatch={retryMatch} />}
+              {parseError && <p role="alert" className="rounded-xl border border-red-400/35 bg-red-400/10 p-3 text-sm text-red-200">{parseError}</p>}
+              {preparedRows.length > 0 && reviewRows.length === 0 && (
+                <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)]">
+                  <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div><h3 className="font-bold">Cleaned preview · {preparedRows.length} titles</h3><p className="text-xs text-[var(--text-muted)]">Correct titles and years before matching. Duplicate rows stay visible.</p></div>
+                    <div className="flex gap-2"><Button size="sm" variant="glass" onClick={() => setPreparedRows(parseTxtList(pasteText, scope.length === 1 ? scope[0]! : null))}><RotateCcw className="size-4" /> Reset</Button><Button size="sm" onClick={() => void runImport(preparedRows)} loading={importing}>Find matches</Button></div>
+                  </div>
+                  <div className="max-h-[32rem] space-y-2 overflow-y-auto p-3">
+                    {preparedRows.map((row, index) => (
+                      <div key={row.id} className="grid grid-cols-[2rem_minmax(0,1fr)_5.5rem_2.75rem] items-start gap-2 rounded-xl border border-[var(--border)] p-2">
+                        <span className="pt-3 text-center font-mono text-xs text-[var(--text-muted)]">{index + 1}</span>
+                        <label className="min-w-0"><span className="sr-only">Title {index + 1}</span><input value={row.title} onChange={(event) => setPreparedRows((current) => markDuplicateRows(current.map((entry) => entry.id === row.id ? { ...entry, title: event.target.value } : entry)))} className="min-h-11 min-w-0 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-base)] px-3 text-sm" />{row.duplicateOf && <span className="mt-1 block text-[11px] text-amber-300">Duplicate row</span>}</label>
+                        <label className="min-w-0"><span className="sr-only">Year {index + 1}</span><input inputMode="numeric" value={row.year ?? ""} placeholder="Year" onChange={(event) => setPreparedRows((current) => markDuplicateRows(current.map((entry) => entry.id === row.id ? { ...entry, year: Number(event.target.value) || null } : entry)))} className="min-h-11 min-w-0 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-base)] px-2 text-sm" /></label>
+                        <button type="button" className="grid size-11 place-items-center rounded-lg hover:bg-[var(--glass)]" aria-label={`Remove ${row.title}`} onClick={() => setPreparedRows((current) => current.filter((entry) => entry.id !== row.id))}><Trash2 className="size-4" /></button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between border-t border-[var(--border)] p-3"><Button size="sm" variant="ghost" onClick={() => setPreparedRows((current) => [...current, { id: `manual-${Date.now()}`, originalText: "New title", title: "", year: null, typeHint: scope.length === 1 ? scope[0]! : null, status: null, progress: null, duplicateOf: null }])}><Plus className="size-4" /> Add row</Button><span className="self-center text-xs text-[var(--text-muted)]">{preparedRows.filter((row) => row.duplicateOf).length} duplicates flagged</span></div>
+                </section>
+              )}
             </>
           ),
           backup: (
@@ -399,15 +513,22 @@ export function SettingsView({
         }}
       />
 
-      <MatchPickerModal entry={ambiguousQueue[0] ?? null} onResolve={resolveAmbiguous} />
-
-      <BulkImportModal
-        items={pendingMatches}
-        open={pendingMatches.length > 0 && ambiguousQueue.length === 0}
-        initialStatuses={statusHints}
-        onCancel={() => setPendingMatches([])}
-        onConfirm={(statuses) => void confirmBulkImport(statuses)}
-      />
+      {reviewRows.length > 0 && (
+        <ImportReviewWorkspace
+          rows={reviewRows}
+          matching={importing}
+          progress={progress}
+          onRowsChange={setReviewRows}
+          onRetry={(ids) => void retryReviewMatches(ids)}
+          onImport={(ids) => void confirmReviewImport(ids)}
+          onCancelMatching={() => matchAbortRef.current?.abort()}
+          onClose={() => {
+            setSavedDraft({ pasteText, scope, preparedRows, reviewRows });
+            saveImportDraft({ pasteText, scope, preparedRows, reviewRows });
+            setReviewRows([]);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,17 +1,24 @@
 import type { UnifiedSearchResult } from "@core/utils/search";
+import type { ImportMediaType } from "./types";
 
 export function normalizeTitle(title: string): string {
   return title
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
 
-export async function searchCandidates(query: string): Promise<UnifiedSearchResult[]> {
+export async function searchCandidates(
+  query: string,
+  options: { types?: ImportMediaType[]; year?: number | null; signal?: AbortSignal } = {}
+): Promise<UnifiedSearchResult[]> {
   try {
-    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    const params = new URLSearchParams({ q: query });
+    if (options.types?.length) params.set("types", options.types.join(","));
+    if (options.year) params.set("year", String(options.year));
+    const res = await fetch(`/api/search?${params.toString()}`, { signal: options.signal });
     if (!res.ok) return [];
     const json = (await res.json()) as { results: UnifiedSearchResult[] };
     return json.results ?? [];
@@ -25,18 +32,12 @@ export type MatchOutcome =
   | { kind: "ambiguous"; candidates: UnifiedSearchResult[] }
   | { kind: "unmatched" };
 
-/**
- * Decides whether a search query resolved cleanly, is ambiguous (multiple
- * plausible same-title candidates — e.g. "Bleach" matching several entries),
- * or found nothing. Never silently guesses when 2+ candidates share the title.
- */
+/** Kept for the legacy importer while the unified review workspace rolls out. */
 export function classifyCandidates(query: string, candidates: UnifiedSearchResult[]): MatchOutcome {
   if (candidates.length === 0) return { kind: "unmatched" };
   const norm = normalizeTitle(query);
-  const sameTitle = candidates.filter((c) => normalizeTitle(c.title) === norm);
+  const sameTitle = candidates.filter((candidate) => normalizeTitle(candidate.title) === norm);
   if (sameTitle.length >= 2) return { kind: "ambiguous", candidates: sameTitle.slice(0, 8) };
   if (sameTitle.length === 1) return { kind: "matched", result: sameTitle[0] };
-  // No exact normalized match — fall back to the top result (best-effort),
-  // it will still be revisable in the post-import "Unmatched"-style review.
-  return { kind: "matched", result: candidates[0] };
+  return { kind: "matched", result: candidates[0]! };
 }
