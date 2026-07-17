@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search, UserPlus, Check, X, UserMinus, Ban, Users } from "lucide-react";
+import { Search, UserPlus, Check, X, UserMinus, Ban, Users, MessageCircle } from "lucide-react";
 import {
   searchUsers,
   listMyFriendships,
@@ -23,10 +24,13 @@ import { Button } from "@/components/ui-fx/button";
 import { Input } from "@/components/ui-fx/input";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { SharedInbox } from "@/components/friends/shared-inbox";
+import { MessagesView } from "@/components/messages/messages-view";
+import { createConversation } from "@/lib/messages/client";
 
-type Tab = "friends" | "requests" | "find" | "shared";
+type Tab = "friends" | "requests" | "find" | "shared" | "messages";
 
 export function FriendsView() {
+  const router = useRouter();
   const { signedIn } = useLibrary();
   const [tab, setTab] = useState<Tab>("friends");
   const [myId, setMyId] = useState<string | null>(null);
@@ -50,7 +54,7 @@ export function FriendsView() {
   useEffect(() => {
     if (signedIn) queueMicrotask(() => void load());
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
-    if (requestedTab === "shared" || requestedTab === "requests") queueMicrotask(() => setTab(requestedTab));
+    if (requestedTab === "shared" || requestedTab === "requests" || requestedTab === "messages") queueMicrotask(() => setTab(requestedTab));
   }, [signedIn, load]);
 
   useEffect(() => {
@@ -124,6 +128,13 @@ export function FriendsView() {
     }
   }
 
+  async function message(userId: string) {
+    try {
+      const conversation = await createConversation({ type: "direct", friendId: userId });
+      router.push(`/messages/${conversation.id}`);
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not start conversation"); }
+  }
+
   if (!signedIn) {
     return (
       <EmptyState
@@ -151,13 +162,13 @@ export function FriendsView() {
   return (
     <div className="space-y-5">
       <div className="flex gap-2">
-        {(["friends", "requests", "shared", "find"] as Tab[]).map((t) => (
+        {(["friends", "requests", "messages", "shared", "find"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold ${tab === t ? "bg-[var(--accent)] text-[#0a0a0f]" : "glass text-[var(--text-secondary)]"}`}
           >
-            {t === "friends" ? `Friends (${accepted.length})` : t === "requests" ? `Requests (${incoming.length})` : t === "shared" ? "Shared" : "Find people"}
+            {t === "friends" ? `Friends (${accepted.length})` : t === "requests" ? `Requests (${incoming.length})` : t === "messages" ? "Messages" : t === "shared" ? "Shared" : "Find people"}
           </button>
         ))}
       </div>
@@ -176,6 +187,7 @@ export function FriendsView() {
                   <Link href={`/profile/${p?.username ?? ""}`} className="min-w-0 flex-1 font-semibold hover:text-[var(--accent)]">
                     {p?.username ?? "Unknown"}
                   </Link>
+                  <button onClick={() => void message(otherId)} title="Message friend" aria-label={`Message ${p?.username ?? "friend"}`} className="grid size-11 place-items-center rounded-md text-[var(--accent)] hover:bg-[var(--glass)]"><MessageCircle className="size-4" /></button>
                   <button onClick={() => void remove(f.id)} title="Remove friend" className="rounded-md p-1.5 text-[var(--dropped)] hover:bg-[var(--glass)]">
                     <UserMinus className="size-4" />
                   </button>
@@ -260,6 +272,7 @@ export function FriendsView() {
         </div>
       )}
       {tab === "shared" && <SharedInbox />}
+      {tab === "messages" && <MessagesView embedded />}
     </div>
   );
 }

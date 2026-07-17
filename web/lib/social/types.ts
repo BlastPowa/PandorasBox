@@ -1,7 +1,7 @@
 export type ShareMediaType = "movie" | "series" | "anime" | "manga" | "manhwa" | "comic" | "game";
 export type ShareBox = "received" | "sent";
 export type ShareFilter = "all" | "unread" | "collections" | "titles";
-export type NotificationFilter = "all" | "unread" | "shares" | "friends";
+export type NotificationFilter = "all" | "unread" | "shares" | "friends" | "messages";
 
 export type ShareEntity =
   | {
@@ -56,14 +56,18 @@ export interface SocialNotification {
   id: string;
   user_id: string;
   actor_id: string | null;
-  type: "friend_request" | "friend_accepted" | "share_received";
+  type: "friend_request" | "friend_accepted" | "share_received" | "group_invitation" | "message_received";
   friendship_id: string | null;
   share_id: string | null;
+  conversation_id: string | null;
+  message_id: string | null;
   read_at: string | null;
   dismissed_at: string | null;
   created_at: string;
   actor?: ShareProfile | null;
   share?: SocialShare | null;
+  conversation?: { id: string; type: "direct" | "group"; name: string | null } | null;
+  message?: { id: string; body: string | null; deleted_at: string | null } | null;
 }
 
 export function shareHref(entity: ShareEntity): string {

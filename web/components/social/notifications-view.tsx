@@ -8,16 +8,20 @@ import { Button } from "@/components/ui-fx/button";
 import { respondToRequest } from "@/lib/friends/friends";
 import { listNotifications, updateNotification } from "@/lib/social/client";
 import type { NotificationFilter, SocialNotification } from "@/lib/social/types";
+import { conversationAction } from "@/lib/messages/client";
 
 const FILTERS: { value: NotificationFilter; label: string }[] = [
   { value: "all", label: "All" }, { value: "unread", label: "Unread" },
   { value: "shares", label: "Shares" }, { value: "friends", label: "Friends" },
+  { value: "messages", label: "Messages" },
 ];
 
 function copy(notification: SocialNotification) {
   const name = notification.actor?.username ?? "Someone";
   if (notification.type === "friend_request") return { text: `${name} sent you a friend request.`, href: "/friends?tab=requests" };
   if (notification.type === "friend_accepted") return { text: `${name} accepted your friend request.`, href: "/friends" };
+  if (notification.type === "group_invitation") return { text: `${name} invited you to ${notification.conversation?.name ?? "a group"}.`, href: notification.conversation_id ? `/messages/${notification.conversation_id}` : "/messages" };
+  if (notification.type === "message_received") return { text: `${name}: ${(notification.message?.body ?? "Sent a message").slice(0, 120)}`, href: notification.conversation_id ? `/messages/${notification.conversation_id}` : "/messages" };
   return { text: `${name} shared ${notification.share?.title ?? "something"} with you.`, href: notification.share?.href ?? "/friends?tab=shared" };
 }
 
@@ -47,6 +51,15 @@ export function NotificationsView() {
       window.dispatchEvent(new CustomEvent("pbox:friendship-change"));
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not respond"); }
   }
+  async function respondGroup(row: SocialNotification, accept: boolean) {
+    if (!row.conversation_id) return;
+    try {
+      await conversationAction(row.conversation_id, accept ? "accept" : "decline");
+      await update("read", row.id);
+      toast.success(accept ? "Group joined" : "Invitation declined");
+      window.dispatchEvent(new CustomEvent("pbox:messages-change"));
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not respond"); }
+  }
 
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -56,9 +69,10 @@ export function NotificationsView() {
     {loading ? <div className="skeleton h-36 rounded-[var(--radius-lg)]" /> : rows.length === 0 ? <div className="glass grid min-h-48 place-items-center rounded-[var(--radius-lg)] text-center"><div><Bell className="mx-auto mb-2 size-9 text-[var(--accent)]" /><h2 className="font-display font-bold">All caught up</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Social notifications will appear here.</p></div></div> : <div className="space-y-2">{rows.map((row) => {
       const content = copy(row); const unread = !row.read_at;
       return <article key={row.id} className={`glass flex items-start gap-3 rounded-[var(--radius-lg)] p-4 ${unread ? "ring-1 ring-[rgb(var(--accent-rgb)/0.45)]" : ""}`}>
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]">{row.type === "share_received" ? <Share2 className="size-5" /> : <UserPlus className="size-5" />}</span>
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]">{row.type === "share_received" ? <Share2 className="size-5" /> : row.type === "message_received" || row.type === "group_invitation" ? <Bell className="size-5" /> : <UserPlus className="size-5" />}</span>
         <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{content.text}</p><p className="mt-1 text-xs text-[var(--text-muted)]">{new Date(row.created_at).toLocaleString()}</p><div className="mt-3 flex flex-wrap gap-2">
           {row.type === "friend_request" && unread && <><Button size="sm" onClick={() => void respond(row, true)}><Check className="size-4" /> Accept</Button><Button size="sm" variant="outline" onClick={() => void respond(row, false)}><X className="size-4" /> Decline</Button></>}
+          {row.type === "group_invitation" && unread && <><Button size="sm" onClick={() => void respondGroup(row, true)}><Check className="size-4" /> Join</Button><Button size="sm" variant="outline" onClick={() => void respondGroup(row, false)}><X className="size-4" /> Decline</Button></>}
           <Button asChild size="sm" variant={row.type === "friend_request" && unread ? "ghost" : "primary"}><Link href={content.href} onClick={() => unread && void update("read", row.id)}>Open</Link></Button>
           <Button size="sm" variant="ghost" aria-label="Dismiss notification" onClick={() => void update("dismiss", row.id)}><Trash2 className="size-4" /></Button>
         </div></div>
