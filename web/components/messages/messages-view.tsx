@@ -41,7 +41,7 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
     return needle ? conversations.filter((conversation) => conversation.title.toLowerCase().includes(needle)) : conversations;
   }, [conversations, query]);
 
-  return <div className={cn("overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl", embedded ? "min-h-[620px] rounded-[var(--radius-xl)]" : "h-[calc(100dvh-116px)] min-h-[620px] rounded-[var(--radius-xl)]")}>
+  return <div className={cn("overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl", embedded ? "min-h-[620px] rounded-[var(--radius-xl)]" : "h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height)-2rem)] min-h-[520px] rounded-[var(--radius-xl)] md:min-h-[620px]")}>
     <div className="grid size-full md:grid-cols-[320px_1fr] lg:grid-cols-[360px_1fr]">
       <aside className={cn("flex min-h-0 flex-col border-r border-[var(--border)]", selectedId && "hidden md:flex")}>
         <div className="space-y-3 border-b border-[var(--border)] p-4">

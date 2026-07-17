@@ -48,7 +48,7 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}
-      className="relative -mx-4 -mt-6 flex h-[calc(100svh-64px)] min-h-[600px] flex-col justify-end sm:h-[min(86vh,calc(100dvh-170px))] sm:min-h-[460px] md:-mx-8"
+      className="relative -mx-4 -mt-6 flex h-[calc(100svh-var(--safe-bottom))] min-h-[600px] flex-col justify-end pt-[var(--app-header-height)] sm:h-[min(86vh,calc(100dvh-170px))] sm:min-h-[460px] md:-mx-8 md:pt-0"
     >
       {/* No image here — AmbientBackground (fixed, full-viewport) is the one and
           only copy of this artwork, matching the reference site's "the

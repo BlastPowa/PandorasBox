@@ -20,7 +20,7 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   ).filter((i) => i.label.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
-    <nav className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--accent-rgb)/0.22)] bg-[linear-gradient(180deg,rgb(var(--accent-rgb)/0.08),var(--bg-surface)_42%)]/95 shadow-[0_-14px_35px_rgba(0,0,0,0.35)] backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--accent-rgb)/0.22)] bg-[linear-gradient(180deg,rgb(var(--accent-rgb)/0.08),var(--bg-surface)_42%)]/95 pb-[var(--safe-bottom)] pl-[var(--safe-left)] pr-[var(--safe-right)] shadow-[0_-14px_35px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden">
       <div className="mx-auto flex max-w-lg items-stretch justify-around px-1">
         {BOTTOM_NAV.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -53,7 +53,7 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
           </Dialog.Trigger>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in" />
-            <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-hidden rounded-t-[var(--radius-xl)] border-t border-[rgb(var(--accent-rgb)/0.35)] bg-[linear-gradient(160deg,rgb(var(--accent-rgb)/0.08),var(--bg-elevated)_28%)] pb-[calc(env(safe-area-inset-bottom)+12px)] shadow-2xl data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom">
+            <Dialog.Content className="fixed bottom-0 left-[var(--safe-left)] right-[var(--safe-right)] z-50 max-h-[92dvh] overflow-hidden rounded-t-[var(--radius-xl)] border-t border-[rgb(var(--accent-rgb)/0.35)] bg-[linear-gradient(160deg,rgb(var(--accent-rgb)/0.08),var(--bg-elevated)_28%)] pb-[calc(var(--safe-bottom)+12px)] shadow-2xl data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom">
               <div className="flex items-center justify-between px-5 py-4">
                 <Dialog.Title className="font-display text-lg font-bold">More</Dialog.Title>
                 <Dialog.Close className="grid size-8 place-items-center rounded-full text-[var(--text-secondary)] hover:bg-[var(--glass)]">

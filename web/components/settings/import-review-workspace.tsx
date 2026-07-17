@@ -162,7 +162,7 @@ export function ImportReviewWorkspace({
         <Dialog.Overlay className="fixed inset-0 z-[99] bg-black/75 backdrop-blur-sm" />
         <Dialog.Content className="fixed inset-0 z-[100] flex outline-none md:items-center md:justify-center md:p-5">
       <section className="flex h-full min-w-0 w-full flex-col overflow-hidden bg-[var(--bg-base)] md:h-[min(90vh,900px)] md:max-w-6xl md:rounded-2xl md:border md:border-[var(--border-strong)]">
-        <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg-base)] px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] md:px-6">
+        <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg-base)] px-4 pb-3 pt-[max(1rem,var(--safe-top))] md:px-6">
           <div className="flex items-start justify-between gap-3">
             <div><Dialog.Title className="text-xl font-bold text-[var(--text)]">Review {rows.length} titles</Dialog.Title><Dialog.Description className="text-sm text-[var(--text-muted)]">Ready matches are selected. Nothing unresolved will be discarded.</Dialog.Description></div>
             <button type="button" onClick={onClose} aria-label="Close review" className="grid size-11 shrink-0 place-items-center rounded-full hover:bg-[var(--glass)]"><X className="size-5" /></button>
@@ -211,7 +211,7 @@ export function ImportReviewWorkspace({
           </div>
         </div>
 
-        <footer className="sticky bottom-0 z-20 border-t border-[var(--border)] bg-[var(--bg-base)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:px-6">
+        <footer className="sticky bottom-0 z-20 border-t border-[var(--border)] bg-[var(--bg-base)] px-4 pb-[max(1rem,var(--safe-bottom))] pt-3 md:px-6">
           <div className="mb-3 flex items-center gap-2 overflow-x-auto [scrollbar-width:none]"><label className="shrink-0 text-xs text-[var(--text-muted)]">Set selected to</label><select value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value as typeof bulkStatus)} className="min-h-11 shrink-0 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-3 text-sm"><option value="planned">Planned</option><option value="progress">In progress</option><option value="completed">Completed</option><option value="on_hold">On Hold</option><option value="dropped">Dropped</option></select><Button size="sm" variant="glass" onClick={applyBulkStatus}>Apply</Button></div>
           <div className="flex items-center justify-between gap-3"><span className="text-sm text-[var(--text-muted)]">{readyIds.length} ready</span><Button onClick={() => onImport(readyIds)} disabled={!readyIds.length || matching}><Check className="size-4" /> Import ready titles</Button></div>
         </footer>

@@ -122,7 +122,7 @@ export function ShareDialog({ entity, className, allowDirect = true }: { entity:
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm" />
         <Dialog.Content className="fixed inset-0 z-[71] flex flex-col overflow-hidden bg-[var(--bg-elevated)] outline-none sm:left-1/2 sm:top-1/2 sm:inset-auto sm:max-h-[88dvh] sm:w-[min(92vw,620px)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)] sm:border sm:border-[var(--border)] sm:shadow-2xl">
-          <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] p-5">
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] pb-5 pl-[max(1.25rem,var(--safe-left))] pr-[max(1.25rem,var(--safe-right))] pt-[calc(var(--safe-top)+1.25rem)] sm:p-5">
             <div className="min-w-0">
               <Dialog.Title className="font-display text-xl font-bold">Share {entity.title}</Dialog.Title>
               <Dialog.Description className="mt-1 text-sm text-[var(--text-muted)]">
@@ -134,7 +134,7 @@ export function ShareDialog({ entity, className, allowDirect = true }: { entity:
             </Dialog.Close>
           </div>
 
-          <div className="flex-1 space-y-5 overflow-y-auto p-5">
+          <div className="flex-1 space-y-5 overflow-y-auto py-5 pl-[max(1.25rem,var(--safe-left))] pr-[max(1.25rem,var(--safe-right))] sm:p-5">
             {entity.kind === "collection" && entity.visibility === "private" && (
               <p className="rounded-xl border border-[rgb(var(--gold-rgb)/0.3)] bg-[rgb(var(--gold-rgb)/0.08)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
                 This private collection opens only for friends selected below. A copied external link alone does not grant access.
@@ -183,7 +183,7 @@ export function ShareDialog({ entity, className, allowDirect = true }: { entity:
             </label>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-[var(--border)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[var(--border)] p-4 pb-[calc(16px+var(--safe-bottom))] pl-[max(1rem,var(--safe-left))] pr-[max(1rem,var(--safe-right))] sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => void externalShare()}><Copy className="size-4" /> Share outside PBox</Button>
             {signedIn && allowDirect && <Button onClick={() => void send()} loading={loading} disabled={!selected.length}><Send className="size-4" /> Send to friends</Button>}
           </div>

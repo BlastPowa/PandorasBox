@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Sidebar isAdmin={isAdmin} />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar profile={profile} />
-          <main className="flex-1 pb-24 md:pb-10">{children}</main>
+          <main className="flex-1 pb-[calc(var(--app-bottom-nav-height)+1rem)] md:pb-10">{children}</main>
           <BottomNav isAdmin={isAdmin} />
         </div>
         <CommandPaletteLoader />

@@ -49,6 +49,17 @@
   --cinematic-control: rgb(255 255 255 / 0.14);
   --media-border: rgb(255 255 255 / 0.16);
   --content-max: 1400px;
+
+  /* Installed-app geometry. Artwork may still bleed beneath system chrome,
+     while every interactive surface consumes these shared safe-area tokens. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --app-header-row: 64px;
+  --app-header-height: calc(var(--app-header-row) + var(--safe-top));
+  --app-bottom-nav-row: 56px;
+  --app-bottom-nav-height: calc(var(--app-bottom-nav-row) + var(--safe-bottom));
 }
 
 /* ==========================================================================
@@ -140,6 +151,8 @@
 
 html {
   color-scheme: dark;
+  min-height: 100%;
+  background: var(--bg-base);
   /* Stop mobile browsers / installed PWAs from auto-inflating text ("too big" pages). */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -150,6 +163,7 @@ body {
   color: var(--text);
   font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  min-height: 100svh;
   min-height: 100dvh;
   /* Safety net: never allow sideways scroll on small screens. */
   overflow-x: hidden;
@@ -209,6 +223,12 @@ body::before {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid var(--border-strong);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --app-bottom-nav-row: 0px;
+  }
 }
 
 /* Profile-only contrast layer for user-uploaded canvas backgrounds. */

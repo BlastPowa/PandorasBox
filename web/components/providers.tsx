@@ -25,6 +25,12 @@ export function Providers({ children }: { children: ReactNode }) {
       <Toaster
         theme="dark"
         position="bottom-right"
+        mobileOffset={{
+          bottom: "calc(var(--app-bottom-nav-height) + 12px)",
+          left: "max(12px, var(--safe-left))",
+          right: "max(12px, var(--safe-right))",
+        }}
+        offset={{ bottom: "max(24px, var(--safe-bottom))", right: "max(24px, var(--safe-right))" }}
         toastOptions={{
           style: {
             background: "var(--bg-elevated)",
