@@ -9,6 +9,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { SearchInput } from "@/components/ui-fx/input";
 import { Brand } from "./brand";
 import type { Profile } from "@/lib/auth";
+import { NotificationBell } from "@/components/social/notification-bell";
 
 export function Topbar({ profile }: { profile: Profile | null }) {
   const router = useRouter();
@@ -46,7 +47,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
         />
       </form>
       {profile ? (
-        <DropdownMenu.Root>
+        <><NotificationBell /><DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button
               className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--glass)] p-1 pr-2 text-sm font-bold text-[var(--text)] transition-colors hover:border-[var(--accent)]"
@@ -111,7 +112,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+        </DropdownMenu.Root></>
       ) : (
         <Link
           href="/login"

@@ -22,8 +22,9 @@ import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { Input } from "@/components/ui-fx/input";
 import { EmptyState } from "@/components/ui-fx/feedback";
+import { SharedInbox } from "@/components/friends/shared-inbox";
 
-type Tab = "friends" | "requests" | "find";
+type Tab = "friends" | "requests" | "find" | "shared";
 
 export function FriendsView() {
   const { signedIn } = useLibrary();
@@ -48,6 +49,8 @@ export function FriendsView() {
 
   useEffect(() => {
     if (signedIn) queueMicrotask(() => void load());
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab === "shared" || requestedTab === "requests") queueMicrotask(() => setTab(requestedTab));
   }, [signedIn, load]);
 
   useEffect(() => {
@@ -148,13 +151,13 @@ export function FriendsView() {
   return (
     <div className="space-y-5">
       <div className="flex gap-2">
-        {(["friends", "requests", "find"] as Tab[]).map((t) => (
+        {(["friends", "requests", "shared", "find"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold ${tab === t ? "bg-[var(--accent)] text-[#0a0a0f]" : "glass text-[var(--text-secondary)]"}`}
           >
-            {t === "friends" ? `Friends (${accepted.length})` : t === "requests" ? `Requests (${incoming.length})` : "Find people"}
+            {t === "friends" ? `Friends (${accepted.length})` : t === "requests" ? `Requests (${incoming.length})` : t === "shared" ? "Shared" : "Find people"}
           </button>
         ))}
       </div>
@@ -256,6 +259,7 @@ export function FriendsView() {
           </div>
         </div>
       )}
+      {tab === "shared" && <SharedInbox />}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   MonitorPlay,
   Gamepad2,
   Film,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,6 +51,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/rankings", label: "My Rankings", icon: Trophy, group: "personal" },
   { href: "/episode-ratings", label: "Episode Ratings", icon: Star, group: "personal" },
   { href: "/friends", label: "Friends", icon: Users, group: "personal" },
+  { href: "/notifications", label: "Notifications", icon: Bell, group: "personal" },
   { href: "/stats", label: "Stats", icon: BarChart3, group: "personal" },
   { href: "/gamers", label: "Games", icon: Gamepad2, group: "more" },
   { href: "/comics", label: "Comics", icon: BookOpen, group: "more" },
