@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { BookOpen, ExternalLink } from "lucide-react";
 import { getComicDetail, getComicIssues, READING_LINKS, PUBLISHER_LABEL } from "@/lib/comics";
 import { AmbientBackground } from "@/components/home/ambient-background";
@@ -10,6 +11,7 @@ import { AddToLibrary, type LibrarySeed } from "@/components/library/add-to-libr
 import { AddToCollection } from "@/components/collections/add-to-collection";
 import { ComicIssuesSection } from "@/components/comics/comic-issues-section";
 import { ShareDialog } from "@/components/social/share-dialog";
+import { FriendsWithTitle } from "@/components/social/friends-with-title";
 
 export const revalidate = 86400;
 
@@ -137,6 +139,8 @@ export default async function ComicDetailPage({ params }: { params: Promise<{ id
           )}
         </div>
       </div>
+
+      <div className="mt-8 max-w-xl"><Suspense fallback={<div className="skeleton h-28 rounded-[var(--radius-lg)]" />}><FriendsWithTitle mediaKey={seed.id} /></Suspense></div>
 
       <div className="mt-10 space-y-10">
         {comic.characters.length > 0 && (

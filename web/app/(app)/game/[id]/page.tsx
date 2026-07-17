@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Star, Calendar, ExternalLink } from "lucide-react";
 import { getGameDetail } from "@/lib/igdb";
 import { AmbientBackground } from "@/components/home/ambient-background";
@@ -9,6 +10,7 @@ import { GameTrailers } from "@/components/games/game-trailers";
 import { ExpandableText } from "@/components/detail/expandable-text";
 import { GameContentGallery } from "@/components/games/game-content-gallery";
 import { ShareDialog } from "@/components/social/share-dialog";
+import { FriendsWithTitle } from "@/components/social/friends-with-title";
 
 export const revalidate = 86400;
 
@@ -132,6 +134,8 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           )}
         </div>
       </div>
+
+      <div className="mt-8 max-w-xl"><Suspense fallback={<div className="skeleton h-28 rounded-[var(--radius-lg)]" />}><FriendsWithTitle mediaKey={`igdb-${gameId}`} /></Suspense></div>
 
       <div className="mt-10 space-y-10">
         {game.storyline && game.storyline !== game.summary && (

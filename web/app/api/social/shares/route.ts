@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { shareHref, type ShareEntity, type ShareFilter } from "@/lib/social/types";
+import { sendPushToUsers } from "@/lib/push/send";
 
 const MEDIA_TYPES = new Set(["movie", "series", "anime", "manga", "manhwa", "comic", "game"]);
 const FILTERS = new Set<ShareFilter>(["all", "unread", "collections", "titles"]);
@@ -89,6 +90,14 @@ export async function POST(request: NextRequest) {
     });
     if (error) failed.push({ recipientId, error: error.message });
     else delivered.push({ recipientId, shareId: String(data) });
+  }
+  if (delivered.length) {
+    const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).maybeSingle();
+    const note = message ? ` — ${message}` : "";
+    await sendPushToUsers(delivered.map((item) => item.recipientId), "share", {
+      title: `${profile?.username ?? "Someone"} shared ${snapshot.title}`,
+      body: (`Open it on PBox${note}`).slice(0, 180), url: "/friends?tab=shared", tag: `share-${delivered[0]?.shareId ?? snapshot.mediaKey ?? snapshot.collectionId}`,
+    });
   }
   return NextResponse.json({ delivered, failed }, { status: delivered.length ? 200 : 400 });
 }

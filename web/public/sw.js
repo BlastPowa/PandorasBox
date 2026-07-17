@@ -1,4 +1,4 @@
-const SHELL_CACHE = "pbox-offline-shell-v1";
+const SHELL_CACHE = "pbox-offline-shell-v2";
 const OFFLINE_URL = "/offline";
 const SHELL_ASSETS = [OFFLINE_URL, "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-512.png"];
 
@@ -20,4 +20,28 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (SHELL_ASSETS.includes(url.pathname)) event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
+});
+
+self.addEventListener("push", (event) => {
+  const payload = event.data?.json() || {};
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    if (windows.some((client) => client.visibilityState === "visible")) return;
+    await self.registration.showNotification(payload.title || "PBox", {
+      body: payload.body || "You have a new notification",
+      icon: "/icons/icon-192.png", badge: "/icons/icon-192.png",
+      tag: payload.tag || "pbox-social", data: { url: payload.url || "/notifications" },
+    });
+  })());
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/notifications", self.location.origin).href;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const existing = windows.find((client) => client.url.startsWith(self.location.origin));
+    if (existing) { await existing.focus(); if ("navigate" in existing) await existing.navigate(target); return; }
+    await self.clients.openWindow(target);
+  })());
 });

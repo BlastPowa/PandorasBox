@@ -87,6 +87,7 @@ export async function sendFriendRequest(addresseeId: string): Promise<void> {
       .update({ requester: uid, addressee: addresseeId, status: "pending", updated_at: new Date().toISOString() })
       .eq("id", existing.id);
     if (error) throw new Error(error.message);
+    void fetch("/api/push/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "friend_request", targetUserId: addresseeId }) }).catch(() => undefined);
     return;
   }
 
@@ -99,15 +100,20 @@ export async function sendFriendRequest(addresseeId: string): Promise<void> {
     }
     throw new Error(error.message);
   }
+  void fetch("/api/push/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "friend_request", targetUserId: addresseeId }) }).catch(() => undefined);
 }
 
 export async function respondToRequest(id: string, accept: boolean): Promise<void> {
   const supabase = createClient();
+  const { data: friendship } = await supabase.from("friendships").select("requester").eq("id", id).maybeSingle();
   const { error } = await supabase
     .from("friendships")
     .update({ status: accept ? "accepted" : "declined", updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw new Error(error.message);
+  if (accept && friendship?.requester) {
+    void fetch("/api/push/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "friend_accepted", targetUserId: friendship.requester }) }).catch(() => undefined);
+  }
 }
 
 export async function removeFriendship(id: string): Promise<void> {

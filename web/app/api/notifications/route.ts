@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     actorIds.length ? supabase.from("profiles").select("id, username, avatar_url").in("id", actorIds) : Promise.resolve({ data: [] }),
     shareIds.length ? supabase.from("social_shares").select("*").in("id", shareIds) : Promise.resolve({ data: [] }),
     conversationIds.length ? supabase.from("conversations").select("id, type, name").in("id", conversationIds) : Promise.resolve({ data: [] }),
-    messageIds.length ? supabase.from("messages").select("id, body, deleted_at").in("id", messageIds) : Promise.resolve({ data: [] }),
+    messageIds.length ? supabase.from("messages").select("id, body, shared_entity, deleted_at").in("id", messageIds) : Promise.resolve({ data: [] }),
     supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null).is("dismissed_at", null),
   ]);
   const actorMap = new Map((actors ?? []).map((actor) => [String(actor.id), actor]));

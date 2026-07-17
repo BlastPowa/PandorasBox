@@ -21,9 +21,19 @@ export interface Message {
   conversation_id: string;
   sender_id: string;
   body: string | null;
+  shared_entity: MessageShareCard | null;
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
+}
+
+export interface MessageShareCard {
+  kind: "title" | "collection";
+  title: string;
+  href: string;
+  posterUrl?: string | null;
+  mediaType?: string | null;
+  year?: number | null;
 }
 
 export interface Conversation {
@@ -36,9 +46,11 @@ export interface Conversation {
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+  avatar_url: string | null;
   members: ConversationMember[];
   latestMessage: Message | null;
   unreadCount: number;
+  deliveryStatus?: string | null;
   title: string;
 }
 

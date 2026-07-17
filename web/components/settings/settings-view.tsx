@@ -19,6 +19,7 @@ import { IntegrationsSection } from "@/components/settings/integrations-section"
 import { AppearanceSection } from "@/components/settings/appearance-section";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { InstallPBoxControl } from "@/components/pwa/install-manager";
+import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import { parseMalXml, parseTxtList, type ParsedImportRow } from "@/lib/import/xml-parser";
 import { IMPORT_MEDIA_TYPES, type ImportMediaType, type ImportReviewRow } from "@/lib/import/types";
 import { normalizeTitle } from "@/lib/import/match";
@@ -350,6 +351,7 @@ export function SettingsView({
                   Country ({country}) affects where-to-watch results. Manage sign-in providers with your account.
                 </p>
                 <InstallPBoxControl />
+                {signedIn && <PushNotificationControl />}
                 {signedIn && (
                   <form action="/auth/signout" method="post">
                     <Button variant="danger" type="submit" className="w-full sm:w-auto">

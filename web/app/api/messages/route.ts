@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { sendPushToUsers } from "@/lib/push/send";
 
 export async function GET() {
   const supabase = await createClient();
@@ -26,7 +27,9 @@ export async function GET() {
       mine?.status === "active" ? supabase.from("messages").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).neq("sender_id", user.id).gt("created_at", mine.last_read_at ?? mine.joined_at ?? conversation.created_at) : Promise.resolve({ count: 0 }),
     ]);
     const other = conversationMembers.find((member) => member.user_id !== user.id)?.profile;
-    return { ...conversation, members: conversationMembers, latestMessage: latest ?? null, unreadCount: unread.count ?? 0, title: conversation.type === "group" ? conversation.name : other?.username ?? "PBox friend" };
+    const readers = latest?.sender_id === user.id ? conversationMembers.filter((member) => member.user_id !== user.id && member.status === "active" && member.last_read_at && new Date(member.last_read_at) >= new Date(latest.created_at)).length : 0;
+    const deliveryStatus = latest?.sender_id === user.id ? readers > 0 ? conversation.type === "direct" ? "Seen" : `Seen by ${readers}` : "Delivered" : null;
+    return { ...conversation, members: conversationMembers, latestMessage: latest ?? null, unreadCount: unread.count ?? 0, deliveryStatus, title: conversation.type === "group" ? conversation.name : other?.username ?? "PBox friend" };
   }));
   return NextResponse.json({ conversations: enriched, unreadCount: enriched.reduce((sum, conversation) => sum + conversation.unreadCount, 0) });
 }
@@ -46,6 +49,8 @@ export async function POST(request: NextRequest) {
   if (body?.type === "group" && typeof body.name === "string" && Array.isArray(body.friendIds) && body.friendIds.length <= 19) {
     const { data, error } = await supabase.rpc("create_group_conversation", { p_name: body.name, p_friend_ids: body.friendIds });
     if (error) return NextResponse.json({ error: error.message }, { status: 403 });
+    const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).maybeSingle();
+    await sendPushToUsers(body.friendIds, "group", { title: "PBox group invitation", body: `${profile?.username ?? "Someone"} invited you to ${body.name.trim()}`, url: `/messages/${data}`, tag: `group-invite-${data}` });
     return NextResponse.json({ id: data });
   }
   return NextResponse.json({ error: "Invalid conversation request" }, { status: 400 });

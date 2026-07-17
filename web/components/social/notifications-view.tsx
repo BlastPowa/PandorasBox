@@ -21,7 +21,7 @@ function copy(notification: SocialNotification) {
   if (notification.type === "friend_request") return { text: `${name} sent you a friend request.`, href: "/friends?tab=requests" };
   if (notification.type === "friend_accepted") return { text: `${name} accepted your friend request.`, href: "/friends" };
   if (notification.type === "group_invitation") return { text: `${name} invited you to ${notification.conversation?.name ?? "a group"}.`, href: notification.conversation_id ? `/messages/${notification.conversation_id}` : "/messages" };
-  if (notification.type === "message_received") return { text: `${name}: ${(notification.message?.body ?? "Sent a message").slice(0, 120)}`, href: notification.conversation_id ? `/messages/${notification.conversation_id}` : "/messages" };
+  if (notification.type === "message_received") return { text: `${name}: ${(notification.message?.body ?? notification.message?.shared_entity?.title ?? "Sent a message").slice(0, 120)}`, href: notification.conversation_id ? `/messages/${notification.conversation_id}` : "/messages" };
   return { text: `${name} shared ${notification.share?.title ?? "something"} with you.`, href: notification.share?.href ?? "/friends?tab=shared" };
 }
 
@@ -70,7 +70,7 @@ export function NotificationsView() {
       const content = copy(row); const unread = !row.read_at;
       return <article key={row.id} className={`glass flex items-start gap-3 rounded-[var(--radius-lg)] p-4 ${unread ? "ring-1 ring-[rgb(var(--accent-rgb)/0.45)]" : ""}`}>
         <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]">{row.type === "share_received" ? <Share2 className="size-5" /> : row.type === "message_received" || row.type === "group_invitation" ? <Bell className="size-5" /> : <UserPlus className="size-5" />}</span>
-        <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{content.text}</p><p className="mt-1 text-xs text-[var(--text-muted)]">{new Date(row.created_at).toLocaleString()}</p><div className="mt-3 flex flex-wrap gap-2">
+        <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{content.text}</p>{row.type === "share_received" && row.share?.message && <blockquote className="mt-2 whitespace-pre-wrap rounded-xl border-l-2 border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.08)] px-3 py-2 text-sm leading-relaxed text-[var(--text-secondary)]">{row.share.message}</blockquote>}<p className="mt-1 text-xs text-[var(--text-muted)]">{new Date(row.created_at).toLocaleString()}</p><div className="mt-3 flex flex-wrap gap-2">
           {row.type === "friend_request" && unread && <><Button size="sm" onClick={() => void respond(row, true)}><Check className="size-4" /> Accept</Button><Button size="sm" variant="outline" onClick={() => void respond(row, false)}><X className="size-4" /> Decline</Button></>}
           {row.type === "group_invitation" && unread && <><Button size="sm" onClick={() => void respondGroup(row, true)}><Check className="size-4" /> Join</Button><Button size="sm" variant="outline" onClick={() => void respondGroup(row, false)}><X className="size-4" /> Decline</Button></>}
           <Button asChild size="sm" variant={row.type === "friend_request" && unread ? "ghost" : "primary"}><Link href={content.href} onClick={() => unread && void update("read", row.id)}>Open</Link></Button>

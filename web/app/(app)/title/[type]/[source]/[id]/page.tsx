@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -22,6 +23,7 @@ import { ExpandableText } from "@/components/detail/expandable-text";
 import { BackButton } from "@/components/shell/back-button";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import { ShareDialog } from "@/components/social/share-dialog";
+import { FriendsWithTitle } from "@/components/social/friends-with-title";
 
 const VALID_TYPES: ReelItemType[] = ["movie", "series", "anime", "manga", "manhwa"];
 
@@ -300,7 +302,7 @@ export default async function TitlePage({
           </div>
 
           {/* Where to watch */}
-          <aside className="lg:sticky lg:top-20 lg:self-start">
+          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             <GlassCard macDots title={isReading ? "Where to Read" : "Where to Watch"}>
               <div className="p-4">
                 <WhereToWatch options={watchOptions} />
@@ -313,6 +315,7 @@ export default async function TitlePage({
                 </Link>
               </div>
             </GlassCard>
+            <Suspense fallback={<div className="skeleton h-28 rounded-[var(--radius-lg)]" />}><FriendsWithTitle mediaKey={detail.id} /></Suspense>
           </aside>
         </div>
 

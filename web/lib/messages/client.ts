@@ -1,4 +1,4 @@
-import type { Conversation, ConversationDetail } from "./types";
+import type { Conversation, ConversationDetail, MessageShareCard } from "./types";
 
 async function json<T>(response: Response): Promise<T> {
   const body = (await response.json().catch(() => ({}))) as T & { error?: string };
@@ -19,8 +19,8 @@ export async function getConversation(id: string, cursor?: string) {
   return json<ConversationDetail>(await fetch(`/api/messages/${id}${query}`, { cache: "no-store" }));
 }
 
-export async function sendMessage(id: string, body: string) {
-  return json<{ id: string }>(await fetch(`/api/messages/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) }));
+export async function sendMessage(id: string, body: string, share?: MessageShareCard) {
+  return json<{ id: string }>(await fetch(`/api/messages/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body, share }) }));
 }
 
 export async function conversationAction(id: string, action: string, payload: Record<string, unknown> = {}) {
