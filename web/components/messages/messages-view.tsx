@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, Loader2, MessageCircle, MoreHorizontal, Plus, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";
 import { toast } from "sonner";
@@ -14,25 +15,52 @@ import { conversationAction, createConversation, getConversation, listConversati
 import type { Conversation, ConversationDetail, Message } from "@/lib/messages/types";
 import { cn } from "@/lib/utils";
 
+function useMobileChatViewport(active: boolean) {
+  const [viewport, setViewport] = useState<{ height: number; top: number } | null>(null);
+  useEffect(() => {
+    if (!active || !window.matchMedia("(max-width: 767px)").matches) return;
+    const visualViewport = window.visualViewport;
+    const update = () => setViewport({ height: Math.round(visualViewport?.height ?? window.innerHeight), top: Math.round(visualViewport?.offsetTop ?? 0) });
+    queueMicrotask(update);
+    visualViewport?.addEventListener("resize", update);
+    visualViewport?.addEventListener("scroll", update);
+    window.addEventListener("orientationchange", update);
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      visualViewport?.removeEventListener("resize", update);
+      visualViewport?.removeEventListener("scroll", update);
+      window.removeEventListener("orientationchange", update);
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      setViewport(null);
+    };
+  }, [active]);
+  return viewport;
+}
+
 export function MessagesView({ initialConversationId = null, embedded = false }: { initialConversationId?: string | null; embedded?: boolean }) {
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(initialConversationId);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const mobileChatViewport = useMobileChatViewport(Boolean(selectedId && !embedded));
   const load = useCallback(async () => {
     try {
       const [{ data }, result] = await Promise.all([createClient().auth.getUser(), listConversations()]);
       setMyId(data.user?.id ?? null);
       setConversations(result.conversations);
-      if (!selectedId && initialConversationId) setSelectedId(initialConversationId);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not load messages");
     } finally {
       setLoading(false);
     }
-  }, [initialConversationId, selectedId]);
+  }, []);
   useEffect(() => {
     queueMicrotask(() => void load());
   }, [load]);
@@ -48,7 +76,10 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
   }, [conversations, query]);
 
   return (
-    <div className={cn("overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl", embedded ? "min-h-[620px] rounded-[var(--radius-xl)]" : "h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height)-2rem)] min-h-[520px] rounded-[var(--radius-xl)] md:min-h-[620px]")}>
+    <div
+      className={cn("overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl", embedded ? "min-h-[620px] rounded-[var(--radius-xl)]" : "h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height)-2rem)] min-h-[520px] rounded-[var(--radius-xl)] md:min-h-[620px]", selectedId && !embedded && "max-md:fixed max-md:inset-x-0 max-md:top-0 max-md:z-[60] max-md:min-h-0 max-md:rounded-none max-md:border-x-0")}
+      style={mobileChatViewport ? { top: mobileChatViewport.top, height: mobileChatViewport.height } : undefined}
+    >
       <div className="grid size-full md:grid-cols-[320px_1fr] lg:grid-cols-[360px_1fr]">
         <aside className={cn("flex min-h-0 flex-col border-r border-[var(--border)]", selectedId && "hidden md:flex")}>
           <div className="space-y-3 border-b border-[var(--border)] p-4">
@@ -86,6 +117,7 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
               myId={myId}
               onBack={() => {
                 setSelectedId(null);
+                if (initialConversationId) router.replace("/messages", { scroll: false });
                 void load();
               }}
               onChanged={() => void load()}
@@ -144,7 +176,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const typingSentAt = useRef(0);
-  const messageEndRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
   const refresh = useCallback(async () => {
     const value = await getConversation(id);
     setDetail(value);
@@ -221,9 +253,13 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
       void supabase.removeChannel(channel);
     };
   }, [id, load, myId, refresh]);
+  const scrollMessagesToBottom = useCallback(() => {
+    const list = messageListRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, []);
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ block: "end" });
-  }, [detail?.messages.length]);
+    scrollMessagesToBottom();
+  }, [detail?.messages.length, scrollMessagesToBottom]);
 
   async function type(value: string) {
     setDraft(value.slice(0, 2000));
@@ -341,7 +377,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
 
   return (
     <div className="flex size-full min-h-0 flex-col">
-      <header className="flex min-h-16 items-center gap-3 border-b border-[var(--border)] px-3 sm:px-4">
+      <header className="flex min-h-[calc(4rem+var(--safe-top))] items-center gap-3 border-b border-[var(--border)] px-3 pt-[var(--safe-top)] sm:min-h-16 sm:px-4 sm:pt-0">
         <button type="button" onClick={onBack} className="grid size-11 place-items-center rounded-full hover:bg-[var(--glass)] md:hidden" aria-label="Back to conversations">
           <ChevronLeft />
         </button>
@@ -354,7 +390,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
           <MoreHorizontal />
         </Button>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5">
+      <div ref={messageListRef} className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-3 py-4 sm:px-5">
         {detail.nextCursor && (
           <div className="mb-4 text-center">
             <Button
@@ -436,7 +472,6 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
             {detail.latestMessage.id.startsWith("optimistic-") ? "Sending…" : seenCount > 0 ? (detail.type === "direct" ? "Seen" : `Seen by ${seenCount}`) : "Delivered"}
           </p>
         )}
-        <div ref={messageEndRef} aria-hidden="true" />
       </div>
       <form
         onSubmit={(event) => {
@@ -457,6 +492,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
                 void send();
               }
             }}
+            onFocus={() => window.requestAnimationFrame(scrollMessagesToBottom)}
             placeholder="Write a message"
             className="block max-h-32 w-full resize-none bg-transparent text-sm outline-none"
           />
