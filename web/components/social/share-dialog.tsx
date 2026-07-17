@@ -27,7 +27,7 @@ async function copyText(text: string) {
   }
 }
 
-export function ShareDialog({ entity, className }: { entity: ShareEntity; className?: string }) {
+export function ShareDialog({ entity, className, allowDirect = true }: { entity: ShareEntity; className?: string; allowDirect?: boolean }) {
   const { signedIn } = useLibrary();
   const [open, setOpen] = useState(false);
   const [friends, setFriends] = useState<ProfileSummary[]>([]);
@@ -39,7 +39,7 @@ export function ShareDialog({ entity, className }: { entity: ShareEntity; classN
   const path = shareHref(entity);
 
   async function loadFriends() {
-    if (loaded || !signedIn) return;
+    if (loaded || !signedIn || !allowDirect) return;
     try {
       const [{ data }, relationships] = await Promise.all([
         createClient().auth.getUser(),
@@ -141,7 +141,7 @@ export function ShareDialog({ entity, className }: { entity: ShareEntity; classN
               </p>
             )}
 
-            {signedIn ? (
+            {signedIn && allowDirect ? (
               <section aria-labelledby="share-friends-label">
                 <div className="mb-2 flex items-center justify-between">
                   <h3 id="share-friends-label" className="text-sm font-bold">PBox friends</h3>
@@ -170,11 +170,11 @@ export function ShareDialog({ entity, className }: { entity: ShareEntity; classN
                   })}
                 </div>
               </section>
-            ) : (
+            ) : !signedIn ? (
               <div className="rounded-xl bg-[var(--glass)] p-4 text-sm text-[var(--text-secondary)]">
                 <Users className="mb-2 size-5 text-[var(--accent)]" /> Sign in to send directly to PBox friends. External sharing remains available.
               </div>
-            )}
+            ) : null}
 
             <label className="block text-sm font-bold">
               Optional message
@@ -185,7 +185,7 @@ export function ShareDialog({ entity, className }: { entity: ShareEntity; classN
 
           <div className="flex flex-col-reverse gap-2 border-t border-[var(--border)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => void externalShare()}><Copy className="size-4" /> Share outside PBox</Button>
-            {signedIn && <Button onClick={() => void send()} loading={loading} disabled={!selected.length}><Send className="size-4" /> Send to friends</Button>}
+            {signedIn && allowDirect && <Button onClick={() => void send()} loading={loading} disabled={!selected.length}><Send className="size-4" /> Send to friends</Button>}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

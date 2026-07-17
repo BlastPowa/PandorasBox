@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { BookOpen, ExternalLink } from "lucide-react";
 import { getComicDetail, getComicIssues, READING_LINKS, PUBLISHER_LABEL } from "@/lib/comics";
 import { AmbientBackground } from "@/components/home/ambient-background";
@@ -11,6 +12,17 @@ import { ComicIssuesSection } from "@/components/comics/comic-issues-section";
 import { ShareDialog } from "@/components/social/share-dialog";
 
 export const revalidate = 86400;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const comicId = Number.parseInt(id, 10);
+  if (!Number.isFinite(comicId)) return { title: "Comic unavailable · PBox" };
+  const comic = await getComicDetail(comicId);
+  if (!comic) return { title: "Comic unavailable · PBox" };
+  const description = comic.synopsis || `Track ${comic.name} on PBox.`;
+  const images = comic.coverUrl ? [comic.coverUrl] : [];
+  return { title: `${comic.name} · PBox`, description, openGraph: { title: comic.name, description, type: "website", images }, twitter: { card: "summary_large_image", title: comic.name, description, images } };
+}
 
 export default async function ComicDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

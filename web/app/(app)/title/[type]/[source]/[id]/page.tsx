@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Clock, Layers, Star, Sparkles, Tv, Zap, Globe } from "lucide-react";
@@ -23,6 +24,20 @@ import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import { ShareDialog } from "@/components/social/share-dialog";
 
 const VALID_TYPES: ReelItemType[] = ["movie", "series", "anime", "manga", "manhwa"];
+
+export async function generateMetadata({ params }: { params: Promise<{ type: string; source: string; id: string }> }): Promise<Metadata> {
+  const { type, source, id } = await params;
+  if (!VALID_TYPES.includes(type as ReelItemType)) return { title: "Title unavailable · PBox" };
+  const detail = await getDetail(type as ReelItemType, source, decodeURIComponent(id), "IE");
+  if (!detail) return { title: "Title unavailable · PBox" };
+  const description = detail.synopsis || `Track ${detail.title} on PBox.`;
+  const images = detail.backdropUrl ? [detail.backdropUrl] : detail.posterUrl ? [detail.posterUrl] : [];
+  return {
+    title: `${detail.title} · PBox`, description,
+    openGraph: { title: detail.title, description, type: "website", images },
+    twitter: { card: "summary_large_image", title: detail.title, description, images },
+  };
+}
 
 export default async function TitlePage({
   params,

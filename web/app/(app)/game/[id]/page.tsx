@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { Star, Calendar, ExternalLink } from "lucide-react";
 import { getGameDetail } from "@/lib/igdb";
 import { AmbientBackground } from "@/components/home/ambient-background";
@@ -10,6 +11,17 @@ import { GameContentGallery } from "@/components/games/game-content-gallery";
 import { ShareDialog } from "@/components/social/share-dialog";
 
 export const revalidate = 86400;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const gameId = Number.parseInt(id, 10);
+  if (!Number.isFinite(gameId)) return { title: "Game unavailable · PBox" };
+  const game = await getGameDetail(gameId);
+  if (!game) return { title: "Game unavailable · PBox" };
+  const description = game.summary || `Explore ${game.name} on PBox.`;
+  const images = game.backdropUrl ? [game.backdropUrl] : game.coverUrl ? [game.coverUrl] : [];
+  return { title: `${game.name} · PBox`, description, openGraph: { title: game.name, description, type: "website", images }, twitter: { card: "summary_large_image", title: game.name, description, images } };
+}
 
 export default async function GameDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

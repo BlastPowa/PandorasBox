@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { FolderOpen, Globe, Lock, Users, EyeOff } from "lucide-react";
+import { CopyPlus, FolderOpen, Globe, Lock, Users, EyeOff } from "lucide-react";
 import { BackButton } from "@/components/shell/back-button";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import {
@@ -42,7 +42,7 @@ const VISIBILITY: { key: CollectionVisibility; label: string; icon: typeof Globe
 ];
 
 export function CollectionDetail({ id }: { id: string }) {
-  const { items: libraryItems } = useLibrary();
+  const { items: libraryItems, signedIn } = useLibrary();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +125,17 @@ export function CollectionDetail({ id }: { id: string }) {
     }
   }
 
+  async function copyCollection() {
+    try {
+      const response = await fetch(`/api/collections/${id}/copy`, { method: "POST" });
+      const body = (await response.json()) as { id?: string; error?: string };
+      if (!response.ok || !body.id) throw new Error(body.error ?? "Could not copy collection");
+      toast.success("Saved as a private collection", { action: { label: "Open", onClick: () => { window.location.href = `/collections/${body.id}`; } } });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not copy collection");
+    }
+  }
+
   if (loading) return <div className="skeleton h-64 w-full rounded-[var(--radius-lg)]" />;
   if (!collection) {
     return (
@@ -148,15 +159,18 @@ export function CollectionDetail({ id }: { id: string }) {
             {items.length} {items.length === 1 ? "title" : "titles"} · {collection.visibility}
           </p>
         </div>
-        <ShareDialog entity={{
-          kind: "collection",
-          collectionId: collection.id,
-          title: collection.name,
-          description: collection.description,
-          posterUrl: collection.cover_url,
-          visibility: collection.visibility,
-          shareSlug: collection.share_slug,
-        }} />
+        <div className="flex flex-wrap justify-end gap-2">
+          {signedIn && !isOwner && <Button variant="outline" onClick={() => void copyCollection()}><CopyPlus className="size-4" /> Save copy</Button>}
+          <ShareDialog entity={{
+            kind: "collection",
+            collectionId: collection.id,
+            title: collection.name,
+            description: collection.description,
+            posterUrl: collection.cover_url,
+            visibility: collection.visibility,
+            shareSlug: collection.share_slug,
+          }} allowDirect={isOwner} />
+        </div>
       </div>
 
       {isOwner && (
