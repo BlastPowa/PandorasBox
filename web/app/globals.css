@@ -152,7 +152,6 @@
 html {
   color-scheme: dark;
   min-height: 100%;
-  background: var(--bg-base);
   /* Stop mobile browsers / installed PWAs from auto-inflating text ("too big" pages). */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

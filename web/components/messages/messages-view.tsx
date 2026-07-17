@@ -80,6 +80,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const typingSentAt = useRef(0);
+  const messageEndRef = useRef<HTMLDivElement>(null);
   const refresh = useCallback(async () => {
     const value = await getConversation(id);
     setDetail(value);
@@ -110,6 +111,9 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
     }, 2500);
     return () => { window.clearInterval(typingTimer); void supabase.removeChannel(channel); };
   }, [id, load, myId, refresh]);
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView({ block: "end" });
+  }, [detail?.messages.length]);
 
   async function type(value: string) {
     setDraft(value.slice(0, 2000));
@@ -119,13 +123,44 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   }
   async function send() {
     if (!draft.trim() || sending) return;
+    const body = draft.trim();
+    const optimisticId = `optimistic-${crypto.randomUUID()}`;
+    const createdAt = new Date().toISOString();
+    const optimisticMessage: Message = {
+      id: optimisticId,
+      conversation_id: id,
+      sender_id: myId ?? "",
+      body,
+      edited_at: null,
+      deleted_at: null,
+      created_at: createdAt,
+    };
+    setDraft("");
+    setDetail((current) => current ? {
+      ...current,
+      updated_at: createdAt,
+      latestMessage: optimisticMessage,
+      messages: [...current.messages, optimisticMessage],
+    } : current);
     setSending(true);
     try {
-      await sendMessage(id, draft);
-      setDraft("");
-      if (myId) await createClient().from("conversation_typing").delete().eq("conversation_id", id).eq("user_id", myId);
-      await load(); onChanged();
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not send message"); }
+      const sent = await sendMessage(id, body);
+      setDetail((current) => current ? {
+        ...current,
+        latestMessage: current.latestMessage?.id === optimisticId ? { ...optimisticMessage, id: sent.id } : current.latestMessage,
+        messages: current.messages.map((message) => message.id === optimisticId ? { ...message, id: sent.id } : message),
+      } : current);
+      if (myId) void createClient().from("conversation_typing").delete().eq("conversation_id", id).eq("user_id", myId);
+      onChanged();
+    } catch (error) {
+      setDetail((current) => current ? {
+        ...current,
+        latestMessage: current.latestMessage?.id === optimisticId ? current.messages.at(-2) ?? null : current.latestMessage,
+        messages: current.messages.filter((message) => message.id !== optimisticId),
+      } : current);
+      setDraft((current) => current || body);
+      toast.error(error instanceof Error ? error.message : "Could not send message");
+    }
     finally { setSending(false); }
   }
   async function saveEdit(message: Message) {
@@ -157,6 +192,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
         </div></div>;
       })}</div>
       {seenCount > 0 && <p className="mt-2 text-right text-[10px] text-[var(--text-muted)]">{detail.type === "direct" ? "Seen" : `Seen by ${seenCount}`}</p>}
+      <div ref={messageEndRef} aria-hidden="true" />
     </div>
     <form onSubmit={(event) => { event.preventDefault(); void send(); }} className="flex items-end gap-2 border-t border-[var(--border)] bg-[var(--bg-surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4"><label className="min-h-11 min-w-0 flex-1 rounded-2xl border border-[var(--border)] bg-[var(--bg-base)] px-4 py-3"><span className="sr-only">Message</span><textarea rows={1} value={draft} onChange={(event) => void type(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder="Write a message" className="block max-h-32 w-full resize-none bg-transparent text-sm outline-none" /></label><Button size="icon" type="submit" disabled={!draft.trim() || sending} aria-label="Send message">{sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}</Button></form>
     <ManageConversationDialog open={manageOpen} onOpenChange={setManageOpen} detail={detail} myId={myId} isOwner={isOwner} onChanged={async () => { await load(); onChanged(); }} onLeave={onBack} />
