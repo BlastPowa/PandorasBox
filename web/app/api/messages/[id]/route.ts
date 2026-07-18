@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { sendPushToUsers } from "@/lib/push/send";
@@ -63,8 +63,11 @@ async function detail(id: string, cursor?: string | null) {
   });
   const mine = members.find((member) => member.user_id === user.id);
   const other = members.find((member) => member.user_id !== user.id);
-  const { data: signedBackground } = mine?.chat_background_path
-    ? await supabase.storage.from("chat-backgrounds").createSignedUrl(String(mine.chat_background_path), 60 * 60)
+  const chatBackgroundPath = conversation.type === "group" ? conversation.chat_background_path : mine?.chat_background_path;
+  const chatBackgroundPosition = conversation.type === "group" ? conversation.chat_background_position : mine?.chat_background_position;
+  const chatAtmosphere = conversation.type === "group" ? conversation.chat_atmosphere : mine?.chat_atmosphere;
+  const { data: signedBackground } = chatBackgroundPath
+    ? await supabase.storage.from("chat-backgrounds").createSignedUrl(String(chatBackgroundPath), 60 * 60)
     : { data: null };
   return { supabase, user, value: {
     ...conversation,
@@ -75,6 +78,9 @@ async function detail(id: string, cursor?: string | null) {
     messages: hydratedPage.slice(0, 50).reverse(),
     nextCursor: page.length > 50 ? String(page[49]?.created_at ?? "") : null,
     chatBackgroundUrl: signedBackground?.signedUrl ?? null,
+    chatBackgroundPath: chatBackgroundPath ? String(chatBackgroundPath) : null,
+    chatBackgroundPosition: ["top", "bottom"].includes(String(chatBackgroundPosition)) ? chatBackgroundPosition : "center",
+    chatAtmosphere: ["crimson", "aurora", "ocean", "sunset", "royal"].includes(String(chatAtmosphere)) ? chatAtmosphere : "midnight",
     mine,
   } };
 }
@@ -110,15 +116,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     p_reply_to_id: replyToId,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 403 });
-  const [{ data: conversation }, { data: memberships }, { data: profile }] = await Promise.all([
-    supabase.from("conversations").select("name, type").eq("id", id).maybeSingle(),
-    supabase.from("conversation_members").select("user_id, muted_at").eq("conversation_id", id).eq("status", "active").neq("user_id", user.id),
-    supabase.from("profiles").select("username").eq("id", user.id).maybeSingle(),
-  ]);
-  const sender = profile?.username ?? "Someone";
-  await sendPushToUsers((memberships ?? []).filter((member) => !member.muted_at).map((member) => String(member.user_id)), "message", {
-    title: conversation?.type === "group" ? String(conversation.name ?? "PBox group") : `${sender} on PBox`,
-    body: (text.trim() || (media ? media.kind === "sticker" ? "Sent a sticker" : media.kind === "gif" ? "Sent a GIF" : "Sent an image" : `Shared ${share?.title ?? "a card"}`)).slice(0, 160), url: `/messages/${id}`, tag: `conversation-${id}`,
+  after(async () => {
+    const [{ data: conversation }, { data: memberships }, { data: profile }] = await Promise.all([
+      supabase.from("conversations").select("name, type").eq("id", id).maybeSingle(),
+      supabase.from("conversation_members").select("user_id, muted_at").eq("conversation_id", id).eq("status", "active").neq("user_id", user.id),
+      supabase.from("profiles").select("username").eq("id", user.id).maybeSingle(),
+    ]);
+    const sender = profile?.username ?? "Someone";
+    const recipients = (memberships ?? []).filter((member) => !member.muted_at).map((member) => String(member.user_id));
+    await sendPushToUsers(recipients, "message", {
+      title: conversation?.type === "group" ? String(conversation.name ?? "PBox group") : `${sender} on PBox`,
+      body: (text.trim() || (media ? media.kind === "sticker" ? "Sent a sticker" : media.kind === "gif" ? "Sent a GIF" : "Sent an image" : `Shared ${share?.title ?? "a card"}`)).slice(0, 160), url: `/messages/${id}`, tag: `conversation-${id}`,
+    });
   });
   return NextResponse.json({ id: data });
 }
@@ -142,6 +151,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     archive: { fn: "archive_group_conversation", args: { p_conversation_id: id } },
     avatar: { fn: "set_group_avatar", args: { p_conversation_id: id, p_avatar_url: typeof body?.avatarUrl === "string" ? body.avatarUrl : "" } },
     background: { fn: "set_chat_background", args: { p_conversation_id: id, p_storage_path: typeof body?.storagePath === "string" ? body.storagePath : "", p_position: ["top", "center", "bottom"].includes(String(body?.position)) ? body?.position : "center", p_atmosphere: ["midnight", "crimson", "aurora", "ocean", "sunset", "royal"].includes(String(body?.atmosphere)) ? body?.atmosphere : "midnight" } },
+    atmosphere: { fn: "set_chat_atmosphere", args: { p_conversation_id: id, p_atmosphere: ["midnight", "crimson", "aurora", "ocean", "sunset", "royal"].includes(String(body?.atmosphere)) ? body?.atmosphere : "midnight" } },
+    groupAppearance: { fn: "set_group_chat_appearance", args: { p_conversation_id: id, p_storage_path: typeof body?.storagePath === "string" ? body.storagePath : "", p_position: ["top", "center", "bottom"].includes(String(body?.position)) ? body?.position : "center", p_atmosphere: ["midnight", "crimson", "aurora", "ocean", "sunset", "royal"].includes(String(body?.atmosphere)) ? body?.atmosphere : "midnight" } },
   };
   if (typeof action !== "string" || !calls[action]) return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   const call = calls[action];

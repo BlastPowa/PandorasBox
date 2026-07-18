@@ -84,6 +84,9 @@ export interface ConversationDetail extends Conversation {
   messages: Message[];
   nextCursor: string | null;
   chatBackgroundUrl: string | null;
+  chatBackgroundPath: string | null;
+  chatBackgroundPosition: "top" | "center" | "bottom";
+  chatAtmosphere: "midnight" | "crimson" | "aurora" | "ocean" | "sunset" | "royal";
 }
 
 export interface TypingState {

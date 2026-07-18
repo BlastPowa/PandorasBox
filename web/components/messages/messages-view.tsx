@@ -24,30 +24,39 @@ const CHAT_ATMOSPHERES = {
   royal: { label: "Royal", background: "radial-gradient(circle at 20% 10%, #6d28d9 0%, transparent 42%), radial-gradient(circle at 85% 75%, #a16207 0%, transparent 42%), #080611" },
 } as const;
 
-function useMobileChatViewport(active: boolean) {
-  const [viewport, setViewport] = useState<{ height: number; top: number } | null>(null);
+function useMobileChatViewport(active: boolean, containerRef: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     if (!active || !window.matchMedia("(max-width: 767px)").matches) return;
+    const container = containerRef.current;
     const visualViewport = window.visualViewport;
-    const update = () => setViewport({ height: Math.round(visualViewport?.height ?? window.innerHeight), top: Math.round(visualViewport?.offsetTop ?? 0) });
-    queueMicrotask(update);
+    let frame = 0;
+    const update = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        if (!container) return;
+        container.style.height = `${Math.round(visualViewport?.height ?? window.innerHeight)}px`;
+        container.style.transform = `translateY(${Math.max(0, Math.round(visualViewport?.offsetTop ?? 0))}px)`;
+      });
+    };
+    update();
     visualViewport?.addEventListener("resize", update);
-    visualViewport?.addEventListener("scroll", update);
     window.addEventListener("orientationchange", update);
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
     return () => {
+      window.cancelAnimationFrame(frame);
       visualViewport?.removeEventListener("resize", update);
-      visualViewport?.removeEventListener("scroll", update);
       window.removeEventListener("orientationchange", update);
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousHtmlOverflow;
-      setViewport(null);
+      if (container) {
+        container.style.height = "";
+        container.style.transform = "";
+      }
     };
-  }, [active]);
-  return viewport;
+  }, [active, containerRef]);
 }
 
 export function MessagesView({ initialConversationId = null, embedded = false }: { initialConversationId?: string | null; embedded?: boolean }) {
@@ -58,7 +67,8 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const mobileChatViewport = useMobileChatViewport(Boolean(selectedId && !embedded));
+  const shellRef = useRef<HTMLDivElement>(null);
+  useMobileChatViewport(Boolean(selectedId && !embedded), shellRef);
   const load = useCallback(async () => {
     try {
       const [{ data }, result] = await Promise.all([createClient().auth.getUser(), listConversations()]);
@@ -86,8 +96,8 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
 
   return (
     <div
+      ref={shellRef}
       className={cn("overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl", embedded ? "min-h-[620px] rounded-[var(--radius-xl)]" : "h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height)-2rem)] min-h-[520px] rounded-[var(--radius-xl)] md:min-h-[620px]", selectedId && !embedded && "max-md:fixed max-md:inset-x-0 max-md:top-0 max-md:z-[60] max-md:min-h-0 max-md:rounded-none max-md:border-x-0")}
-      style={mobileChatViewport ? { top: mobileChatViewport.top, height: mobileChatViewport.height } : undefined}
     >
       <div className="grid size-full md:grid-cols-[320px_1fr] lg:grid-cols-[360px_1fr]">
         <aside className={cn("flex min-h-0 flex-col border-r border-[var(--border)]", selectedId && "hidden md:flex")}>
@@ -190,10 +200,18 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   const messageListRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const swipeStart = useRef<{ messageId: string; x: number; y: number } | null>(null);
+  const realtimeRefreshTimer = useRef<number | null>(null);
+  const initialScrollComplete = useRef(false);
   const refresh = useCallback(async () => {
     const value = await getConversation(id);
-    setDetail(value);
+    setDetail((current) => current && current.chatBackgroundPath === value.chatBackgroundPath && current.chatBackgroundUrl
+      ? { ...value, chatBackgroundUrl: current.chatBackgroundUrl }
+      : value);
   }, [id]);
+  const scrollMessagesToBottom = useCallback(() => {
+    const list = messageListRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, []);
   const load = useCallback(async () => {
     try {
       await refresh();
@@ -209,6 +227,10 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   }, [load]);
   useEffect(() => {
     const supabase = createClient();
+    const refreshSoon = (delay = 180) => {
+      if (realtimeRefreshTimer.current) window.clearTimeout(realtimeRefreshTimer.current);
+      realtimeRefreshTimer.current = window.setTimeout(() => void refresh(), delay);
+    };
     const channel = supabase
       .channel(`conversation:${id}`)
       .on(
@@ -219,7 +241,22 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
           table: "messages",
           filter: `conversation_id=eq.${id}`,
         },
-        () => void load(),
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const incoming = payload.new as Message;
+            if (incoming.sender_id !== myId) {
+              const list = messageListRef.current;
+              const wasNearBottom = !list || list.scrollHeight - list.scrollTop - list.clientHeight < 120;
+              setDetail((current) => {
+                if (!current || current.messages.some((message) => message.id === incoming.id)) return current;
+                const message = { ...incoming, reply: null };
+                return { ...current, updated_at: incoming.created_at, latestMessage: message, messages: [...current.messages, message] };
+              });
+              if (wasNearBottom) window.requestAnimationFrame(() => scrollMessagesToBottom());
+            }
+          }
+          refreshSoon(payload.eventType === "INSERT" ? 350 : 120);
+        },
       )
       .on(
         "postgres_changes",
@@ -263,16 +300,21 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
     }, 2500);
     return () => {
       window.clearInterval(typingTimer);
+      if (realtimeRefreshTimer.current) window.clearTimeout(realtimeRefreshTimer.current);
       void supabase.removeChannel(channel);
     };
-  }, [id, load, myId, refresh]);
-  const scrollMessagesToBottom = useCallback(() => {
-    const list = messageListRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
-  }, []);
+  }, [id, myId, refresh, scrollMessagesToBottom]);
   useEffect(() => {
-    scrollMessagesToBottom();
-  }, [detail?.messages.length, scrollMessagesToBottom]);
+    if (!detail || initialScrollComplete.current) return;
+    initialScrollComplete.current = true;
+    window.requestAnimationFrame(scrollMessagesToBottom);
+  }, [detail, scrollMessagesToBottom]);
+  useEffect(() => {
+    const composer = composerRef.current;
+    if (!composer) return;
+    composer.style.height = "auto";
+    composer.style.height = `${Math.min(composer.scrollHeight, 128)}px`;
+  }, [draft]);
 
   async function type(value: string) {
     setDraft(value.slice(0, 2000));
@@ -323,6 +365,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
           }
         : current,
     );
+    window.requestAnimationFrame(scrollMessagesToBottom);
     setSending(true);
     try {
       const sent = await sendMessage(id, body, undefined, undefined, replyTarget?.id);
@@ -445,8 +488,8 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
 
   return (
     <div className="relative flex size-full min-h-0 flex-col overflow-hidden">
-      <div className="pointer-events-none absolute inset-0" style={{ background: CHAT_ATMOSPHERES[mine?.chat_atmosphere ?? "midnight"].background }} aria-hidden="true" />
-      {detail.chatBackgroundUrl && <><div className="pointer-events-none absolute inset-0 bg-cover opacity-65" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: mine?.chat_background_position ?? "center" }} aria-hidden="true" /><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.62),rgba(7,8,14,.74)_45%,rgba(7,8,14,.88))]" aria-hidden="true" /></>}
+      <div className="pointer-events-none absolute inset-0" style={{ background: CHAT_ATMOSPHERES[detail.chatAtmosphere].background }} aria-hidden="true" />
+      {detail.chatBackgroundUrl && <><div className="pointer-events-none absolute inset-0 bg-cover opacity-65" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: detail.chatBackgroundPosition }} aria-hidden="true" /><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.62),rgba(7,8,14,.74)_45%,rgba(7,8,14,.88))]" aria-hidden="true" /></>}
       <header className="relative z-[1] flex min-h-[calc(4rem+var(--safe-top))] items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-surface)] px-3 pt-[var(--safe-top)] sm:min-h-16 sm:px-4 sm:pt-0">
         <button type="button" onClick={onBack} className="grid size-11 place-items-center rounded-full hover:bg-[var(--glass)] md:hidden" aria-label="Back to conversations">
           <ChevronLeft />
@@ -604,9 +647,14 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
               event.preventDefault();
               void uploadMedia(image);
             }}
-            onFocus={() => window.requestAnimationFrame(scrollMessagesToBottom)}
+            onFocus={() => {
+              const list = messageListRef.current;
+              if (list && list.scrollHeight - list.scrollTop - list.clientHeight < 160) {
+                window.setTimeout(scrollMessagesToBottom, 80);
+              }
+            }}
             placeholder="Write a message"
-            className="block max-h-32 w-full resize-none bg-transparent text-base outline-none md:text-sm"
+            className="block min-h-6 max-h-32 w-full resize-none overflow-y-auto bg-transparent text-base leading-6 outline-none md:text-sm"
           />
         </label>
         <Button size="icon" type="submit" className="h-12 w-12 shrink-0 rounded-full" disabled={!draft.trim() || sending || mediaBusy} aria-label="Send message">
@@ -863,7 +911,10 @@ export function ConversationSettingsView({ id }: { id: string }) {
 
 function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }: { detail: ConversationDetail; myId: string | null; isOwner: boolean; onChanged: () => Promise<void>; onLeave: () => void }) {
   const mine = detail.members.find((member) => member.user_id === myId);
-  const atmosphere = mine?.chat_atmosphere ?? "midnight";
+  const atmosphere = detail.chatAtmosphere;
+  const currentBackgroundPath = detail.chatBackgroundPath;
+  const currentBackgroundPosition = detail.chatBackgroundPosition;
+  const canEditAppearance = detail.type === "direct" || isOwner;
   const [friends, setFriends] = useState<ProfileSummary[]>([]);
   const [inviteIds, setInviteIds] = useState<string[]>([]);
   const [avatarBusy, setAvatarBusy] = useState(false);
@@ -925,7 +976,7 @@ function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }
       setAvatarBusy(false);
     }
   }
-  async function updateBackground(file: File | null, position = mine?.chat_background_position ?? "center") {
+  async function updateBackground(file: File | null, position = currentBackgroundPosition) {
     if (!myId) return;
     if (file && (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024)) {
       toast.error("Use a JPG, PNG, or WebP image up to 8 MB");
@@ -933,18 +984,19 @@ function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }
     }
     setBackgroundBusy(true);
     const storage = createClient().storage.from("chat-backgrounds");
-    const path = `${myId}/${detail.id}/background`;
+    const extension = file ? (file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1] ?? "image") : "";
+    const path = file ? `${myId}/${detail.id}/${crypto.randomUUID()}.${extension}` : "";
     try {
       if (file) {
         const { error } = await storage.upload(path, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
         if (error) throw error;
-      } else if (!mine?.chat_background_path) {
-        await conversationAction(detail.id, "background", { storagePath: "", position, atmosphere });
+      } else if (!currentBackgroundPath) {
+        await conversationAction(detail.id, detail.type === "group" ? "groupAppearance" : "background", { storagePath: "", position, atmosphere });
         await onChanged();
         return;
       }
-      await conversationAction(detail.id, "background", { storagePath: file ? path : "", position, atmosphere });
-      if (!file && mine?.chat_background_path) await storage.remove([mine.chat_background_path]);
+      await conversationAction(detail.id, detail.type === "group" ? "groupAppearance" : "background", { storagePath: path, position, atmosphere });
+      if (currentBackgroundPath && currentBackgroundPath !== path) await storage.remove([currentBackgroundPath]);
       toast.success(file ? "Chat background updated" : "Chat background removed");
       await onChanged();
     } catch (error) {
@@ -954,10 +1006,10 @@ function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }
     }
   }
   async function updateBackgroundPosition(position: "top" | "center" | "bottom") {
-    if (!mine?.chat_background_path) return;
+    if (!currentBackgroundPath) return;
     setBackgroundBusy(true);
     try {
-      await conversationAction(detail.id, "background", { storagePath: mine.chat_background_path, position, atmosphere });
+      await conversationAction(detail.id, detail.type === "group" ? "groupAppearance" : "background", { storagePath: currentBackgroundPath, position, atmosphere });
       await onChanged();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not reposition chat background");
@@ -968,7 +1020,11 @@ function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }
   async function updateAtmosphere(nextAtmosphere: keyof typeof CHAT_ATMOSPHERES) {
     setBackgroundBusy(true);
     try {
-      await conversationAction(detail.id, "background", { storagePath: mine?.chat_background_path ?? "", position: mine?.chat_background_position ?? "center", atmosphere: nextAtmosphere });
+      await conversationAction(detail.id, detail.type === "group" ? "groupAppearance" : "atmosphere", {
+        storagePath: currentBackgroundPath ?? "",
+        position: currentBackgroundPosition,
+        atmosphere: nextAtmosphere,
+      });
       await onChanged();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update chat atmosphere");
@@ -986,20 +1042,20 @@ function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }
             </Button>
             <div className="rounded-xl border border-[var(--border)] p-3">
               <div className="relative aspect-[16/6] overflow-hidden rounded-lg bg-[var(--bg-base)]" style={{ background: CHAT_ATMOSPHERES[atmosphere].background }}>
-                {detail.chatBackgroundUrl && <div className="absolute inset-0 bg-cover opacity-70" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: mine?.chat_background_position ?? "center" }} />}
+                {detail.chatBackgroundUrl && <div className="absolute inset-0 bg-cover opacity-70" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: currentBackgroundPosition }} />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
                 <p className="absolute bottom-2 left-2 text-xs font-bold text-white">{CHAT_ATMOSPHERES[atmosphere].label} atmosphere</p>
               </div>
-              <p className="mt-2 text-xs text-[var(--text-muted)]">Only you see this decoration in this conversation.</p>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">{detail.type === "group" ? "This decoration is shared with every group member." : "Only you see this decoration in this conversation."}</p>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Chat atmosphere">
-                {(Object.entries(CHAT_ATMOSPHERES) as [keyof typeof CHAT_ATMOSPHERES, (typeof CHAT_ATMOSPHERES)[keyof typeof CHAT_ATMOSPHERES]][]).map(([key, preset]) => <button type="button" key={key} disabled={backgroundBusy} onClick={() => void updateAtmosphere(key)} className={cn("relative min-h-14 overflow-hidden rounded-xl border p-2 text-left text-xs font-bold text-white", atmosphere === key ? "border-[var(--accent)] ring-2 ring-[rgb(var(--accent-rgb)/0.25)]" : "border-[var(--border)]")} style={{ background: preset.background }}><span className="relative z-[1] drop-shadow">{preset.label}</span></button>)}
+                {(Object.entries(CHAT_ATMOSPHERES) as [keyof typeof CHAT_ATMOSPHERES, (typeof CHAT_ATMOSPHERES)[keyof typeof CHAT_ATMOSPHERES]][]).map(([key, preset]) => <button type="button" key={key} disabled={backgroundBusy || !canEditAppearance} onClick={() => void updateAtmosphere(key)} className={cn("relative min-h-14 overflow-hidden rounded-xl border p-2 text-left text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60", atmosphere === key ? "border-[var(--accent)] ring-2 ring-[rgb(var(--accent-rgb)/0.25)]" : "border-[var(--border)]")} style={{ background: preset.background }}><span className="relative z-[1] drop-shadow">{preset.label}</span></button>)}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-bold text-black"><ImagePlus className="size-4" />{backgroundBusy ? "Updating…" : detail.chatBackgroundUrl ? "Replace" : "Upload"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={backgroundBusy} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void updateBackground(file); event.currentTarget.value = ""; }} /></label>
-                <Button variant="outline" disabled={!detail.chatBackgroundUrl || backgroundBusy} onClick={() => void updateBackground(null)}>Remove</Button>
+                <label className={cn("flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-bold text-black", canEditAppearance ? "cursor-pointer" : "cursor-not-allowed opacity-60")}><ImagePlus className="size-4" />{backgroundBusy ? "Updating…" : detail.chatBackgroundUrl ? "Replace" : "Upload"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={backgroundBusy || !canEditAppearance} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void updateBackground(file); event.currentTarget.value = ""; }} /></label>
+                <Button variant="outline" disabled={!detail.chatBackgroundUrl || backgroundBusy || !canEditAppearance} onClick={() => void updateBackground(null)}>Remove</Button>
               </div>
               <div className="mt-2 grid grid-cols-3 gap-2" aria-label="Chat background position">
-                {(["top", "center", "bottom"] as const).map((position) => <button type="button" key={position} disabled={!detail.chatBackgroundUrl || backgroundBusy} onClick={() => void updateBackgroundPosition(position)} className={cn("min-h-11 rounded-lg text-xs font-bold capitalize", mine?.chat_background_position === position ? "bg-[rgb(var(--accent-rgb)/0.18)] text-[var(--accent)]" : "bg-[var(--glass)] text-[var(--text-secondary)] disabled:opacity-40")}>{position}</button>)}
+                {(["top", "center", "bottom"] as const).map((position) => <button type="button" key={position} disabled={!detail.chatBackgroundUrl || backgroundBusy || !canEditAppearance} onClick={() => void updateBackgroundPosition(position)} className={cn("min-h-11 rounded-lg text-xs font-bold capitalize", currentBackgroundPosition === position ? "bg-[rgb(var(--accent-rgb)/0.18)] text-[var(--accent)]" : "bg-[var(--glass)] text-[var(--text-secondary)] disabled:opacity-40")}>{position}</button>)}
               </div>
             </div>
             {detail.type === "group" && isOwner && (
