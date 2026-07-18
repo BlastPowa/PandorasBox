@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, ImagePlus, Laugh, Loader2, MessageCircle, MoreHorizontal, Plus, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";
+import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, ImagePlus, Laugh, Loader2, MessageCircle, MoreHorizontal, Plus, Reply, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
@@ -14,6 +14,15 @@ import { fetchProfilesByIds, listMyFriendships, type ProfileSummary } from "@/li
 import { conversationAction, createConversation, getConversation, listConversations, messageAction, sendMessage } from "@/lib/messages/client";
 import type { Conversation, ConversationDetail, Message, MessageMedia } from "@/lib/messages/types";
 import { cn } from "@/lib/utils";
+
+const CHAT_ATMOSPHERES = {
+  midnight: { label: "Midnight", background: "radial-gradient(circle at 15% 10%, #27324a 0%, transparent 42%), linear-gradient(145deg, #06070d, #111827)" },
+  crimson: { label: "Black / Red", background: "radial-gradient(circle at 85% 15%, #7f1d1d 0%, transparent 45%), linear-gradient(145deg, #050505, #21070a)" },
+  aurora: { label: "Aurora", background: "radial-gradient(circle at 20% 10%, #0f766e 0%, transparent 42%), radial-gradient(circle at 85% 70%, #6b21a8 0%, transparent 45%), #070812" },
+  ocean: { label: "Ocean", background: "radial-gradient(circle at 80% 10%, #0e7490 0%, transparent 45%), linear-gradient(145deg, #020617, #082f49)" },
+  sunset: { label: "Sunset", background: "radial-gradient(circle at 80% 15%, #ea580c 0%, transparent 42%), radial-gradient(circle at 15% 80%, #9d174d 0%, transparent 45%), #12070b" },
+  royal: { label: "Royal", background: "radial-gradient(circle at 20% 10%, #6d28d9 0%, transparent 42%), radial-gradient(circle at 85% 75%, #a16207 0%, transparent 42%), #080611" },
+} as const;
 
 function useMobileChatViewport(active: boolean) {
   const [viewport, setViewport] = useState<{ height: number; top: number } | null>(null);
@@ -172,13 +181,15 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [typingIds, setTypingIds] = useState<string[]>([]);
-  const [manageOpen, setManageOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [mediaOpen, setMediaOpen] = useState(false);
   const [mediaBusy, setMediaBusy] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const typingSentAt = useRef(0);
   const messageListRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const swipeStart = useRef<{ messageId: string; x: number; y: number } | null>(null);
   const refresh = useCallback(async () => {
     const value = await getConversation(id);
     setDetail(value);
@@ -276,11 +287,17 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
       { onConflict: "conversation_id,user_id" },
     );
   }
+  function startReply(message: Message) {
+    if (message.deleted_at || message.id.startsWith("optimistic-")) return;
+    setReplyingTo(message);
+    window.requestAnimationFrame(() => composerRef.current?.focus());
+  }
   async function send() {
     if (!draft.trim() || sending) return;
     const body = draft.trim();
     const optimisticId = `optimistic-${crypto.randomUUID()}`;
     const createdAt = new Date().toISOString();
+    const replyTarget = replyingTo;
     const optimisticMessage: Message = {
       id: optimisticId,
       conversation_id: id,
@@ -288,11 +305,14 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
       body,
       shared_entity: null,
       media_attachment: null,
+      reply_to_id: replyTarget?.id ?? null,
+      reply: replyTarget ? toReplyPreview(replyTarget) : null,
       edited_at: null,
       deleted_at: null,
       created_at: createdAt,
     };
     setDraft("");
+    setReplyingTo(null);
     setDetail((current) =>
       current
         ? {
@@ -305,7 +325,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
     );
     setSending(true);
     try {
-      const sent = await sendMessage(id, body);
+      const sent = await sendMessage(id, body, undefined, undefined, replyTarget?.id);
       setDetail((current) =>
         current
           ? {
@@ -328,9 +348,47 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
           : current,
       );
       setDraft((current) => current || body);
+      setReplyingTo((current) => current ?? replyTarget);
       toast.error(error instanceof Error ? error.message : "Could not send message");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function sendMedia(media: MessageMedia) {
+    const replyTarget = replyingTo;
+    setMediaBusy(true);
+    try {
+      await sendMessage(id, "", undefined, media, replyTarget?.id);
+      setReplyingTo(null);
+      setMediaOpen(false);
+      await load();
+      onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send attachment");
+      if (media.provider === "upload" && media.storagePath) void createClient().storage.from("message-media").remove([media.storagePath]);
+    } finally {
+      setMediaBusy(false);
+    }
+  }
+
+  async function uploadMedia(file: File, kind: "image" | "sticker" = "image") {
+    if (!myId) return;
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      toast.error("Use a JPG, PNG, WebP, or GIF up to 10 MB");
+      return;
+    }
+    setMediaBusy(true);
+    const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1] ?? "image";
+    const storagePath = `${id}/${myId}/${crypto.randomUUID()}.${extension}`;
+    try {
+      const { error } = await createClient().storage.from("message-media").upload(storagePath, file, { contentType: file.type, cacheControl: "3600" });
+      if (error) throw error;
+      await sendMedia({ kind: kind === "sticker" ? "sticker" : file.type === "image/gif" ? "gif" : "image", provider: "upload", storagePath, alt: file.name.slice(0, 200) });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not upload image");
+      void createClient().storage.from("message-media").remove([storagePath]);
+      setMediaBusy(false);
     }
   }
   async function saveEdit(message: Message) {
@@ -358,8 +416,15 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
       </div>
     );
   const mine = detail.members.find((member) => member.user_id === myId);
-  const isOwner = detail.owner_id === myId;
   const activeMembers = detail.members.filter((member) => member.status === "active");
+  const typingNames = typingIds.map((userId) => detail.members.find((member) => member.user_id === userId)?.profile?.username ?? "Someone");
+  const typingLabel = typingNames.length === 0
+    ? null
+    : typingNames.length === 1
+      ? `${typingNames[0]} is typing…`
+      : typingNames.length === 2
+        ? `${typingNames[0]} and ${typingNames[1]} are typing…`
+        : `${typingNames[0]}, ${typingNames[1]}, and ${typingNames.length - 2} others are typing…`;
   const seenCount = detail.latestMessage?.sender_id === myId ? activeMembers.filter((member) => member.user_id !== myId && member.last_read_at && new Date(member.last_read_at) >= new Date(detail.latestMessage!.created_at)).length : 0;
   if (mine?.status === "invited")
     return (
@@ -379,21 +444,21 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
     );
 
   return (
-    <div className="flex size-full min-h-0 flex-col">
-      <header className="flex min-h-[calc(4rem+var(--safe-top))] items-center gap-3 border-b border-[var(--border)] px-3 pt-[var(--safe-top)] sm:min-h-16 sm:px-4 sm:pt-0">
+    <div className="relative flex size-full min-h-0 flex-col overflow-hidden">
+      <div className="pointer-events-none absolute inset-0" style={{ background: CHAT_ATMOSPHERES[mine?.chat_atmosphere ?? "midnight"].background }} aria-hidden="true" />
+      {detail.chatBackgroundUrl && <><div className="pointer-events-none absolute inset-0 bg-cover opacity-65" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: mine?.chat_background_position ?? "center" }} aria-hidden="true" /><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.62),rgba(7,8,14,.74)_45%,rgba(7,8,14,.88))]" aria-hidden="true" /></>}
+      <header className="relative z-[1] flex min-h-[calc(4rem+var(--safe-top))] items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-surface)] px-3 pt-[var(--safe-top)] sm:min-h-16 sm:px-4 sm:pt-0">
         <button type="button" onClick={onBack} className="grid size-11 place-items-center rounded-full hover:bg-[var(--glass)] md:hidden" aria-label="Back to conversations">
           <ChevronLeft />
         </button>
         <Avatar url={detail.type === "direct" ? (detail.members.find((member) => member.user_id !== myId)?.profile?.avatar_url ?? null) : detail.avatar_url} label={detail.title} group={detail.type === "group"} />
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-display font-bold">{detail.title}</h2>
-          <p className="text-xs text-[var(--text-muted)]">{typingIds.length ? "Typing…" : detail.type === "group" ? `${activeMembers.length} members` : "Direct message"}</p>
+          <p className="truncate text-xs text-[var(--text-muted)]">{typingLabel ?? (detail.type === "group" ? `${activeMembers.length} members` : "Direct message")}</p>
         </div>
-        <Button size="icon" variant="ghost" aria-label="Conversation settings" onClick={() => setManageOpen(true)}>
-          <MoreHorizontal />
-        </Button>
+        <Link href={`/messages/${id}/settings`} className="grid size-11 place-items-center rounded-full hover:bg-[var(--glass)]" aria-label="Conversation settings"><MoreHorizontal /></Link>
       </header>
-      <div ref={messageListRef} className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-3 py-4 sm:px-5">
+      <div ref={messageListRef} className="relative z-[1] min-h-0 flex-1 overscroll-contain overflow-y-auto px-3 py-4 sm:px-5">
         {detail.nextCursor && (
           <div className="mb-4 text-center">
             <Button
@@ -412,15 +477,38 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
             </Button>
           </div>
         )}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {detail.messages.map((message) => {
             const own = message.sender_id === myId;
             const sender = detail.members.find((member) => member.user_id === message.sender_id)?.profile;
             return (
-              <div key={message.id} className={cn("group flex min-w-0 items-end gap-2", own ? "justify-end" : "justify-start")}>
-                {!own && <Avatar small url={sender?.avatar_url ?? null} label={sender?.username ?? "Member"} />}
-                <div className={cn("min-w-0 max-w-[calc(100%-2.75rem)] rounded-2xl px-3.5 py-2.5 sm:max-w-[70%]", own ? "rounded-br-md bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] text-black" : "rounded-bl-md bg-[var(--bg-elevated)]")}>
+              <div
+                id={`message-${message.id}`}
+                key={message.id}
+                className={cn("group relative flex min-w-0 touch-pan-y scroll-mt-4 items-end gap-2", own ? "justify-end" : "justify-start")}
+                onTouchStart={(event) => { const touch = event.touches[0]; if (touch) swipeStart.current = { messageId: message.id, x: touch.clientX, y: touch.clientY }; }}
+                onTouchEnd={(event) => {
+                  const start = swipeStart.current;
+                  const touch = event.changedTouches[0];
+                  swipeStart.current = null;
+                  if (!start || start.messageId !== message.id || !touch || !window.matchMedia("(max-width: 767px)").matches) return;
+                  const deltaX = touch.clientX - start.x;
+                  const deltaY = touch.clientY - start.y;
+                  if (Math.abs(deltaX) >= 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25) startReply(message);
+                }}
+              >
+                {!message.deleted_at && !message.id.startsWith("optimistic-") && <button type="button" aria-label="Reply to message" onClick={() => startReply(message)} className={cn("absolute -top-5 z-[2] hidden size-9 place-items-center rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] opacity-0 shadow-lg transition md:grid md:group-hover:opacity-100 md:focus-visible:opacity-100", own ? "right-12" : "left-12")}><Reply className="size-4" /></button>}
+                {!own && (sender?.username ? <Link href={`/profile/${encodeURIComponent(sender.username)}`} aria-label={`View ${sender.username}'s profile`}><Avatar small url={sender.avatar_url ?? null} label={sender.username} /></Link> : <Avatar small url={sender?.avatar_url ?? null} label="Member" />)}
+                <div className={cn("min-w-0 max-w-[calc(100%-2.75rem)] rounded-2xl px-3 py-2 sm:max-w-[68%]", own ? "rounded-br-md bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] text-black" : "rounded-bl-md bg-[var(--bg-elevated)]", detail.chatBackgroundUrl && !own && "bg-[rgba(18,19,29,.9)] shadow-lg backdrop-blur-md")}>
                   {!own && detail.type === "group" && <p className="mb-1 text-[10px] font-bold text-[var(--accent)]">{sender?.username ?? "Member"}</p>}
+                  {message.reply_to_id && (
+                    <ReplyPreview
+                      message={message.reply}
+                      members={detail.members}
+                      own={own}
+                      onOpen={() => document.getElementById(`message-${message.reply_to_id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    />
+                  )}
                   {editingId === message.id ? (
                     <div className="flex gap-2">
                       <input value={editText} onChange={(event) => setEditText(event.target.value)} className="min-w-0 flex-1 rounded-lg bg-black/20 px-2 py-1 text-sm outline-none" autoFocus />
@@ -465,7 +553,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
                     )}
                   </div>
                 </div>
-                {own && <Avatar small url={sender?.avatar_url ?? null} label={sender?.username ?? "You"} />}
+                {own && (sender?.username ? <Link href={`/profile/${encodeURIComponent(sender.username)}`} aria-label={`View ${sender.username}'s profile`}><Avatar small url={sender.avatar_url ?? null} label={sender.username} /></Link> : <Avatar small url={sender?.avatar_url ?? null} label="You" />)}
               </div>
             );
           })}
@@ -477,18 +565,30 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
           </p>
         )}
       </div>
-      {mediaOpen && <MediaPicker conversationId={id} myId={myId} busy={mediaBusy} onClose={() => setMediaOpen(false)} onSend={async (media) => { setMediaBusy(true); try { await sendMessage(id, "", undefined, media); setMediaOpen(false); await load(); onChanged(); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not send attachment"); if (media.provider === "upload" && media.storagePath) void createClient().storage.from("message-media").remove([media.storagePath]); } finally { setMediaBusy(false); } }} />}
+      {mediaOpen && <div className="relative z-[2]"><MediaPicker busy={mediaBusy} onClose={() => setMediaOpen(false)} onUpload={uploadMedia} onSend={sendMedia} /></div>}
+      {typingLabel && <p className="relative z-[2] shrink-0 border-t border-[var(--border)] bg-[var(--bg-surface)] px-4 py-1.5 text-xs font-medium text-[var(--accent)]">{typingLabel}</p>}
+      {replyingTo && (
+        <div className="relative z-[2] flex items-center gap-3 border-t border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 sm:px-4">
+          <Reply className="size-4 shrink-0 text-[var(--accent)]" />
+          <div className="min-w-0 flex-1 border-l-2 border-[var(--accent)] pl-3">
+            <p className="truncate text-xs font-bold text-[var(--accent)]">Replying to {detail.members.find((member) => member.user_id === replyingTo.sender_id)?.profile?.username ?? "message"}</p>
+            <p className="truncate text-xs text-[var(--text-muted)]">{messagePreview(replyingTo)}</p>
+          </div>
+          <button type="button" onClick={() => setReplyingTo(null)} className="grid size-11 shrink-0 place-items-center rounded-full" aria-label="Cancel reply"><X className="size-4" /></button>
+        </div>
+      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           void send();
         }}
-        className="flex w-full min-w-0 items-end gap-2 overflow-hidden border-t border-[var(--border)] bg-[var(--bg-surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4"
+        className="relative z-[2] flex w-full min-w-0 items-end gap-2 overflow-hidden border-t border-[var(--border)] bg-[var(--bg-surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4"
       >
         <Button size="icon" type="button" variant="ghost" className="h-12 w-12 shrink-0 rounded-full" onClick={() => setMediaOpen((current) => !current)} aria-label="Add image, GIF, or sticker"><ImagePlus className="size-5" /></Button>
         <label className="min-h-11 min-w-0 flex-1 rounded-2xl border border-[var(--border)] bg-[var(--bg-base)] px-4 py-3">
           <span className="sr-only">Message</span>
           <textarea
+            ref={composerRef}
             rows={1}
             value={draft}
             onChange={(event) => void type(event.target.value)}
@@ -498,27 +598,21 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
                 void send();
               }
             }}
+            onPaste={(event) => {
+              const image = Array.from(event.clipboardData.items).find((item) => item.kind === "file" && item.type.startsWith("image/"))?.getAsFile();
+              if (!image) return;
+              event.preventDefault();
+              void uploadMedia(image);
+            }}
             onFocus={() => window.requestAnimationFrame(scrollMessagesToBottom)}
             placeholder="Write a message"
             className="block max-h-32 w-full resize-none bg-transparent text-base outline-none md:text-sm"
           />
         </label>
-        <Button size="icon" type="submit" className="h-12 w-12 shrink-0 rounded-full" disabled={!draft.trim() || sending} aria-label="Send message">
-          {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+        <Button size="icon" type="submit" className="h-12 w-12 shrink-0 rounded-full" disabled={!draft.trim() || sending || mediaBusy} aria-label="Send message">
+          {sending || mediaBusy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
         </Button>
       </form>
-      <ManageConversationDialog
-        open={manageOpen}
-        onOpenChange={setManageOpen}
-        detail={detail}
-        myId={myId}
-        isOwner={isOwner}
-        onChanged={async () => {
-          await load();
-          onChanged();
-        }}
-        onLeave={onBack}
-      />
     </div>
   );
 }
@@ -540,12 +634,44 @@ function MessageBody({ body, own }: { body: string; own: boolean }) {
   );
 }
 
+function toReplyPreview(message: Message): NonNullable<Message["reply"]> {
+  return {
+    id: message.id,
+    sender_id: message.sender_id,
+    body: message.body,
+    shared_entity: message.shared_entity,
+    media_attachment: message.media_attachment,
+    deleted_at: message.deleted_at,
+  };
+}
+
+function messagePreview(message: Message | NonNullable<Message["reply"]>): string {
+  if (message.deleted_at) return "Message removed";
+  if (message.body) return message.body;
+  if (message.shared_entity) return message.shared_entity.title;
+  if (message.media_attachment?.kind === "sticker") return "Sticker";
+  if (message.media_attachment?.kind === "gif") return "GIF";
+  if (message.media_attachment?.kind === "image") return "Image";
+  return "Message";
+}
+
+function ReplyPreview({ message, members, own, onOpen }: { message: Message["reply"]; members: ConversationDetail["members"]; own: boolean; onOpen: () => void }) {
+  if (!message) return <div className={cn("mb-2 rounded-lg border-l-2 px-2.5 py-2 text-xs", own ? "border-black/50 bg-black/10" : "border-[var(--accent)] bg-black/15")}><span className="opacity-65">Original message unavailable</span></div>;
+  const sender = members.find((member) => member.user_id === message.sender_id)?.profile?.username ?? "PBox member";
+  return (
+    <button type="button" onClick={onOpen} className={cn("mb-2 block w-full rounded-lg border-l-2 px-2.5 py-2 text-left", own ? "border-black/50 bg-black/10" : "border-[var(--accent)] bg-black/15")}>
+      <span className={cn("block truncate text-[10px] font-bold", own ? "text-black/75" : "text-[var(--accent)]")}>{sender}</span>
+      <span className="mt-0.5 block truncate text-xs opacity-75">{messagePreview(message)}</span>
+    </button>
+  );
+}
+
 function SharedMessageCard({ card, own }: { card: NonNullable<Message["shared_entity"]>; own: boolean }) {
   return (
     <Link href={card.href} className={cn("mt-2 block overflow-hidden rounded-xl border text-left", own ? "border-black/20 bg-black/10" : "border-[var(--border)] bg-[var(--bg-base)]")}>
       {card.posterUrl && (
-        <span className="relative block aspect-[16/7] overflow-hidden">
-          <Image src={card.posterUrl} alt="" fill sizes="(max-width: 640px) 70vw, 360px" className="object-cover" />
+        <span className="relative block aspect-[16/6] max-h-24 overflow-hidden">
+          <Image src={card.posterUrl} alt="" fill sizes="(max-width: 640px) 65vw, 320px" className="object-cover" />
         </span>
       )}
       <span className="block p-3">
@@ -562,29 +688,18 @@ function MessageMediaView({ media }: { media: MessageMedia }) {
   if (!media.url) return <div className="rounded-xl bg-black/10 px-3 py-6 text-center text-xs opacity-60">Attachment unavailable</div>;
   return <a href={media.url} target="_blank" rel="noopener noreferrer" className="mt-1 block overflow-hidden rounded-xl bg-black/20" aria-label={`Open ${media.kind}`}>
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src={media.url} alt={media.alt ?? "Shared media"} className="max-h-80 w-full max-w-[300px] object-contain" loading="lazy" />
+    <img src={media.url} alt={media.alt ?? "Shared media"} className={cn("w-full object-contain", media.kind === "sticker" ? "max-h-40 max-w-[180px]" : "max-h-64 max-w-[260px]")} loading="lazy" />
   </a>;
 }
 
 const BUILTIN_STICKERS = ["😂", "❤️", "🔥", "👍", "🎉", "😮", "😭", "👏", "💀", "✨", "🤝", "🍿"];
 
-function MediaPicker({ conversationId, myId, busy, onClose, onSend }: { conversationId: string; myId: string | null; busy: boolean; onClose: () => void; onSend: (media: MessageMedia) => Promise<void> }) {
+function MediaPicker({ busy, onClose, onUpload, onSend }: { busy: boolean; onClose: () => void; onUpload: (file: File, kind?: "image" | "sticker") => Promise<void>; onSend: (media: MessageMedia) => Promise<void> }) {
   const [tab, setTab] = useState<"sticker" | "gif" | "image">("sticker");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{ id: string; preview: string; url: string; title: string }[]>([]);
   const [searching, setSearching] = useState(false);
   const giphyKey = process.env.NEXT_PUBLIC_GIPHY_API_KEY;
-
-  async function upload(file: File) {
-    if (!myId) return;
-    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowed.includes(file.type) || file.size > 10 * 1024 * 1024) { toast.error("Use a JPG, PNG, WebP, or GIF up to 10 MB"); return; }
-    const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1] ?? "image";
-    const storagePath = `${conversationId}/${myId}/${crypto.randomUUID()}.${extension}`;
-    const { error } = await createClient().storage.from("message-media").upload(storagePath, file, { contentType: file.type, cacheControl: "3600" });
-    if (error) { toast.error(error.message); return; }
-    await onSend({ kind: file.type === "image/gif" ? "gif" : "image", provider: "upload", storagePath, alt: file.name.slice(0, 200) });
-  }
 
   async function searchGiphy(event: React.FormEvent) {
     event.preventDefault();
@@ -592,21 +707,33 @@ function MediaPicker({ conversationId, myId, busy, onClose, onSend }: { conversa
     setSearching(true);
     try {
       const endpoint = tab === "sticker" ? "stickers" : "gifs";
+      const cacheKey = `pbox:giphy:${endpoint}:${query.trim().toLowerCase()}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          setResults(JSON.parse(cached) as typeof results);
+          return;
+        } catch {
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
       const response = await fetch(`https://api.giphy.com/v1/${endpoint}/search?api_key=${encodeURIComponent(giphyKey)}&q=${encodeURIComponent(query.trim().slice(0, 50))}&limit=18&rating=pg&lang=en`);
       if (!response.ok) throw new Error("GIF search is unavailable");
       const payload = await response.json() as { data?: { id: string; title?: string; images?: { fixed_width?: { url?: string }; original?: { url?: string; width?: string; height?: string } } }[] };
-      setResults((payload.data ?? []).flatMap((item) => {
+      const nextResults = (payload.data ?? []).flatMap((item) => {
         const preview = item.images?.fixed_width?.url; const url = item.images?.original?.url;
         return preview && url ? [{ id: item.id, preview, url, title: item.title ?? (tab === "sticker" ? "Sticker" : "GIF") }] : [];
-      }));
+      });
+      setResults(nextResults);
+      sessionStorage.setItem(cacheKey, JSON.stringify(nextResults));
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not search GIFs"); }
     finally { setSearching(false); }
   }
 
   return <section className="max-h-[42dvh] shrink-0 overflow-y-auto border-t border-[var(--border)] bg-[var(--bg-elevated)] p-3" aria-label="Add media">
     <div className="flex items-center justify-between gap-2"><div className="flex gap-1">{(["sticker", "gif", "image"] as const).map((value) => <button key={value} type="button" onClick={() => { setTab(value); setResults([]); }} className={cn("min-h-11 rounded-full px-4 text-sm font-bold capitalize", tab === value ? "bg-[var(--accent)] text-black" : "bg-[var(--glass)]")}>{value === "image" ? "Photos" : `${value}s`}</button>)}</div><button type="button" onClick={onClose} className="grid size-11 shrink-0 place-items-center rounded-full" aria-label="Close media picker"><X className="size-5" /></button></div>
-    {tab === "sticker" && <div className="mt-3 grid grid-cols-6 gap-2">{BUILTIN_STICKERS.map((sticker) => <button key={sticker} type="button" disabled={busy} onClick={() => void onSend({ kind: "sticker", provider: "builtin", sticker, alt: "Sticker" })} className="grid aspect-square min-h-11 place-items-center rounded-xl bg-[var(--glass)] text-3xl transition hover:bg-[var(--glass-strong)]">{sticker}</button>)}</div>}
-    {tab === "image" && <label className="mt-3 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--glass)] text-center"><ImagePlus className="mb-2 size-6 text-[var(--accent)]" /><strong className="text-sm">Choose an image or GIF</strong><span className="mt-1 text-xs text-[var(--text-muted)]">JPG, PNG, WebP, or GIF up to 10 MB</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ""; }} /></label>}
+    {tab === "sticker" && <><div className="mt-3 grid grid-cols-6 gap-2">{BUILTIN_STICKERS.map((sticker) => <button key={sticker} type="button" disabled={busy} onClick={() => void onSend({ kind: "sticker", provider: "builtin", sticker, alt: "Sticker" })} className="grid aspect-square min-h-11 place-items-center rounded-xl bg-[var(--glass)] text-3xl transition hover:bg-[var(--glass-strong)]">{sticker}</button>)}</div><label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--glass)] px-3 text-sm font-bold"><ImagePlus className="size-4 text-[var(--accent)]" /> Upload custom sticker<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file, "sticker"); event.currentTarget.value = ""; }} /></label></>}
+    {tab === "image" && <label className="mt-3 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--glass)] text-center"><ImagePlus className="mb-2 size-6 text-[var(--accent)]" /><strong className="text-sm">Choose or paste an image or GIF</strong><span className="mt-1 text-xs text-[var(--text-muted)]">JPG, PNG, WebP, or GIF up to 10 MB</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file); event.currentTarget.value = ""; }} /></label>}
     {tab === "gif" && <>{giphyKey ? <><form onSubmit={(event) => void searchGiphy(event)} className="mt-3 flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search GIFs" className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3 text-base outline-none" /><Button type="submit" size="icon" disabled={!query.trim() || searching} aria-label="Search GIFs">{searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}</Button></form><div className="mt-3 columns-2 gap-2 sm:columns-3">{results.map((gif) => <button key={gif.id} type="button" disabled={busy} onClick={() => void onSend({ kind: "gif", provider: "giphy", url: gif.url, alt: gif.title.slice(0, 200) })} className="mb-2 block w-full overflow-hidden rounded-xl bg-black/20"><Image src={gif.preview} alt={gif.title} width={240} height={180} unoptimized className="h-auto w-full" /></button>)}</div><p className="mt-2 text-center text-[10px] font-bold tracking-wide text-[var(--text-muted)]">Powered by GIPHY</p></> : <div className="mt-3 rounded-xl bg-[var(--glass)] p-4 text-center"><Laugh className="mx-auto size-6 text-[var(--accent)]" /><p className="mt-2 text-sm font-bold">GIF search needs a GIPHY API key</p><p className="mt-1 text-xs text-[var(--text-muted)]">You can still upload a GIF from the Photos tab.</p></div>}</>}
   </section>;
 }
@@ -706,13 +833,43 @@ function NewConversationDialog({ open, onOpenChange, onCreated }: { open: boolea
   );
 }
 
-function ManageConversationDialog({ open, onOpenChange, detail, myId, isOwner, onChanged, onLeave }: { open: boolean; onOpenChange: (value: boolean) => void; detail: ConversationDetail; myId: string | null; isOwner: boolean; onChanged: () => Promise<void>; onLeave: () => void }) {
+export function ConversationSettingsView({ id }: { id: string }) {
+  const router = useRouter();
+  const [detail, setDetail] = useState<ConversationDetail | null>(null);
+  const [myId, setMyId] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    try {
+      const [{ data }, conversation] = await Promise.all([createClient().auth.getUser(), getConversation(id)]);
+      setMyId(data.user?.id ?? null);
+      setDetail(conversation);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load conversation settings");
+      router.replace("/messages");
+    }
+  }, [id, router]);
+  useEffect(() => { queueMicrotask(() => void load()); }, [load]);
+  if (!detail) return <div className="grid min-h-[50dvh] place-items-center"><Loader2 className="size-7 animate-spin text-[var(--accent)]" /></div>;
+  return (
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8">
+      <div className="mb-6 flex items-center gap-3">
+        <Link href={`/messages/${id}`} className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass)]" aria-label="Back to conversation"><ChevronLeft /></Link>
+        <Avatar url={detail.type === "direct" ? (detail.members.find((member) => member.user_id !== myId)?.profile?.avatar_url ?? null) : detail.avatar_url} label={detail.title} group={detail.type === "group"} />
+        <div className="min-w-0"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Conversation settings</p><h1 className="truncate font-display text-2xl font-bold">{detail.title}</h1></div>
+      </div>
+      <ConversationSettingsPanel detail={detail} myId={myId} isOwner={detail.owner_id === myId} onChanged={load} onLeave={() => router.replace("/messages")} />
+    </div>
+  );
+}
+
+function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }: { detail: ConversationDetail; myId: string | null; isOwner: boolean; onChanged: () => Promise<void>; onLeave: () => void }) {
   const mine = detail.members.find((member) => member.user_id === myId);
+  const atmosphere = mine?.chat_atmosphere ?? "midnight";
   const [friends, setFriends] = useState<ProfileSummary[]>([]);
   const [inviteIds, setInviteIds] = useState<string[]>([]);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [backgroundBusy, setBackgroundBusy] = useState(false);
   useEffect(() => {
-    if (!open || !isOwner) return;
+    if (!isOwner) return;
     queueMicrotask(
       () =>
         void (async () => {
@@ -725,7 +882,7 @@ function ManageConversationDialog({ open, onOpenChange, detail, myId, isOwner, o
           setFriends(ids.map((id) => map.get(id)).filter((profile): profile is ProfileSummary => Boolean(profile)));
         })(),
     );
-  }, [detail.members, isOwner, myId, open]);
+  }, [detail.members, isOwner, myId]);
   async function act(action: string, payload: Record<string, unknown> = {}) {
     try {
       await conversationAction(detail.id, action, payload);
@@ -768,22 +925,83 @@ function ManageConversationDialog({ open, onOpenChange, detail, myId, isOwner, o
       setAvatarBusy(false);
     }
   }
+  async function updateBackground(file: File | null, position = mine?.chat_background_position ?? "center") {
+    if (!myId) return;
+    if (file && (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024)) {
+      toast.error("Use a JPG, PNG, or WebP image up to 8 MB");
+      return;
+    }
+    setBackgroundBusy(true);
+    const storage = createClient().storage.from("chat-backgrounds");
+    const path = `${myId}/${detail.id}/background`;
+    try {
+      if (file) {
+        const { error } = await storage.upload(path, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
+        if (error) throw error;
+      } else if (!mine?.chat_background_path) {
+        await conversationAction(detail.id, "background", { storagePath: "", position, atmosphere });
+        await onChanged();
+        return;
+      }
+      await conversationAction(detail.id, "background", { storagePath: file ? path : "", position, atmosphere });
+      if (!file && mine?.chat_background_path) await storage.remove([mine.chat_background_path]);
+      toast.success(file ? "Chat background updated" : "Chat background removed");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update chat background");
+    } finally {
+      setBackgroundBusy(false);
+    }
+  }
+  async function updateBackgroundPosition(position: "top" | "center" | "bottom") {
+    if (!mine?.chat_background_path) return;
+    setBackgroundBusy(true);
+    try {
+      await conversationAction(detail.id, "background", { storagePath: mine.chat_background_path, position, atmosphere });
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not reposition chat background");
+    } finally {
+      setBackgroundBusy(false);
+    }
+  }
+  async function updateAtmosphere(nextAtmosphere: keyof typeof CHAT_ATMOSPHERES) {
+    setBackgroundBusy(true);
+    try {
+      await conversationAction(detail.id, "background", { storagePath: mine?.chat_background_path ?? "", position: mine?.chat_background_position ?? "center", atmosphere: nextAtmosphere });
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update chat atmosphere");
+    } finally {
+      setBackgroundBusy(false);
+    }
+  }
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/75" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-[81] max-h-[88dvh] overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-elevated)] p-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[min(92vw,520px)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)]">
-          <div className="flex items-center justify-between">
-            <Dialog.Title className="font-display text-xl font-bold">Conversation settings</Dialog.Title>
-            <Dialog.Close className="grid size-11 place-items-center rounded-full">
-              <X />
-            </Dialog.Close>
-          </div>
-          <div className="mt-4 space-y-3">
+    <section className="mx-auto w-full max-w-4xl pb-[max(2rem,var(--safe-bottom))]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,.85fr)]">
+        <div className="space-y-4">
             <Button variant="outline" className="w-full" onClick={() => void act("mute", { muted: !mine?.muted_at })}>
               {mine?.muted_at ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
               {mine?.muted_at ? "Unmute" : "Mute"}
             </Button>
+            <div className="rounded-xl border border-[var(--border)] p-3">
+              <div className="relative aspect-[16/6] overflow-hidden rounded-lg bg-[var(--bg-base)]" style={{ background: CHAT_ATMOSPHERES[atmosphere].background }}>
+                {detail.chatBackgroundUrl && <div className="absolute inset-0 bg-cover opacity-70" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: mine?.chat_background_position ?? "center" }} />}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+                <p className="absolute bottom-2 left-2 text-xs font-bold text-white">{CHAT_ATMOSPHERES[atmosphere].label} atmosphere</p>
+              </div>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">Only you see this decoration in this conversation.</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Chat atmosphere">
+                {(Object.entries(CHAT_ATMOSPHERES) as [keyof typeof CHAT_ATMOSPHERES, (typeof CHAT_ATMOSPHERES)[keyof typeof CHAT_ATMOSPHERES]][]).map(([key, preset]) => <button type="button" key={key} disabled={backgroundBusy} onClick={() => void updateAtmosphere(key)} className={cn("relative min-h-14 overflow-hidden rounded-xl border p-2 text-left text-xs font-bold text-white", atmosphere === key ? "border-[var(--accent)] ring-2 ring-[rgb(var(--accent-rgb)/0.25)]" : "border-[var(--border)]")} style={{ background: preset.background }}><span className="relative z-[1] drop-shadow">{preset.label}</span></button>)}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-bold text-black"><ImagePlus className="size-4" />{backgroundBusy ? "Updating…" : detail.chatBackgroundUrl ? "Replace" : "Upload"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={backgroundBusy} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void updateBackground(file); event.currentTarget.value = ""; }} /></label>
+                <Button variant="outline" disabled={!detail.chatBackgroundUrl || backgroundBusy} onClick={() => void updateBackground(null)}>Remove</Button>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2" aria-label="Chat background position">
+                {(["top", "center", "bottom"] as const).map((position) => <button type="button" key={position} disabled={!detail.chatBackgroundUrl || backgroundBusy} onClick={() => void updateBackgroundPosition(position)} className={cn("min-h-11 rounded-lg text-xs font-bold capitalize", mine?.chat_background_position === position ? "bg-[rgb(var(--accent-rgb)/0.18)] text-[var(--accent)]" : "bg-[var(--glass)] text-[var(--text-secondary)] disabled:opacity-40")}>{position}</button>)}
+              </div>
+            </div>
             {detail.type === "group" && isOwner && (
               <div className="rounded-xl border border-[var(--border)] p-3">
                 <div className="flex items-center gap-3">
@@ -815,6 +1033,8 @@ function ManageConversationDialog({ open, onOpenChange, detail, myId, isOwner, o
                 </div>
               </div>
             )}
+        </div>
+        <div className="space-y-4">
             {detail.type === "group" && (
               <>
                 <h3 className="pt-2 text-sm font-bold">Members</h3>
@@ -869,9 +1089,8 @@ function ManageConversationDialog({ open, onOpenChange, detail, myId, isOwner, o
                 )}
               </>
             )}
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </div>
+      </div>
+    </section>
   );
 }

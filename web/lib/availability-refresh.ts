@@ -40,7 +40,7 @@ export async function refreshAvailability(): Promise<{ updated: number }> {
   const active = Array.from(seen.values())
     .filter(
       (i) =>
-        (i.status === "watching" && (i.type === "anime" || i.type === "series" || i.type === "movie")) ||
+        ((i.status === "watching" || i.status === "rewatching") && (i.type === "anime" || i.type === "series" || i.type === "movie")) ||
         ((i.status === "reading") && (i.type === "manga" || i.type === "manhwa"))
     )
     .slice(0, MAX_TITLES);

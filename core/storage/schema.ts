@@ -2,6 +2,7 @@ export type ReelItemType = "movie" | "series" | "anime" | "manga" | "manhwa" | "
 
 export type ReelItemStatus =
   | "watching"
+  | "rewatching"
   | "reading"
   | "completed"
   | "on_hold"

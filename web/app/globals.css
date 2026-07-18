@@ -224,6 +224,57 @@ body::before {
   border: 1px solid var(--border-strong);
 }
 
+/* iOS zooms focused controls below 16px. Keep all mobile forms stable, including
+   search sheets, dialogs, filters, imports, and the message composer. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+@keyframes pbox-toast-from-right {
+  from { opacity: 0; transform: translateX(110%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pbox-toast-from-left {
+  from { opacity: 0; transform: translateX(-110%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.pbox-social-toast {
+  position: fixed;
+  right: max(1.25rem, var(--safe-right));
+  bottom: max(1.5rem, var(--safe-bottom));
+  z-index: 110;
+  display: block;
+  width: min(24rem, calc(100vw - 2rem));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+  overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(18px);
+  animation: pbox-toast-from-right 220ms ease-out both;
+}
+
+@media (max-width: 767px) {
+  .pbox-social-toast {
+    top: calc(var(--safe-top) + 0.75rem);
+    right: max(0.75rem, var(--safe-right));
+    bottom: auto;
+    left: max(0.75rem, var(--safe-left));
+    width: auto;
+    animation-name: pbox-toast-from-left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pbox-social-toast { animation: none; }
+}
+
 @media (min-width: 768px) {
   :root {
     --app-bottom-nav-row: 0px;

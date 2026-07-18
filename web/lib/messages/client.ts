@@ -19,8 +19,8 @@ export async function getConversation(id: string, cursor?: string) {
   return json<ConversationDetail>(await fetch(`/api/messages/${id}${query}`, { cache: "no-store" }));
 }
 
-export async function sendMessage(id: string, body: string, share?: MessageShareCard, media?: MessageMedia) {
-  return json<{ id: string }>(await fetch(`/api/messages/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body, share, media }) }));
+export async function sendMessage(id: string, body: string, share?: MessageShareCard, media?: MessageMedia, replyToId?: string | null) {
+  return json<{ id: string }>(await fetch(`/api/messages/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body, share, media, replyToId }) }));
 }
 
 export async function conversationAction(id: string, action: string, payload: Record<string, unknown> = {}) {

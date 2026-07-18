@@ -12,6 +12,9 @@ export interface ConversationMember {
   joined_at: string | null;
   muted_at: string | null;
   last_read_at: string | null;
+  chat_background_path: string | null;
+  chat_background_position: "top" | "center" | "bottom";
+  chat_atmosphere: "midnight" | "crimson" | "aurora" | "ocean" | "sunset" | "royal";
   created_at: string;
   profile?: ShareProfile | null;
 }
@@ -23,9 +26,20 @@ export interface Message {
   body: string | null;
   shared_entity: MessageShareCard | null;
   media_attachment: MessageMedia | null;
+  reply_to_id: string | null;
+  reply: MessageReplyPreview | null;
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
+}
+
+export interface MessageReplyPreview {
+  id: string;
+  sender_id: string;
+  body: string | null;
+  shared_entity: MessageShareCard | null;
+  media_attachment: MessageMedia | null;
+  deleted_at: string | null;
 }
 
 export interface MessageMedia {
@@ -69,6 +83,7 @@ export interface Conversation {
 export interface ConversationDetail extends Conversation {
   messages: Message[];
   nextCursor: string | null;
+  chatBackgroundUrl: string | null;
 }
 
 export interface TypingState {

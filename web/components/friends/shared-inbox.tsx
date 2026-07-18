@@ -65,8 +65,8 @@ export function SharedInbox() {
         const person = box === "received" ? share.sender : share.recipient;
         const unavailable = Boolean(share.revoked_at);
         return <article key={share.id} className={`glass flex gap-3 rounded-[var(--radius-lg)] p-3 sm:p-4 ${!share.read_at && box === "received" ? "ring-1 ring-[rgb(var(--accent-rgb)/0.45)]" : ""}`}>
-          <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
-            {share.poster_url ? <Image src={share.poster_url} alt="" fill sizes="64px" className="object-cover" /> : <div className="grid size-full place-items-center font-display text-xl text-[var(--text-muted)]">{share.title.charAt(0)}</div>}
+          <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-elevated)] sm:h-24 sm:w-16">
+            {share.poster_url ? <Image src={share.poster_url} alt="" fill sizes="(max-width: 639px) 56px, 64px" className="object-cover" /> : <div className="grid size-full place-items-center font-display text-xl text-[var(--text-muted)]">{share.title.charAt(0)}</div>}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs text-[var(--text-muted)]">{box === "received" ? "From" : "To"} {person?.username ?? "PBox member"} · {new Date(share.created_at).toLocaleDateString()}</p><h3 className="line-clamp-2 font-display font-bold">{share.title}</h3><p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">{share.entity_type === "collection" ? "Collection" : share.media_type}</p></div>{unavailable && <span className="rounded-full bg-[rgba(239,68,68,.14)] px-2 py-1 text-[10px] font-bold text-[#fca5a5]">No longer available</span>}</div>

@@ -180,7 +180,7 @@ export class ListManager {
     return list
       .filter(
         (item) =>
-          (item.status === "watching" || item.status === "reading") &&
+          (item.status === "watching" || item.status === "rewatching" || item.status === "reading") &&
           item.progress.percentComplete > 0 &&
           item.progress.percentComplete < 100
       )
@@ -205,7 +205,7 @@ export class ListManager {
     for (const item of list) {
       if (item.status === "completed") {
         stats.completed += 1;
-      } else if (item.status === "watching" || item.status === "reading") {
+      } else if (item.status === "watching" || item.status === "rewatching" || item.status === "reading") {
         stats.watching += 1;
       } else if (item.status === "planned") {
         stats.planned += 1;

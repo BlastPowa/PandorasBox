@@ -83,6 +83,8 @@ export function getStatusLabel(status: ReelItemStatus): string {
   switch (status) {
     case "watching":
       return "Watching";
+    case "rewatching":
+      return "Rewatching";
     case "reading":
       return "Reading";
     case "completed":
@@ -100,6 +102,8 @@ export function getStatusColor(status: ReelItemStatus): string {
   switch (status) {
     case "watching":
       return "#00D4FF";
+    case "rewatching":
+      return "#c084fc";
     case "reading":
       return "#00FF88";
     case "completed":

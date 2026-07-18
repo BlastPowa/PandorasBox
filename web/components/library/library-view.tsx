@@ -19,6 +19,7 @@ import { libraryItemHref } from "@/lib/library/item-href";
 const STATUS_TABS: { key: ReelItemStatus | "all"; label: string }[] = [
   { key: "all", label: "All" },
   { key: "watching", label: "Watching" },
+  { key: "rewatching", label: "Rewatching" },
   { key: "reading", label: "Reading" },
   { key: "completed", label: "Completed" },
   { key: "on_hold", label: "On Hold" },

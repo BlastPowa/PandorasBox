@@ -162,7 +162,7 @@ export function LibraryProvider({
       update: (id, updates) => run((m) => m.update(id, updates), id),
       remove: (id) => run((m) => m.remove(id)),
       setStatus: (id, status) =>
-        run((m) => m.update(id, { status }), id, status === "watching" || status === "reading" ? "started" : undefined),
+        run((m) => m.update(id, { status }), id, status === "watching" || status === "rewatching" || status === "reading" ? "started" : undefined),
       setRating: (id, rating) => run((m) => m.update(id, { rating }), id, "rated"),
       markEpisode: (id, episode, season) => run((m) => m.markEpisodeWatched(id, episode, season), id),
       markChapter: (id, chapter) => run((m) => m.markChapterRead(id, chapter), id),
@@ -198,7 +198,7 @@ export function useLibraryStats(items: ReelItem[]): ReelStats {
     const genres = new Map<string, number>();
     for (const item of items) {
       if (item.status === "completed") stats.completed += 1;
-      else if (item.status === "watching" || item.status === "reading") stats.watching += 1;
+      else if (item.status === "watching" || item.status === "rewatching" || item.status === "reading") stats.watching += 1;
       else if (item.status === "planned") stats.planned += 1;
       else if (item.status === "dropped") stats.dropped += 1;
       for (const g of item.genres) genres.set(g, (genres.get(g) ?? 0) + 1);

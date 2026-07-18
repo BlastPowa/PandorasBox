@@ -13,6 +13,7 @@ const TYPE_STYLES: Record<ReelItemType, string> = {
 
 const STATUS_COLORS: Record<ReelItemStatus, string> = {
   watching: "var(--watching)",
+  rewatching: "var(--accent-2)",
   reading: "var(--reading)",
   completed: "var(--completed)",
   on_hold: "var(--onhold)",

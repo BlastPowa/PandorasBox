@@ -17,7 +17,7 @@ export function MyPanel() {
     () =>
       items
         .filter(
-          (i) => (i.status === "watching" || i.status === "reading") && i.progress.percentComplete < 100
+          (i) => (i.status === "watching" || i.status === "rewatching" || i.status === "reading") && i.progress.percentComplete < 100
         )
         .sort((a, b) => {
           const ap = a.progress.percentComplete > 0 ? 1 : 0;
@@ -47,7 +47,7 @@ export function MyPanel() {
     for (const i of items) {
       if (i.type === "manga" || i.type === "manhwa") reading += 1;
       else animeTv += 1;
-      if (i.status === "watching" || i.status === "reading") watching += 1;
+      if (i.status === "watching" || i.status === "rewatching" || i.status === "reading") watching += 1;
       if (i.status === "completed") completed += 1;
       episodes += i.progress.currentEpisode ?? 0;
     }

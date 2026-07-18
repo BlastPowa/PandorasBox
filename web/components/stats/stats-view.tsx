@@ -201,7 +201,7 @@ function StatBlock({
           ))}
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-          {(["watching", "reading", "completed", "on_hold", "dropped", "planned"] as ReelItem["status"][]).map((s) => (
+          {(["watching", "rewatching", "reading", "completed", "on_hold", "dropped", "planned"] as ReelItem["status"][]).map((s) => (
             byStatus.get(s) ? (
               <div key={s} className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">

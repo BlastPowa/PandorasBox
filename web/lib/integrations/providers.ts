@@ -82,7 +82,7 @@ const ANILIST_TO_REEL: Record<string, ReelItemStatus> = {
   PAUSED: "on_hold",
   DROPPED: "dropped",
   PLANNING: "planned",
-  REPEATING: "watching",
+  REPEATING: "rewatching",
 };
 
 export function remoteStatusToReel(
@@ -92,7 +92,7 @@ export function remoteStatusToReel(
 ): ReelItemStatus {
   if (provider === "anilist") {
     const s = ANILIST_TO_REEL[status] ?? "planned";
-    return s === "watching" && kind === "manga" ? "reading" : s;
+    return (s === "watching" || s === "rewatching") && kind === "manga" ? "reading" : s;
   }
   return (kind === "anime" ? MAL_ANIME_TO_REEL : MAL_MANGA_TO_REEL)[status] ?? "planned";
 }
@@ -106,6 +106,7 @@ export function reelStatusToRemote(
     switch (status) {
       case "watching":
       case "reading": return "CURRENT";
+      case "rewatching": return "REPEATING";
       case "completed": return "COMPLETED";
       case "on_hold": return "PAUSED";
       case "dropped": return "DROPPED";
@@ -114,6 +115,7 @@ export function reelStatusToRemote(
   }
   switch (status) {
     case "watching":
+    case "rewatching":
     case "reading": return kind === "anime" ? "watching" : "reading";
     case "completed": return "completed";
     case "on_hold": return "on_hold";

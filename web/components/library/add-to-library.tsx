@@ -31,7 +31,12 @@ export interface LibrarySeed {
   malId: number | null;
 }
 
-const STATUSES: ReelItemStatus[] = ["watching", "reading", "completed", "on_hold", "planned", "dropped"];
+function statusesFor(type: ReelItemType): ReelItemStatus[] {
+  const statuses: ReelItemStatus[] = ["watching"];
+  if (type === "series" || type === "anime") statuses.push("rewatching");
+  if (type === "manga" || type === "manhwa" || type === "comic") statuses.push("reading");
+  return [...statuses, "completed", "on_hold", "planned", "dropped"];
+}
 
 function seedToItem(seed: LibrarySeed, status: ReelItemStatus): Omit<ReelItem, "addedAt" | "updatedAt"> {
   const progress = createDefaultProgress();
@@ -142,7 +147,7 @@ export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; com
         >
           <Plus className="size-4" /> {compact ? "Add" : "Add to Library"}
         </button>
-        <StatusDropdown onSelect={onAdd} trigger={
+        <StatusDropdown type={seed.type} onSelect={onAdd} trigger={
           <button className="inline-flex h-11 items-center rounded-r-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] pr-3 pl-1 text-[#0a0a0f]">
             <ChevronDown className="size-4" />
           </button>
@@ -154,6 +159,7 @@ export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; com
   if (compact) {
     return (
       <StatusDropdown
+        type={seed.type}
         onSelect={onSetStatus}
         trigger={<button className="glass inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold" aria-label={`Tracking status: ${getStatusLabel(existing.status)}`}><Check className="size-4 text-[var(--completed)]" /><span className="hidden sm:inline">{getStatusLabel(existing.status)}</span><ChevronDown className="size-4 opacity-60" /></button>}
       />
@@ -163,6 +169,7 @@ export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; com
   return (
     <div className="flex flex-wrap items-center gap-3">
       <StatusDropdown
+        type={seed.type}
         onSelect={onSetStatus}
         trigger={
           <button className="glass inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] px-4 text-sm font-semibold">
@@ -208,9 +215,11 @@ export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; com
 }
 
 function StatusDropdown({
+  type,
   onSelect,
   trigger,
 }: {
+  type: ReelItemType;
   onSelect: (s: ReelItemStatus) => void;
   trigger: React.ReactNode;
 }) {
@@ -223,7 +232,7 @@ function StatusDropdown({
           sideOffset={6}
           className="z-50 min-w-[180px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] p-1 shadow-2xl"
         >
-          {STATUSES.map((s) => (
+          {statusesFor(type).map((s) => (
             <DropdownMenu.Item
               key={s}
               onSelect={() => onSelect(s)}
