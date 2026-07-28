@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { InstallTip, PwaInstallProvider } from "@/components/pwa/install-manager";
+import { StartupSplash } from "@/components/pwa/pbox-loader";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -23,6 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <PwaInstallProvider>
       <QueryClientProvider client={client}>
+        <StartupSplash />
         {children}
         <InstallTip />
         <Toaster

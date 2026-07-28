@@ -20,8 +20,8 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   ).filter((i) => i.label.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--accent-rgb)/0.22)] bg-[linear-gradient(180deg,rgb(var(--accent-rgb)/0.08),var(--bg-surface)_42%)]/95 pb-[var(--safe-bottom)] pl-[var(--safe-left)] pr-[var(--safe-right)] shadow-[0_-14px_35px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden">
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-1">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-[max(8px,var(--safe-bottom))] z-40 px-[max(8px,var(--safe-left))] md:hidden">
+      <div className="pointer-events-auto mx-auto flex max-w-lg items-stretch justify-around overflow-hidden rounded-[22px] border border-[rgb(var(--accent-rgb)/0.28)] bg-[linear-gradient(145deg,rgb(var(--accent-rgb)/0.14),rgb(13_14_22/.94)_34%,rgb(var(--accent-2-rgb)/0.1))] px-1 shadow-[0_18px_55px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-2xl">
         {BOTTOM_NAV.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -31,8 +31,8 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-hidden text-[10px] font-semibold transition-colors",
-                active ? "bg-[rgb(var(--accent-rgb)/0.11)] text-[var(--accent)]" : "text-[var(--text-muted)]"
+                "relative flex min-h-[62px] min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl text-[9px] font-semibold transition-colors min-[360px]:text-[10px]",
+                active ? "bg-[linear-gradient(180deg,rgb(var(--accent-rgb)/0.2),rgb(var(--accent-rgb)/0.08))] text-[var(--accent)]" : "text-[var(--text-muted)]"
               )}
             >
               <Icon className="size-5" />
@@ -44,7 +44,7 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
         <Dialog.Root open={open} onOpenChange={setOpen}>
           <Dialog.Trigger asChild>
             <button
-              className="flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold text-[var(--text-muted)]"
+              className="flex min-h-[62px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl text-[9px] font-semibold text-[var(--text-muted)] min-[360px]:text-[10px]"
               aria-label="More options"
             >
               <Menu className="size-5" />

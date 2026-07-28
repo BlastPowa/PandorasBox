@@ -51,25 +51,38 @@ export interface GameCard {
   id: number;
   name: string;
   coverUrl: string | null;
+  backdropUrl: string | null;
+  summary: string | null;
   rating: number | null;
   year: number | null;
+  platforms: string[];
+  peakPlayers: number | null;
 }
 
 interface RawCard {
   id: number;
   name: string;
   cover?: { image_id: string };
+  artworks?: { image_id: string }[];
+  screenshots?: { image_id: string }[];
+  summary?: string;
   rating?: number;
   first_release_date?: number;
+  platforms?: { name: string }[];
 }
 
-function mapCard(g: RawCard): GameCard {
+function mapCard(g: RawCard, peakPlayers: number | null = null): GameCard {
+  const backdrop = g.artworks?.[0] ?? g.screenshots?.[0];
   return {
     id: g.id,
     name: g.name,
     coverUrl: g.cover ? igdbImage(g.cover.image_id, "cover_big") : null,
+    backdropUrl: backdrop ? igdbImage(backdrop.image_id, "1080p") : null,
+    summary: g.summary ?? null,
     rating: typeof g.rating === "number" ? Math.round(g.rating) / 10 : null,
     year: g.first_release_date ? new Date(g.first_release_date * 1000).getUTCFullYear() : null,
+    platforms: (g.platforms ?? []).map((platform) => platform.name),
+    peakPlayers,
   };
 }
 
@@ -77,9 +90,80 @@ function mapCard(g: RawCard): GameCard {
 // `category` field silently returns nothing, so `game_type` must be used.
 const BASE_GAME = "game_type = 0";
 
-export type GameSort = "popular" | "top_rated" | "upcoming" | "new";
+export type GameSort = "popular" | "most_played" | "top_rated" | "upcoming" | "new";
 
-export async function getGames(sort: GameSort, limit = 24): Promise<GameCard[]> {
+export interface GameFilters {
+  platform?: number | null;
+  genre?: number | null;
+  yearFrom?: number | null;
+  ratingMin?: number | null;
+}
+
+const CARD_FIELDS = "name, cover.image_id, artworks.image_id, screenshots.image_id, summary, rating, first_release_date, platforms.name";
+
+async function getSteamPlayerCounts(gameIds: number[]): Promise<Map<number, number>> {
+  if (gameIds.length === 0) return new Map();
+  const links = await igdbQuery<{ game: number; uid: string }>(
+    "external_games",
+    `fields game,uid; where external_game_source = 1 & game = (${gameIds.join(",")}); limit 100;`,
+    900,
+  );
+  const byGame = new Map<number, number>();
+  const queue = links.filter((link) => /^\d+$/.test(String(link.uid)));
+
+  // Steam's public current-player endpoint is intentionally called in small
+  // batches and cached for five minutes so one page render cannot create a
+  // burst of dozens of simultaneous requests.
+  for (let index = 0; index < queue.length; index += 4) {
+    const batch = queue.slice(index, index + 4);
+    const counts = await Promise.all(batch.map(async (link) => {
+      try {
+        const response = await fetch(
+          `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${encodeURIComponent(link.uid)}`,
+          { next: { revalidate: 300 } },
+        );
+        if (!response.ok) return null;
+        const json = await response.json() as { response?: { player_count?: number; result?: number } };
+        return json.response?.result === 1 && typeof json.response.player_count === "number"
+          ? [Number(link.game), json.response.player_count] as const
+          : null;
+      } catch {
+        return null;
+      }
+    }));
+    counts.forEach((entry) => {
+      if (entry) byGame.set(entry[0], entry[1]);
+    });
+  }
+  return byGame;
+}
+
+export async function getGames(sort: GameSort, limit = 24, filters: GameFilters = {}): Promise<GameCard[]> {
+  if (sort === "most_played") {
+    const primitives = await igdbQuery<{ game_id: number; value: number }>(
+      "popularity_primitives",
+      `fields game_id,value; where popularity_type = 5; sort value desc; limit ${Math.min(Math.max(limit * 2, 24), 100)};`,
+      900,
+    );
+    const ids = primitives.map((item) => Number(item.game_id)).filter(Number.isFinite).slice(0, Math.min(limit * 2, 100));
+    if (ids.length === 0) return [];
+    const constraints = [`id = (${ids.join(",")})`, BASE_GAME, "cover != null"];
+    if (filters.platform) constraints.push(`platforms = ${filters.platform}`);
+    if (filters.genre) constraints.push(`genres = ${filters.genre}`);
+    if (filters.yearFrom) constraints.push(`first_release_date >= ${Math.floor(Date.UTC(filters.yearFrom, 0, 1) / 1000)}`);
+    if (filters.ratingMin) constraints.push(`rating >= ${filters.ratingMin * 10}`);
+    const rows = await igdbQuery<RawCard>(
+      "games",
+      `fields ${CARD_FIELDS}; where ${constraints.join(" & ")}; limit ${Math.min(limit * 2, 100)};`,
+      900,
+    );
+    const playerCounts = await getSteamPlayerCounts(rows.map((game) => game.id));
+    return rows
+      .map((game) => mapCard(game, playerCounts.get(game.id) ?? null))
+      .sort((a, b) => (b.peakPlayers ?? 0) - (a.peakPlayers ?? 0))
+      .slice(0, limit);
+  }
+
   const now = Math.floor(Date.now() / 1000);
   let where = `${BASE_GAME} & cover != null`;
   let order = "sort rating_count desc";
@@ -96,12 +180,16 @@ export async function getGames(sort: GameSort, limit = 24): Promise<GameCard[]> 
   } else {
     where += " & rating_count > 40";
   }
+  if (filters.platform) where += ` & platforms = ${filters.platform}`;
+  if (filters.genre) where += ` & genres = ${filters.genre}`;
+  if (filters.yearFrom) where += ` & first_release_date >= ${Math.floor(Date.UTC(filters.yearFrom, 0, 1) / 1000)}`;
+  if (filters.ratingMin) where += ` & rating >= ${filters.ratingMin * 10}`;
 
   const rows = await igdbQuery<RawCard>(
     "games",
-    `fields name, cover.image_id, rating, first_release_date; where ${where}; ${order}; limit ${limit};`
+    `fields ${CARD_FIELDS}; where ${where}; ${order}; limit ${limit};`
   );
-  return rows.map(mapCard);
+  return rows.map((game) => mapCard(game));
 }
 
 export async function searchGames(query: string, limit = 24): Promise<GameCard[]> {
@@ -110,10 +198,10 @@ export async function searchGames(query: string, limit = 24): Promise<GameCard[]
 
   const rows = await igdbQuery<RawCard>(
     "games",
-    `search "${normalized}"; fields name, cover.image_id, rating, first_release_date; where ${BASE_GAME}; limit ${limit};`,
+    `search "${normalized}"; fields ${CARD_FIELDS}; where ${BASE_GAME}; limit ${limit};`,
     300
   );
-  return rows.map(mapCard);
+  return rows.map((game) => mapCard(game));
 }
 
 export interface GameDlc {

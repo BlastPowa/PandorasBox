@@ -1,4 +1,4 @@
-const SHELL_CACHE = "pbox-offline-shell-v2";
+const SHELL_CACHE = "pbox-offline-shell-v3";
 const OFFLINE_URL = "/offline";
 const SHELL_ASSETS = [OFFLINE_URL, "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-512.png"];
 

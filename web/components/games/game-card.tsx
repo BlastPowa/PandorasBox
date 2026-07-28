@@ -32,6 +32,11 @@ export function GameCard({ game, className }: { game: GameCardData; className?: 
             ★ {game.rating.toFixed(1)}
           </div>
         )}
+        {game.peakPlayers !== null && (
+          <div className="absolute left-2 top-2 rounded-full border border-emerald-300/25 bg-emerald-950/80 px-2 py-0.5 font-mono text-[9px] font-semibold text-emerald-200 backdrop-blur">
+            {new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(game.peakPlayers)} playing
+          </div>
+        )}
         <div className="absolute inset-x-0 bottom-0 p-2.5">
           <h3 className="line-clamp-2 text-[13px] font-semibold leading-tight text-white">{game.name}</h3>
           {game.year !== null && (

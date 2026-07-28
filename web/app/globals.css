@@ -58,7 +58,7 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --app-header-row: 64px;
   --app-header-height: calc(var(--app-header-row) + var(--safe-top));
-  --app-bottom-nav-row: 56px;
+  --app-bottom-nav-row: 76px;
   --app-bottom-nav-height: calc(var(--app-bottom-nav-row) + var(--safe-bottom));
 }
 
@@ -689,6 +689,68 @@ html.pb-reduce-motion .pb-stagger.is-visible > * {
 .pb-hero-slide-progress {
   animation: pb-hero-slide-timer 6s linear forwards;
 }
+
+.pb-game-hero-progress {
+  animation: pb-hero-slide-timer 7s linear forwards;
+}
+
+/* Initial installed-app loader. The operating system owns the first native
+   splash frame; this server-rendered layer takes over as soon as HTML arrives. */
+.pb-startup-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: max(24px, var(--safe-top)) max(24px, var(--safe-right)) max(24px, var(--safe-bottom)) max(24px, var(--safe-left));
+  background:
+    radial-gradient(circle at 50% 42%, rgb(var(--accent-rgb) / 0.2), transparent 32%),
+    linear-gradient(145deg, #08101a, #08080e 66%);
+  animation: pb-loader-exit 280ms ease 420ms both;
+}
+.pb-loader-stage {
+  position: relative;
+  display: grid;
+  width: 190px;
+  place-items: center;
+  gap: 12px;
+  color: white;
+}
+.pb-loader-box {
+  width: 96px;
+  filter: drop-shadow(0 18px 25px rgb(0 0 0 / 0.45));
+  overflow: visible;
+}
+.pb-loader-lid { fill: var(--accent); transform-box: fill-box; transform-origin: center bottom; animation: pb-loader-lid 1.15s cubic-bezier(.22,1,.36,1) infinite alternate; }
+.pb-loader-lid-right { fill: var(--accent-2); animation-delay: -0.12s; }
+.pb-loader-side { fill: rgb(var(--accent-rgb) / 0.72); }
+.pb-loader-side-right { fill: rgb(var(--accent-2-rgb) / 0.72); }
+.pb-loader-spark { fill: var(--gold); transform-origin: 48px 17px; animation: pb-loader-spark 1.15s ease-in-out infinite; }
+.pb-loader-orbit { position: absolute; top: 34px; left: 50%; width: 138px; height: 48px; translate: -50% 0; animation: pb-loader-orbit 2.2s linear infinite; }
+.pb-loader-orbit span { position: absolute; top: 50%; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 16px currentColor; }
+.pb-loader-orbit span:nth-child(1) { left: 0; color: var(--accent); }
+.pb-loader-orbit span:nth-child(2) { right: 0; color: var(--accent-2); background: var(--accent-2); }
+.pb-loader-orbit span:nth-child(3) { left: 50%; top: -4px; color: var(--gold); background: var(--gold); }
+.pb-loader-copy { display: grid; justify-items: center; gap: 2px; }
+.pb-loader-copy strong { font-family: var(--font-fredoka), sans-serif; font-size: 1.45rem; letter-spacing: -0.04em; }
+.pb-loader-copy span { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+@keyframes pb-loader-lid { from { transform: translateY(2px) rotateX(0deg); } to { transform: translateY(-8px) rotateX(42deg); } }
+@keyframes pb-loader-spark { 0%,100% { opacity: .35; transform: translateY(10px) scale(.65) rotate(0deg); } 50% { opacity: 1; transform: translateY(-5px) scale(1) rotate(90deg); } }
+@keyframes pb-loader-orbit { to { transform: rotate(360deg); } }
+@keyframes pb-loader-exit { to { opacity: 0; visibility: hidden; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-game-hero-progress,
+  .pb-loader-lid,
+  .pb-loader-spark,
+  .pb-loader-orbit,
+  .pb-startup-splash { animation: none; }
+}
+html.pb-reduce-motion .pb-game-hero-progress,
+html.pb-reduce-motion .pb-loader-lid,
+html.pb-reduce-motion .pb-loader-spark,
+html.pb-reduce-motion .pb-loader-orbit,
+html.pb-reduce-motion .pb-startup-splash { animation: none; }
 
 @keyframes pb-random-deck-reveal {
   0% { opacity: 0; transform: translateY(18px) rotate(-1.5deg) scale(0.97); }

@@ -11,13 +11,18 @@ export const metadata = {
 };
 
 async function GamesContent() {
-  const initial = await getGames("popular");
-  return <GamesBrowser initial={initial} />;
+  const popular = await getGames("popular", 36);
+  const [mostPlayed, topRated, upcoming] = await Promise.all([
+    getGames("most_played", 18),
+    getGames("top_rated", 18),
+    getGames("upcoming", 18),
+  ]);
+  return <GamesBrowser initial={{ popular, mostPlayed, topRated, upcoming }} />;
 }
 
 export default function GamersPage() {
   return (
-    <div className="mx-auto max-w-[1400px] px-4 py-8 md:px-8">
+    <div className="mx-auto max-w-[1540px] px-4 py-5 md:px-8 md:py-8">
       <Suspense
         fallback={
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">

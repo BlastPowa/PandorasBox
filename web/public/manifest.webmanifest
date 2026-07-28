@@ -7,7 +7,7 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#0a0a0f",
+  "background_color": "#08101a",
   "theme_color": "#0a0a0f",
   "lang": "en",
   "categories": ["entertainment", "lifestyle"],
