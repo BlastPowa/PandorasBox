@@ -14,10 +14,12 @@ export function BackButton({
   fallbackHref = "/",
   label = "Back",
   className,
+  iconOnly = false,
 }: {
   fallbackHref?: string;
   label?: string;
   className?: string;
+  iconOnly?: boolean;
 }) {
   const router = useRouter();
 
@@ -31,13 +33,16 @@ export function BackButton({
 
   return (
     <button
+      type="button"
       onClick={handleClick}
+      aria-label={label}
+      title={iconOnly ? label : undefined}
       className={
         className ??
         "inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]"
       }
     >
-      <ArrowLeft className="size-4" /> {label}
+      <ArrowLeft className="size-4" /> {iconOnly ? <span className="sr-only">{label}</span> : label}
     </button>
   );
 }

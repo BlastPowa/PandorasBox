@@ -11,6 +11,32 @@ import { SearchInput } from "@/components/ui-fx/input";
 import { Brand } from "./brand";
 import type { Profile } from "@/lib/auth";
 import { NotificationBell } from "@/components/social/notification-bell";
+import { BackButton } from "@/components/shell/back-button";
+
+function fallbackForPath(pathname: string) {
+  if (pathname.startsWith("/messages/")) return "/messages";
+  if (pathname.startsWith("/collections/")) return "/collections";
+  if (pathname.startsWith("/browse/")) return "/browse";
+  if (pathname.startsWith("/game/")) return "/gamers";
+  if (pathname.startsWith("/comic/")) return "/comics";
+  if (pathname.startsWith("/profile/")) return "/friends";
+  if (pathname.startsWith("/title/")) return "/browse";
+  return "/";
+}
+
+function pageAlreadyHasBackControl(pathname: string) {
+  return [
+    "/title/",
+    "/game/",
+    "/comic/",
+    "/person/",
+    "/profile/",
+    "/browse/",
+    "/collections/",
+    "/c/",
+    "/messages/",
+  ].some((prefix) => pathname.startsWith(prefix));
+}
 
 export function Topbar({ profile }: { profile: Profile | null }) {
   const router = useRouter();
@@ -19,6 +45,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const cinematic = pathname === "/";
+  const showShellBack = pathname !== "/" && !pageAlreadyHasBackControl(pathname);
 
   useEffect(() => {
     if (!cinematic) return;
@@ -39,9 +66,18 @@ export function Topbar({ profile }: { profile: Profile | null }) {
 
   return (
     <header className={`${cinematic ? "fixed left-0 right-0 top-0 md:left-20" : "sticky top-0"} z-30 flex items-center gap-2 pb-2.5 pl-[max(0.75rem,var(--safe-left))] pr-[max(0.75rem,var(--safe-right))] pt-[calc(var(--safe-top)+0.625rem)] transition-[background-color,border-color,backdrop-filter] duration-300 md:gap-3 md:px-6 md:py-3 ${!cinematic || scrolled ? "border-b border-[var(--border)] bg-[var(--bg-base)]/88 backdrop-blur-xl" : "border-b border-transparent bg-transparent"}`}>
-      <div className="grid size-11 shrink-0 place-items-center md:hidden">
-        <Brand compact className="size-11 justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]" />
-      </div>
+      {showShellBack ? (
+        <BackButton
+          fallbackHref={fallbackForPath(pathname)}
+          label="Go back"
+          iconOnly
+          className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass)] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        />
+      ) : (
+        <div className="grid size-11 shrink-0 place-items-center md:hidden">
+          <Brand compact className="size-11 justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]" />
+        </div>
+      )}
       <form onSubmit={onSubmit} className="mx-auto min-w-0 flex-1 max-w-xl overflow-hidden rounded-full max-[359px]:hidden">
         <SearchInput
           icon={<Search className="size-4" />}
