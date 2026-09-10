@@ -50,13 +50,49 @@ const ENTRIES: FaqEntry[] = [
     ),
   },
   {
+    question: "How do I set up Cinejoy Auto Sync?",
+    answer: (
+      <div className="space-y-3">
+        <p>
+          PBox can automatically update your watched movies and episode progress while you watch on Cinejoy using
+          the PBox Cinejoy browser extension. You do not need a Trakt VIP account.
+        </p>
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>
+            <a
+              className="text-[var(--accent)] underline underline-offset-2"
+              href="/downloads/pbox-cinejoy-auto-sync.zip"
+            >
+              Download the Cinejoy Auto Sync extension
+            </a>{" "}
+            and extract the ZIP file.
+          </li>
+          <li>
+            Open <span className="text-[var(--text)]">chrome://extensions</span> in Chrome or a Chromium browser.
+          </li>
+          <li>
+            Turn on <span className="text-[var(--text)]">Developer mode</span>, click{" "}
+            <span className="text-[var(--text)]">Load unpacked</span>, then select the extracted folder containing{" "}
+            <span className="text-[var(--text)]">manifest.json</span>.
+          </li>
+          <li>Sign in to PBox once in the same browser, then watch movies and shows on Cinejoy normally.</li>
+        </ol>
+        <p>
+          The extension sends completed movies and episode progress to your PBox account automatically. To check it,
+          open <span className="text-[var(--text)]">Settings → Integrations</span> and reload the page. The Cinejoy
+          card will show <span className="text-[var(--text)]">Extension detected</span> when it is active.
+        </p>
+      </div>
+    ),
+  },
+  {
     question: "What is the \"Continue\" section on Home for?",
     answer: (
       <p>
         It&apos;s a shortcut back to everything you&apos;ve set to <span className="text-[var(--text)]">Watching</span> or{" "}
         <span className="text-[var(--text)]">Reading</span>, sorted so titles you&apos;ve already started come first.
-        Since PBox links out to other sites rather than playing video itself, progress is tracked by you
-        marking episodes/chapters — it doesn&apos;t auto-detect what you watched elsewhere.
+        Progress can be updated manually in PBox, and Cinejoy playback can be tracked automatically when the
+        Cinejoy Auto Sync extension is installed from <span className="text-[var(--text)]">Settings → Integrations</span>.
       </p>
     ),
   },
