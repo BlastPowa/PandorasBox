@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import {
   Link2, Unlink, RefreshCw, AlertTriangle, CheckCircle2, Clock, History, GitMerge,
-  Download, Copy, ExternalLink,
+  Download, Copy, ExternalLink, Film, Tv, ShieldCheck,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
@@ -192,19 +193,26 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
 
   return (
     <GlassCard macDots title="Integrations">
-      <div className="space-y-4 p-5">
-        <p className="text-xs text-[var(--text-muted)]">
-          Link your tracking accounts to keep your lists in sync — both ways, automatically.
-        </p>
+      <div className="space-y-5 p-4 sm:p-5">
+        <div>
+          <p className="text-sm font-semibold">Connected services</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            Keep watch progress and lists updated across PBox and the services you use.
+          </p>
+        </div>
 
-        <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
-          <div className="flex flex-wrap items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[#f59e0b] text-xs font-bold text-black">
-              CJ
-            </span>
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--accent-rgb)/0.22)] bg-[linear-gradient(145deg,rgb(var(--accent-rgb)/0.08),var(--bg-surface)_42%)]">
+          <div className="p-4 sm:p-5">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black shadow-sm">
+                <Image src="/integrations/cinejoy.png" alt="Cinejoy" width={48} height={48} className="size-full object-cover" />
+              </span>
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold">Cinejoy Auto Sync</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-semibold">Cinejoy Auto Sync</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Browser extension</p>
+                </div>
                 {cinejoyExtensionInstalled ? (
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-300">
                     <CheckCircle2 className="size-3" /> Extension detected
@@ -215,59 +223,72 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Automatically updates PBox while you watch movies and episodes on Cinejoy. No Trakt VIP account is required.
+              <p className="mt-2 max-w-xl text-xs leading-relaxed text-[var(--text-secondary)]">
+                Automatically updates your PBox progress while you watch on Cinejoy. Install it once, stay signed in to PBox, and watch normally.
               </p>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button asChild size="sm">
+            <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] text-[var(--text-muted)] sm:max-w-md">
+              <span className="inline-flex items-center gap-1.5"><Film className="size-3.5 text-[var(--accent)]" /> Movies</span>
+              <span className="inline-flex items-center gap-1.5"><Tv className="size-3.5 text-[var(--accent)]" /> Episodes</span>
+              <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-[var(--accent)]" /> No Trakt VIP</span>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <Button asChild size="sm" className="w-full sm:w-auto">
               <a href="/downloads/pbox-cinejoy-auto-sync.zip" download>
                 <Download className="size-4" /> Download extension
               </a>
             </Button>
-            <Button size="sm" variant="glass" onClick={() => void copyExtensionPage()}>
+              <Button size="sm" variant="glass" className="w-full sm:w-auto" onClick={() => void copyExtensionPage()}>
               <Copy className="size-4" /> Copy Chrome setup page
             </Button>
-            <Button asChild size="sm" variant="glass">
+              <Button asChild size="sm" variant="glass" className="w-full sm:w-auto">
               <a href="https://cinejoy.to/" target="_blank" rel="noreferrer">
                 <ExternalLink className="size-4" /> Open Cinejoy
               </a>
             </Button>
+            </div>
           </div>
 
-          <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-3 text-xs">
-            <p className="font-semibold">Quick setup FAQ</p>
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2">
+          <div className="border-t border-[var(--border)] bg-black/10 p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Quick setup FAQ</p>
+              <a href="/faq" className="text-xs font-medium text-[var(--accent)] hover:underline">Full FAQ</a>
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
               <summary className="cursor-pointer font-medium">How do I install it?</summary>
               <p className="mt-2 text-[var(--text-muted)]">
                 Download the extension ZIP and extract it. Open chrome://extensions, enable Developer mode, choose Load unpacked, then select the extracted folder that contains manifest.json.
               </p>
             </details>
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2">
+            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
               <summary className="cursor-pointer font-medium">Why does it need to be unpacked?</summary>
               <p className="mt-2 text-[var(--text-muted)]">
                 Until the extension is published in a browser extension store, Chrome and Chromium browsers require local extensions to be loaded from an extracted folder.
               </p>
             </details>
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2">
+            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
               <summary className="cursor-pointer font-medium">Do I need to connect anything after installing?</summary>
               <p className="mt-2 text-[var(--text-muted)]">
                 No. Keep PBox signed in once, then watch on Cinejoy normally. Playback progress, completed movies and completed episodes are sent to your PBox account automatically.
               </p>
             </details>
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2">
+            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
               <summary className="cursor-pointer font-medium">How do I know it is working?</summary>
               <p className="mt-2 text-[var(--text-muted)]">
                 Reload this Settings page after installation. The Cinejoy card will show “Extension detected” when the browser extension is active.
               </p>
             </details>
+            </div>
           </div>
         </div>
 
         {loading && <p className="text-sm text-[var(--text-muted)]">Loading integrations…</p>}
 
+        <div className="grid gap-3 md:grid-cols-2">
         {providers.filter((p) => p.id !== "trakt" || p.configured || p.connected).map((p) => (
           <div key={p.id} className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
             <div className="flex flex-wrap items-center gap-3">
@@ -344,6 +365,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
             )}
           </div>
         ))}
+        </div>
 
         {/* Conflict resolution */}
         {conflicts.length > 0 && (

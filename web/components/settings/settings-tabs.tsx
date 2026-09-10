@@ -7,20 +7,20 @@ import { cn } from "@/lib/utils";
 
 export type SettingsTabKey = "account" | "appearance" | "integrations" | "import" | "backup";
 
-const TABS: { key: SettingsTabKey; label: string; icon: typeof User }[] = [
-  { key: "account", label: "Account", icon: User },
-  { key: "appearance", label: "Appearance", icon: Palette },
-  { key: "integrations", label: "Integrations", icon: Plug },
-  { key: "import", label: "Import", icon: UploadCloud },
-  { key: "backup", label: "Backup", icon: Database },
+const TABS: { key: SettingsTabKey; label: string; description: string; icon: typeof User }[] = [
+  { key: "account", label: "Account", description: "Profile & sign-in", icon: User },
+  { key: "appearance", label: "Appearance", description: "Theme & display", icon: Palette },
+  { key: "integrations", label: "Integrations", description: "Sync services", icon: Plug },
+  { key: "import", label: "Import", description: "Bring your lists", icon: UploadCloud },
+  { key: "backup", label: "Backup", description: "Export & restore", icon: Database },
 ];
 
 export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, ReactNode> }) {
   const [active, setActive] = useState<SettingsTabKey>("account");
 
   return (
-    <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
-      <nav className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-52 sm:shrink-0 sm:flex-col sm:overflow-visible sm:px-0 sm:pb-0">
+    <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-8">
+      <nav className="grid grid-cols-2 gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-2 sm:grid-cols-3 md:grid-cols-5 lg:sticky lg:top-24 lg:grid-cols-1 lg:self-start">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (
@@ -29,19 +29,29 @@ export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, Re
               onClick={() => setActive(t.key)}
               aria-pressed={active === t.key}
               className={cn(
-                "flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-[var(--radius-md)] px-3.5 py-2.5 text-sm font-semibold transition-colors sm:w-full",
+                "group flex min-h-14 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-all",
                 active === t.key
-                  ? "bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] text-[#0a0a0f]"
+                  ? "bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--text)] ring-1 ring-inset ring-[rgb(var(--accent-rgb)/0.4)]"
                   : "text-[var(--text-secondary)] hover:bg-[var(--glass)] hover:text-[var(--text)]"
               )}
             >
-              <Icon className="size-4 shrink-0" />
-              {t.label}
+              <span
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--glass)] transition-colors",
+                  active === t.key && "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.16)] text-[var(--accent)]"
+                )}
+              >
+                <Icon className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">{t.label}</span>
+                <span className="hidden text-[11px] font-normal text-[var(--text-muted)] lg:block">{t.description}</span>
+              </span>
             </button>
           );
         })}
       </nav>
-      <div className="min-w-0 flex-1 space-y-5">{sections[active]}</div>
+      <div className="min-w-0 space-y-5">{sections[active]}</div>
     </div>
   );
 }
