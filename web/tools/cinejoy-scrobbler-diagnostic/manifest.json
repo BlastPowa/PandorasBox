@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PBox Cinejoy Auto Sync",
-  "version": "1.0.1",
-  "description": "Automatically syncs Cinejoy movie and episode playback progress into Pandora's Box.",
+  "version": "1.1.0",
+  "description": "Syncs Pandora's Box lists to Cinejoy and Cinejoy playback progress back into Pandora's Box.",
   "permissions": ["storage", "tabs", "scripting", "alarms"],
   "host_permissions": ["<all_urls>"],
   "background": {

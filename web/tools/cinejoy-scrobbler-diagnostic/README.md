@@ -1,6 +1,6 @@
 # PBox Cinejoy Auto Sync
 
-This Chrome extension automatically mirrors Cinejoy playback into Pandora's Box after a one-time install.
+This Chrome extension automatically copies Pandora's Box movie/TV library entries into Cinejoy and mirrors Cinejoy playback back into Pandora's Box after a one-time install.
 
 ## Install once
 
@@ -10,6 +10,8 @@ This Chrome extension automatically mirrors Cinejoy playback into Pandora's Box 
 4. Click **Load unpacked**.
 5. Select the extracted extension folder that contains `manifest.json`.
 6. Open Pandora's Box in a tab and sign in once.
+
+If an older version is already loaded, replace the extracted files with the new download and click **Reload** on the extension card in `chrome://extensions`.
 
 After that, no DevTools commands or manual progress entry are required.
 
@@ -23,7 +25,11 @@ Reload PBox Settings → Integrations after installation. The Cinejoy card will 
 - Sends playback progress to Pandora's Box roughly every 30 seconds plus play, pause, seek and end events.
 - Marks a movie or episode complete at 90% watched or when the player fires `ended`.
 - Auto-adds a missing TMDB movie or series to the user's PBox library.
+- Copies PBox movies and shows with TMDB IDs into Cinejoy using a `Pandora's Box` Cinejoy list.
+- Re-checks for new PBox titles when your library changes and on a five-minute background interval while PBox is open.
+- Provides a **Sync PBox list to Cinejoy** button in Settings → Integrations for a full rescan/retry.
 - Saves movie timestamps and TV season/episode timestamps while playback is in progress.
+- Saves live episode percentage plus the latest completed season/episode so Home can show exact Cinejoy activity.
 - Queues updates while PBox is closed, offline or signed out and retries them automatically once PBox is available again.
 - If Trakt Auto Sync is enabled in PBox, completed movies and episodes are queued into the existing Trakt sync pipeline automatically.
 

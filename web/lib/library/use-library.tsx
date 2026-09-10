@@ -146,6 +146,9 @@ export function LibraryProvider({
       if (!m) throw new Error("Sign in to manage your library.");
       await fn(m);
       await refresh();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pbox-library-changed"));
+      }
       if (syncId) void enqueueSync(syncId);
       if (activity && syncId) void logActivity(syncId, activity);
     },

@@ -4,6 +4,7 @@
   const lastSentBucket = new WeakMap();
   let lastContextUrl = "";
   let pboxRegistered = false;
+  let pboxSyncListenersRegistered = false;
 
   function parseCinejoyUrl(rawUrl) {
     if (!rawUrl) return null;
@@ -66,7 +67,29 @@
     if (marker?.getAttribute("content") !== "PBox") return;
     pboxRegistered = true;
     document.documentElement.setAttribute("data-pbox-cinejoy-extension", "1");
+    document.documentElement.setAttribute("data-pbox-cinejoy-extension-version", chrome.runtime.getManifest().version);
     window.dispatchEvent(new CustomEvent("pbox-cinejoy-extension-ready"));
+
+    if (!pboxSyncListenersRegistered && window.top === window) {
+      pboxSyncListenersRegistered = true;
+
+      window.addEventListener("pbox-cinejoy-sync-library", () => {
+        chrome.runtime.sendMessage({ source: SOURCE, type: "pbox-sync-library" })
+          .then((result) => {
+            window.dispatchEvent(new CustomEvent("pbox-cinejoy-library-sync-result", { detail: result }));
+          })
+          .catch((error) => {
+            window.dispatchEvent(new CustomEvent("pbox-cinejoy-library-sync-result", {
+              detail: { ok: false, error: String(error) },
+            }));
+          });
+      });
+
+      window.addEventListener("pbox-library-changed", () => {
+        chrome.runtime.sendMessage({ source: SOURCE, type: "pbox-library-changed" }).catch(() => {});
+      });
+    }
+
     chrome.runtime.sendMessage({
       source: SOURCE,
       type: "pbox-register",

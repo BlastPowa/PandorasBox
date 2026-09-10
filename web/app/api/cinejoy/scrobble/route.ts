@@ -179,7 +179,11 @@ export async function POST(request: NextRequest) {
   if (readError) return NextResponse.json({ error: readError.message }, { status: 500 });
 
   const items = Array.isArray(libraryRow?.data) ? [...libraryRow.data] : [];
-  let index = items.findIndex((item) => item.tmdbId === tmdbId && item.type === mediaType);
+  let index = items.findIndex((item) => {
+    if (item.tmdbId !== tmdbId) return false;
+    if (mediaType === "movie") return item.type === "movie";
+    return item.type === "series" || item.type === "anime";
+  });
   const wasMissing = index < 0;
   if (wasMissing) {
     items.push(await createTmdbItem(tmdbId, mediaType, body?.title ?? null));
@@ -192,6 +196,8 @@ export async function POST(request: NextRequest) {
   const oldSeason = existing.progress.currentSeason;
   const oldEpisode = existing.progress.currentEpisode;
   const oldEpisodeTimestamp = existing.progress.episodeTimestamp;
+  const oldLastCompletedSeason = existing.progress.lastCompletedSeason;
+  const oldLastCompletedEpisode = existing.progress.lastCompletedEpisode;
   const progress = { ...existing.progress };
   let status: ReelItemStatus = existing.status;
   let completedAt = existing.completedAt;
@@ -210,13 +216,21 @@ export async function POST(request: NextRequest) {
     }
   } else if (season != null && episode != null && episode > 0) {
     const canAdvance = isAheadOrEqual(season, episode, existing);
+    const episodePercent = Math.round(percent * 100);
     if (finished && canAdvance) {
       advanced = season > (oldSeason ?? 0) || episode > (oldEpisode ?? 0);
+      const alreadyRecorded = oldLastCompletedSeason === season && oldLastCompletedEpisode === episode;
       const sameEpisode = season === oldSeason && episode === oldEpisode;
-      episodeCompleted = advanced || (sameEpisode && oldEpisodeTimestamp != null);
+      episodeCompleted = !alreadyRecorded && (advanced || (sameEpisode && oldEpisodeTimestamp != null) || wasMissing);
       progress.currentSeason = season;
       progress.currentEpisode = episode;
       progress.episodeTimestamp = null;
+      progress.currentEpisodePercent = 100;
+      if (!alreadyRecorded) {
+        progress.lastCompletedSeason = season;
+        progress.lastCompletedEpisode = episode;
+        progress.lastCompletedAt = now;
+      }
       if (progress.totalSeasons === 1 && progress.totalEpisodes && progress.totalEpisodes > 0) {
         progress.percentComplete = Math.max(progress.percentComplete, Math.min(99, Math.round((episode / progress.totalEpisodes) * 100)));
       }
@@ -239,6 +253,7 @@ export async function POST(request: NextRequest) {
         progress.currentSeason = season;
         progress.currentEpisode = episode;
         progress.episodeTimestamp = Math.round(currentTime);
+        progress.currentEpisodePercent = episodePercent;
       }
     }
   }
@@ -268,6 +283,9 @@ export async function POST(request: NextRequest) {
     season: updated.progress.currentSeason,
     episode: updated.progress.currentEpisode,
     percentComplete: updated.progress.percentComplete,
+    currentEpisodePercent: updated.progress.currentEpisodePercent ?? 0,
+    lastCompletedSeason: updated.progress.lastCompletedSeason ?? null,
+    lastCompletedEpisode: updated.progress.lastCompletedEpisode ?? null,
     queued,
   });
 }

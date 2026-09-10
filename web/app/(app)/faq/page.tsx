@@ -54,8 +54,8 @@ const ENTRIES: FaqEntry[] = [
     answer: (
       <div className="space-y-3">
         <p>
-          PBox can automatically update your watched movies and episode progress while you watch on Cinejoy using
-          the PBox Cinejoy browser extension. You do not need a Trakt VIP account.
+          PBox can copy your movie/show library into Cinejoy and automatically update watched movies and episode
+          progress back in PBox while you watch. You do not need a Trakt VIP account.
         </p>
         <ol className="list-decimal space-y-1 pl-5">
           <li>
@@ -75,12 +75,18 @@ const ENTRIES: FaqEntry[] = [
             <span className="text-[var(--text)]">Load unpacked</span>, then select the extracted folder containing{" "}
             <span className="text-[var(--text)]">manifest.json</span>.
           </li>
-          <li>Sign in to PBox once in the same browser, then watch movies and shows on Cinejoy normally.</li>
+          <li>If an older PBox Cinejoy extension is already installed, replace its extracted files and click <span className="text-[var(--text)]">Reload</span> on the extension card.</li>
+          <li>Sign in to PBox once in the same browser.</li>
+          <li>
+            Open <span className="text-[var(--text)]">Settings → Integrations</span> and click{" "}
+            <span className="text-[var(--text)]">Sync PBox list to Cinejoy</span>. The extension creates/uses a Cinejoy list and copies your TMDB movies and shows into it.
+          </li>
+          <li>After that, watch movies and shows on Cinejoy normally. New PBox library additions are picked up automatically while PBox is open.</li>
         </ol>
         <p>
-          The extension sends completed movies and episode progress to your PBox account automatically. To check it,
-          open <span className="text-[var(--text)]">Settings → Integrations</span> and reload the page. The Cinejoy
-          card will show <span className="text-[var(--text)]">Extension detected</span> when it is active.
+          Cinejoy playback sends live progress, completed movies and the exact completed season/episode back to PBox.
+          Home shows the active percentage meter and the latest completion. Reload Settings → Integrations to confirm
+          the Cinejoy card says <span className="text-[var(--text)]">Extension detected</span>.
         </p>
       </div>
     ),

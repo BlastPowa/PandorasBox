@@ -3,10 +3,50 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { PlayCircle, ChevronRight } from "lucide-react";
+import { CheckCircle2, PlayCircle, ChevronRight } from "lucide-react";
 import { formatProgress, getStatusColor, getStatusLabel } from "@core/utils/formatters";
-import { useLibrary } from "@/lib/library/use-library";
+import { useLibrary, type ReelItem } from "@/lib/library/use-library";
 import { GlassCard } from "@/components/ui-fx/glass-card";
+
+function clampDisplayPercent(value: number | null | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+function playbackPercent(item: ReelItem): number {
+  if (item.status === "completed") return 100;
+  if (item.type === "series" || item.type === "anime") {
+    return clampDisplayPercent(item.progress.currentEpisodePercent);
+  }
+  return clampDisplayPercent(item.progress.percentComplete);
+}
+
+function playbackLabel(item: ReelItem): string {
+  if (item.status === "completed") {
+    if (item.type === "movie") return "Completed movie";
+    if ((item.type === "series" || item.type === "anime") && item.progress.lastCompletedEpisode) {
+      return `Completed S${item.progress.lastCompletedSeason ?? 1} E${item.progress.lastCompletedEpisode} · Series complete`;
+    }
+    return "Completed";
+  }
+
+  if (item.type === "series" || item.type === "anime") {
+    const season = item.progress.currentSeason;
+    const episode = item.progress.currentEpisode;
+    const percent = playbackPercent(item);
+    if (season != null && episode != null) {
+      if (percent >= 100) return `Completed S${season} E${episode}`;
+      return `Watching S${season} E${episode} · ${percent}%`;
+    }
+  }
+
+  if (item.type === "movie") {
+    const percent = playbackPercent(item);
+    return percent > 0 ? `Watching · ${percent}%` : getStatusLabel(item.status);
+  }
+
+  return formatProgress(item.progress, item.type);
+}
 
 export function MyPanel() {
   const { items, signedIn, loading } = useLibrary();
@@ -17,11 +57,11 @@ export function MyPanel() {
     () =>
       items
         .filter(
-          (i) => (i.status === "watching" || i.status === "rewatching" || i.status === "reading") && i.progress.percentComplete < 100
+          (i) => i.status === "watching" || i.status === "rewatching" || i.status === "reading"
         )
         .sort((a, b) => {
-          const ap = a.progress.percentComplete > 0 ? 1 : 0;
-          const bp = b.progress.percentComplete > 0 ? 1 : 0;
+          const ap = playbackPercent(a) > 0 ? 1 : 0;
+          const bp = playbackPercent(b) > 0 ? 1 : 0;
           if (ap !== bp) return bp - ap; // started items first
           return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
         })
@@ -37,6 +77,30 @@ export function MyPanel() {
         .slice(0, 5),
     [items]
   );
+
+  const latestCompletion = useMemo(() => {
+    let latest: { item: ReelItem; at: string; detail: string } | null = null;
+    for (const item of items) {
+      const episodeCompletedAt = item.progress.lastCompletedAt;
+      if ((item.type === "series" || item.type === "anime") && episodeCompletedAt && item.progress.lastCompletedEpisode) {
+        const candidate = {
+          item,
+          at: episodeCompletedAt,
+          detail: `S${item.progress.lastCompletedSeason ?? 1} E${item.progress.lastCompletedEpisode} completed`,
+        };
+        if (!latest || new Date(candidate.at).getTime() > new Date(latest.at).getTime()) latest = candidate;
+      }
+      if (item.completedAt) {
+        const candidate = {
+          item,
+          at: item.completedAt,
+          detail: item.type === "movie" ? "Movie completed" : "Title completed",
+        };
+        if (!latest || new Date(candidate.at).getTime() > new Date(latest.at).getTime()) latest = candidate;
+      }
+    }
+    return latest;
+  }, [items]);
 
   const counts = useMemo(() => {
     let animeTv = 0;
@@ -83,11 +147,11 @@ export function MyPanel() {
                       <PlayCircle className="size-6 text-white" />
                     </div>
                     <div className="absolute inset-x-0 bottom-0 h-1 bg-black/40">
-                      <div className="h-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))]" style={{ width: `${Math.round(i.progress.percentComplete)}%` }} />
+                      <div className="h-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))]" style={{ width: `${playbackPercent(i)}%` }} />
                     </div>
                   </div>
                   <p className="mt-1 line-clamp-1 text-xs font-medium">{i.title}</p>
-                  <p className="line-clamp-1 text-[10px] text-[var(--text-muted)]">{formatProgress(i.progress, i.type)}</p>
+                  <p className="line-clamp-1 text-[10px] text-[var(--text-muted)]">{playbackLabel(i)}</p>
                 </Link>
               ))}
             </div>
@@ -105,6 +169,15 @@ export function MyPanel() {
             <Row label="Completed" value={counts.completed} />
             <Row label="Episodes" value={counts.episodes} />
           </div>
+          {latestCompletion && (
+            <div className="border-t border-[var(--border)] px-4 py-3">
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                <CheckCircle2 className="size-3.5 text-emerald-400" /> Latest completion
+              </div>
+              <p className="mt-1 truncate text-xs font-semibold">{latestCompletion.item.title}</p>
+              <p className="text-[10px] text-[var(--text-secondary)]">{latestCompletion.detail}</p>
+            </div>
+          )}
           <div className="border-t border-[var(--border)] p-2">
             <Link href="/stats" className="flex items-center justify-center gap-1 rounded-[8px] py-1.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--glass)]">
               Full stats <ChevronRight className="size-3.5" />
@@ -114,21 +187,30 @@ export function MyPanel() {
 
         <GlassCard macDots title="Recent Updates">
           <div className="divide-y divide-[var(--border)]">
-            {recent.map((i) => (
-              <Link
-                key={i.id}
-                href={`/title/${i.type}/${i.source}/${i.anilistId ?? i.tmdbId ?? i.mangadexId}`}
-                className="flex items-center gap-2.5 p-2.5 transition-colors hover:bg-[var(--glass)]"
-              >
-                <div className="relative h-10 w-7 shrink-0 overflow-hidden rounded-[4px] bg-[var(--bg-elevated)]">
-                  {i.posterUrl && <Image src={i.posterUrl} alt="" fill sizes="28px" className="object-cover" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold">{i.title}</p>
-                  <p className="text-[10px]" style={{ color: getStatusColor(i.status) }}>{getStatusLabel(i.status)}</p>
-                </div>
-              </Link>
-            ))}
+            {recent.map((i) => {
+              const percent = playbackPercent(i);
+              const showMeter = percent > 0 && percent < 100 && (i.type === "movie" || i.type === "series" || i.type === "anime");
+              return (
+                <Link
+                  key={i.id}
+                  href={`/title/${i.type}/${i.source}/${i.anilistId ?? i.tmdbId ?? i.mangadexId}`}
+                  className="flex items-center gap-2.5 p-2.5 transition-colors hover:bg-[var(--glass)]"
+                >
+                  <div className="relative h-10 w-7 shrink-0 overflow-hidden rounded-[4px] bg-[var(--bg-elevated)]">
+                    {i.posterUrl && <Image src={i.posterUrl} alt="" fill sizes="28px" className="object-cover" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold">{i.title}</p>
+                    <p className="text-[10px]" style={{ color: percent >= 100 ? "#34d399" : getStatusColor(i.status) }}>{playbackLabel(i)}</p>
+                    {showMeter && (
+                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-black/35">
+                        <div className="h-full rounded-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))]" style={{ width: `${percent}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </GlassCard>
       </div>
