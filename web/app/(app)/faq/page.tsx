@@ -84,14 +84,30 @@ const ENTRIES: FaqEntry[] = [
     ),
   },
   {
-    question: "How do PBox Watch Sync updates work?",
+    question: "How do I update PBox Watch Sync?",
     answer: (
-      <p>
-        Settings checks the latest free GitHub release automatically. When it shows an update, download the new ZIP,
-        replace the files in your existing extension folder, then click <span className="text-[var(--text)]">Reload</span>{" "}
-        on the extension card in <span className="text-[var(--text)]">chrome://extensions</span>. Chrome does not silently
-        auto-update an unpacked extension.
-      </p>
+      <div className="space-y-3">
+        <p>
+          PBox checks the latest free GitHub release automatically. If Settings → Integrations shows{" "}
+          <span className="text-[var(--text)]">Update available</span>, follow these steps:
+        </p>
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>
+            <a className="text-[var(--accent)] underline underline-offset-2" href={WATCH_SYNC_RELEASE_URL}>
+              Download the latest PBox Watch Sync ZIP
+            </a>.
+          </li>
+          <li>Extract the new ZIP.</li>
+          <li>Replace the files inside the folder you originally loaded as the extension with the new extracted files.</li>
+          <li>Open <span className="text-[var(--text)]">chrome://extensions</span>.</li>
+          <li>Find <span className="text-[var(--text)]">PBox Watch Sync</span> and click <span className="text-[var(--text)]">Reload</span>.</li>
+          <li>Return to PBox Settings → Integrations and confirm the extension shows <span className="text-[var(--text)]">Active</span> with the new version.</li>
+        </ol>
+        <p>
+          You do not need to remove and reinstall the extension each time. Because it is installed as an unpacked extension,
+          Chrome cannot silently update it in the background.
+        </p>
+      </div>
     ),
   },
   {
