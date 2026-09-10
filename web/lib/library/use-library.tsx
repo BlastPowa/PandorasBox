@@ -82,13 +82,13 @@ export function LibraryProvider({
     };
   }, [userId, refresh]);
 
-  /** Fire-and-forget: queue a push to connected integrations (MAL/AniList). */
+  /** Fire-and-forget: queue a push to connected integrations. */
   const enqueueSync = useCallback(async (id: string) => {
     const m = managerRef.current;
     if (!m) return;
     try {
       const item = (await m.getAll()).find((i) => i.id === id);
-      if (!item || (item.malId == null && item.anilistId == null)) return;
+      if (!item || (item.malId == null && item.anilistId == null && item.tmdbId == null)) return;
       const isAnime = item.type === "anime" || item.type === "series";
       void fetch("/api/integrations/queue", {
         method: "POST",
@@ -101,6 +101,9 @@ export function LibraryProvider({
             rating: item.rating,
             malId: item.malId,
             anilistId: item.anilistId,
+            tmdbId: item.tmdbId,
+            mediaType: item.type,
+            season: item.progress.currentSeason,
             kind: isAnime ? "anime" : "manga",
           },
         }),

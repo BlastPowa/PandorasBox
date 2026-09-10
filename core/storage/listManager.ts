@@ -115,6 +115,7 @@ export class ListManager {
       ...item.progress,
       currentEpisode: episode,
       currentSeason: season ?? item.progress.currentSeason,
+      episodeTimestamp: null,
     };
     merged.percentComplete = calculatePercentComplete(merged);
     const updates: Partial<ReelItem> = { progress: merged };

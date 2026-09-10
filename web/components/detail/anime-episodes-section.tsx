@@ -48,7 +48,7 @@ export function AnimeEpisodesSection({
     if (checked.size === 0) return;
     const max = Math.max(...checked);
     try {
-      await updateProgress(itemId, { currentEpisode: max });
+      await updateProgress(itemId, { currentEpisode: max, episodeTimestamp: null });
       toast.success(`Marked up to episode ${max} watched`);
       setChecked(new Set());
       setSelectMode(false);
@@ -59,7 +59,7 @@ export function AnimeEpisodesSection({
 
   async function unmark(ep: JikanEpisode) {
     try {
-      await updateProgress(itemId, { currentEpisode: Math.max(0, ep.mal_id - 1) });
+      await updateProgress(itemId, { currentEpisode: Math.max(0, ep.mal_id - 1), episodeTimestamp: null });
       toast.success(`Episode ${ep.mal_id} unmarked`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not update");

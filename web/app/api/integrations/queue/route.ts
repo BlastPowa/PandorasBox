@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     | null;
   if (!body?.mediaKey || !body.payload)
     return NextResponse.json({ error: "mediaKey and payload required" }, { status: 400 });
-  if (body.payload.malId == null && body.payload.anilistId == null)
+  if (body.payload.malId == null && body.payload.anilistId == null && body.payload.tmdbId == null)
     return NextResponse.json({ ok: true, queued: 0 }); // not a syncable item
 
   const { data: integrations } = await supabase
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
   for (const { provider } of integrations) {
     if (provider === "mal" && body.payload.malId == null) continue;
     if (provider === "anilist" && body.payload.anilistId == null) continue;
+    if (provider === "trakt" && body.payload.tmdbId == null) continue;
     // Coalesce: replace any still-pending job for the same item.
     await supabase.from("sync_queue").delete()
       .eq("user_id", user.id).eq("provider", provider)

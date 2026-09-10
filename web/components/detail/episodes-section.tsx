@@ -69,7 +69,7 @@ export function EpisodesSection({
     if (checked.size === 0) return;
     const max = Math.max(...checked);
     try {
-      await updateProgress(itemId, { currentSeason: season, currentEpisode: max });
+      await updateProgress(itemId, { currentSeason: season, currentEpisode: max, episodeTimestamp: null });
       toast.success(`Marked up to episode ${max} watched`);
       setChecked(new Set());
       setSelectMode(false);
@@ -80,7 +80,11 @@ export function EpisodesSection({
 
   async function unmark(ep: TMDBEpisode) {
     try {
-      await updateProgress(itemId, { currentSeason: season, currentEpisode: Math.max(0, ep.episode_number - 1) });
+      await updateProgress(itemId, {
+        currentSeason: season,
+        currentEpisode: Math.max(0, ep.episode_number - 1),
+        episodeTimestamp: null,
+      });
       toast.success(`Episode ${ep.episode_number} unmarked`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not update");

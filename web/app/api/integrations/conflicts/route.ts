@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   if (!conflict) return NextResponse.json({ error: "Conflict not found" }, { status: 404 });
 
   const chosen = (body.keep === "local" ? conflict.local : conflict.remote) as {
-    status: ReelItemStatus; progress: number; rating: number | null;
+    status: ReelItemStatus; progress: number; season?: number | null; rating: number | null;
   };
 
   // Always apply the chosen version locally...
@@ -42,8 +42,15 @@ export async function POST(request: NextRequest) {
   const item = items.find((i) => i.id === conflict.media_key);
   if (item) {
     item.status = chosen.status;
-    if (item.type === "anime" || item.type === "series") item.progress.currentEpisode = chosen.progress || null;
-    else item.progress.currentChapter = chosen.progress || null;
+    if (item.type === "anime") {
+      item.progress.currentEpisode = chosen.progress || null;
+    } else if (item.type === "series") {
+      item.progress.currentEpisode = chosen.progress || null;
+      if (chosen.season !== undefined) item.progress.currentSeason = chosen.season;
+    } else if (item.type === "manga" || item.type === "manhwa" || item.type === "comic") {
+      item.progress.currentChapter = chosen.progress || null;
+    }
+    if (chosen.status === "completed") item.progress.percentComplete = 100;
     if (chosen.rating != null) item.rating = chosen.rating;
     item.updatedAt = new Date().toISOString();
     await supabase.from("library").upsert(
@@ -67,6 +74,9 @@ export async function POST(request: NextRequest) {
           rating: chosen.rating,
           malId: item.malId,
           anilistId: item.anilistId,
+          tmdbId: item.tmdbId,
+          mediaType: item.type,
+          season: chosen.season ?? item.progress.currentSeason,
           kind: item.type === "anime" || item.type === "series" ? "anime" : "manga",
         };
         await pushEntry(integ.provider, fresh.access_token!, payload);

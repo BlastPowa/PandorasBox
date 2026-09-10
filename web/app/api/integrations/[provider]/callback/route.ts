@@ -34,11 +34,17 @@ export async function GET(
     if (cfg.clientSecret) body.set("client_secret", cfg.clientSecret);
     if (cfg.pkce === "plain" && verifier) body.set("code_verifier", verifier);
 
-    const tokenRes = await fetch(cfg.tokenUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    });
+    const tokenRes = await fetch(cfg.tokenUrl, cfg.id === "trakt"
+      ? {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(Object.fromEntries(body.entries())),
+        }
+      : {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body,
+        });
     if (!tokenRes.ok) return fail(`${cfg.name} rejected the connection (${tokenRes.status})`);
     const tokens = (await tokenRes.json()) as {
       access_token: string;
@@ -58,7 +64,7 @@ export async function GET(
         externalId = j.id != null ? String(j.id) : null;
         externalName = j.name ?? null;
       }
-    } else {
+    } else if (cfg.id === "anilist") {
       const me = await fetch("https://graphql.anilist.co", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokens.access_token}` },
@@ -68,6 +74,19 @@ export async function GET(
         const j = (await me.json()) as { data?: { Viewer?: { id: number; name: string } } };
         externalId = j.data?.Viewer ? String(j.data.Viewer.id) : null;
         externalName = j.data?.Viewer?.name ?? null;
+      }
+    } else if (cfg.id === "trakt") {
+      const me = await fetch("https://api.trakt.tv/users/me?extended=full", {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+          "trakt-api-version": "2",
+          "trakt-api-key": cfg.clientId ?? "",
+        },
+      });
+      if (me.ok) {
+        const j = (await me.json()) as { username?: string; ids?: { trakt?: number; slug?: string } };
+        externalId = j.ids?.trakt != null ? String(j.ids.trakt) : (j.ids?.slug ?? null);
+        externalName = j.username ?? j.ids?.slug ?? null;
       }
     }
 

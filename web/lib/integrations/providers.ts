@@ -5,7 +5,7 @@
  */
 import type { ReelItemStatus } from "@core/storage/schema";
 
-export type ProviderId = "mal" | "anilist";
+export type ProviderId = "mal" | "anilist" | "trakt";
 
 export interface ProviderConfig {
   id: ProviderId;
@@ -20,7 +20,7 @@ export interface ProviderConfig {
   /** MAL uses PKCE with the "plain" method; AniList uses a standard code grant. */
   pkce: "plain" | "none";
   /** Which library item types this provider can sync. */
-  syncTypes: readonly ("anime" | "manga" | "manhwa")[];
+  syncTypes: readonly ("movie" | "series" | "anime" | "manga" | "manhwa")[];
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
@@ -50,10 +50,23 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     pkce: "none",
     syncTypes: ["anime", "manga", "manhwa"],
   },
+  trakt: {
+    id: "trakt",
+    name: "Trakt",
+    description: "Two-way sync your movie and TV watch history with Trakt",
+    color: "#ed1c24",
+    authorizeUrl: "https://trakt.tv/oauth/authorize",
+    tokenUrl: "https://auth.trakt.tv/oauth/token",
+    clientId: process.env.TRAKT_CLIENT_ID,
+    clientSecret: process.env.TRAKT_CLIENT_SECRET,
+    scopes: "",
+    pkce: "none",
+    syncTypes: ["movie", "series"],
+  },
 };
 
 export function getProvider(id: string): ProviderConfig | null {
-  return id === "mal" || id === "anilist" ? PROVIDERS[id] : null;
+  return id === "mal" || id === "anilist" || id === "trakt" ? PROVIDERS[id] : null;
 }
 
 export function redirectUri(origin: string, provider: ProviderId): string {
