@@ -15,7 +15,7 @@ const csp = [
   // not proxied through /_next/image, so every host must be listed here.
   "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://comicvine.gamespot.com https://static.comicvine.com https://images.igdb.com https://img.youtube.com https://*.supabase.co https://*.giphy.com",
   "media-src 'self' https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.themoviedb.org https://graphql.anilist.co https://api.mangadex.org https://uploads.mangadex.org https://api.jikan.moe https://www.omdbapi.com https://openlibrary.org https://api.giphy.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.themoviedb.org https://graphql.anilist.co https://api.mangadex.org https://uploads.mangadex.org https://api.jikan.moe https://www.omdbapi.com https://openlibrary.org https://api.giphy.com https://api.github.com",
   "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
   "upgrade-insecure-requests",
 ].join("; ");
@@ -67,8 +67,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: "/downloads/pbox-cinejoy-auto-sync.zip",
-        destination: "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-cinejoy-auto-sync.zip",
+        source: "/downloads/pbox-watch-sync.zip",
+        destination: "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-watch-sync.zip",
         permanent: false,
       },
     ];

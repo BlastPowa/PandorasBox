@@ -2,7 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ReelItem, ReelItemStatus } from "@core/storage/schema";
 import { createDefaultProgress } from "@core/storage/schema";
-import { getBackdropUrl, getMovieDetails, getPosterUrl, getSeasonDetails, getSeriesDetails } from "@core/api/tmdb";
+import {
+  getBackdropUrl,
+  getMovieDetails,
+  getPosterUrl,
+  getSeasonDetails,
+  getSeriesDetails,
+  searchMovies,
+  searchSeries,
+} from "@core/api/tmdb";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import type { PushPayload } from "@/lib/integrations/sync";
@@ -18,6 +26,8 @@ interface ScrobbleBody {
   event?: string;
   completed?: boolean;
   title?: string | null;
+  site?: string | null;
+  source?: string | null;
 }
 
 function finiteNumber(value: unknown, fallback = 0): number {
@@ -28,13 +38,87 @@ function clampPercent(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
+function mediaTypeForItem(item: ReelItem): "movie" | "series" | null {
+  if (item.type === "movie") return "movie";
+  if (item.type === "series" || item.type === "anime") return "series";
+  return null;
+}
+
+function normalizeTitle(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/^(?:watch|stream)\s+/, "")
+    .replace(/^(?:netflix|(?:amazon\s+)?prime\s+video)\s*[:|\-]\s*/, "")
+    .replace(/\s*[-|–—]\s*(?:netflix|(?:amazon\s+)?prime\s+video|disney\+|crunchyroll|hulu|(?:hbo\s+)?max).*$/, "")
+    .replace(/\s+s(?:eason\s*)?\d+\s*[: .\-]?\s*e(?:pisode\s*)?\d+.*$/, "")
+    .replace(/\s+season\s+\d+\s*[,·: -]+\s*episode\s+\d+.*$/, "")
+    .replace(/\s+\d+\s*x\s*\d+.*$/, "")
+    .replace(/\s*\(\d{4}\)\s*$/, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function sanitizeSite(value: string | null | undefined): string {
+  const clean = (value ?? "cinejoy").toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "");
+  return clean.slice(0, 80) || "cinejoy";
+}
+
+function findLibraryTitleMatch(items: ReelItem[], title: string, hint: "movie" | "series" | null): number {
+  const normalized = normalizeTitle(title);
+  if (!normalized) return -1;
+  const matches = items
+    .map((item, index) => ({ item, index, mediaType: mediaTypeForItem(item) }))
+    .filter(({ item, mediaType }) => mediaType && (!hint || mediaType === hint) && normalizeTitle(item.title) === normalized);
+  return matches.length === 1 ? matches[0]!.index : -1;
+}
+
+async function resolveTmdbTitle(
+  title: string,
+  hint: "movie" | "series" | null,
+  season: number | null,
+  episode: number | null,
+): Promise<{ tmdbId: number; mediaType: "movie" | "series" } | null> {
+  const apiKey = process.env.TMDB_API_KEY ?? "";
+  const normalized = normalizeTitle(title);
+  if (!apiKey || !normalized) return null;
+  const effectiveHint = hint ?? (season != null || episode != null ? "series" : null);
+
+  if (effectiveHint === "movie") {
+    const results = await searchMovies(title, apiKey).catch(() => []);
+    const exact = results.find((item) => normalizeTitle(item.title) === normalized);
+    return exact ? { tmdbId: exact.id, mediaType: "movie" } : null;
+  }
+  if (effectiveHint === "series") {
+    const results = await searchSeries(title, apiKey).catch(() => []);
+    const exact = results.find((item) => normalizeTitle(item.name) === normalized);
+    return exact ? { tmdbId: exact.id, mediaType: "series" } : null;
+  }
+
+  const [movies, series] = await Promise.all([
+    searchMovies(title, apiKey).catch(() => []),
+    searchSeries(title, apiKey).catch(() => []),
+  ]);
+  const movie = movies.find((item) => normalizeTitle(item.title) === normalized);
+  const show = series.find((item) => normalizeTitle(item.name) === normalized);
+  if (movie && !show) return { tmdbId: movie.id, mediaType: "movie" };
+  if (show && !movie) return { tmdbId: show.id, mediaType: "series" };
+  return null;
+}
+
 function isAheadOrEqual(season: number, episode: number, item: ReelItem): boolean {
   const oldSeason = item.progress.currentSeason ?? 0;
   const oldEpisode = item.progress.currentEpisode ?? 0;
   return season > oldSeason || (season === oldSeason && episode >= oldEpisode);
 }
 
-async function createTmdbItem(tmdbId: number, mediaType: "movie" | "series", fallbackTitle: string | null): Promise<ReelItem> {
+async function createTmdbItem(
+  tmdbId: number,
+  mediaType: "movie" | "series",
+  fallbackTitle: string | null,
+  site: string,
+): Promise<ReelItem> {
   const now = new Date().toISOString();
   const apiKey = process.env.TMDB_API_KEY ?? "";
   const progress = createDefaultProgress();
@@ -95,7 +179,7 @@ async function createTmdbItem(tmdbId: number, mediaType: "movie" | "series", fal
     addedAt: now,
     updatedAt: now,
     completedAt: null,
-    lastWatchedSite: "cinejoy",
+    lastWatchedSite: site,
   };
 }
 
@@ -148,7 +232,7 @@ async function queueIntegrationPush(
 }
 
 export async function POST(request: NextRequest) {
-  const limit = rateLimit(request, "cinejoy-scrobble", 180, 60_000);
+  const limit = rateLimit(request, "watch-scrobble", 180, 60_000);
   if (!limit.ok) return tooManyRequests(limit);
 
   const supabase = await createClient();
@@ -156,12 +240,6 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
 
   const body = (await request.json().catch(() => null)) as ScrobbleBody | null;
-  const tmdbId = Math.trunc(finiteNumber(body?.tmdbId, 0));
-  const mediaType = body?.mediaType;
-  if (tmdbId <= 0 || (mediaType !== "movie" && mediaType !== "series")) {
-    return NextResponse.json({ error: "Valid tmdbId and mediaType required" }, { status: 400 });
-  }
-
   const currentTime = Math.max(0, finiteNumber(body?.currentTime, 0));
   const duration = Math.max(0, finiteNumber(body?.duration, 0));
   const suppliedPercent = typeof body?.percent === "number" && Number.isFinite(body.percent) ? body.percent : null;
@@ -169,6 +247,8 @@ export async function POST(request: NextRequest) {
   const finished = body?.completed === true || body?.event === "ended" || percent >= 0.9;
   const season = body?.season == null ? null : Math.max(0, Math.trunc(finiteNumber(body.season, 0)));
   const episode = body?.episode == null ? null : Math.max(0, Math.trunc(finiteNumber(body.episode, 0)));
+  const title = body?.title?.trim() ?? "";
+  const site = sanitizeSite(body?.site ?? body?.source);
   const now = new Date().toISOString();
 
   const { data: libraryRow, error: readError } = await supabase
@@ -179,14 +259,66 @@ export async function POST(request: NextRequest) {
   if (readError) return NextResponse.json({ error: readError.message }, { status: 500 });
 
   const items = Array.isArray(libraryRow?.data) ? [...libraryRow.data] : [];
-  let index = items.findIndex((item) => {
-    if (item.tmdbId !== tmdbId) return false;
-    if (mediaType === "movie") return item.type === "movie";
-    return item.type === "series" || item.type === "anime";
-  });
+  let tmdbId = Math.trunc(finiteNumber(body?.tmdbId, 0));
+  let mediaType: "movie" | "series" | null = body?.mediaType === "movie" || body?.mediaType === "series"
+    ? body.mediaType
+    : (season != null || episode != null ? "series" : null);
+
+  let index = -1;
+  if (tmdbId > 0 && mediaType) {
+    index = items.findIndex((item) => {
+      if (item.tmdbId !== tmdbId) return false;
+      if (mediaType === "movie") return item.type === "movie";
+      return item.type === "series" || item.type === "anime";
+    });
+  }
+
+  if (index < 0 && title) {
+    const titleIndex = findLibraryTitleMatch(items, title, mediaType);
+    if (titleIndex >= 0) {
+      index = titleIndex;
+      const matched = items[titleIndex]!;
+      tmdbId = matched.tmdbId ?? 0;
+      mediaType = mediaTypeForItem(matched);
+    }
+  }
+
+  if (index < 0 && (tmdbId <= 0 || !mediaType)) {
+    if (!title) {
+      return NextResponse.json({ error: "A TMDB ID or identifiable media title is required" }, { status: 400 });
+    }
+    const resolved = await resolveTmdbTitle(title, mediaType, season, episode);
+    if (!resolved) {
+      return NextResponse.json({
+        error: "Media title could not be matched confidently",
+        unmatched: true,
+      }, { status: 422 });
+    }
+    tmdbId = resolved.tmdbId;
+    mediaType = resolved.mediaType;
+    index = items.findIndex((item) => {
+      if (item.tmdbId !== tmdbId) return false;
+      if (mediaType === "movie") return item.type === "movie";
+      return item.type === "series" || item.type === "anime";
+    });
+  }
+
+  if (!mediaType) {
+    return NextResponse.json({ error: "Media type could not be identified" }, { status: 422 });
+  }
+  if (mediaType === "series" && (season == null || episode == null || episode <= 0)) {
+    return NextResponse.json({
+      error: "Season and episode could not be identified confidently",
+      unmatched: true,
+    }, { status: 422 });
+  }
+
   const wasMissing = index < 0;
   if (wasMissing) {
-    items.push(await createTmdbItem(tmdbId, mediaType, body?.title ?? null));
+    if (tmdbId <= 0) {
+      return NextResponse.json({ error: "A new library item needs a valid TMDB match" }, { status: 422 });
+    }
+    items.push(await createTmdbItem(tmdbId, mediaType, title || null, site));
     index = items.length - 1;
   }
 
@@ -235,7 +367,7 @@ export async function POST(request: NextRequest) {
         progress.percentComplete = Math.max(progress.percentComplete, Math.min(99, Math.round((episode / progress.totalEpisodes) * 100)));
       }
 
-      if (existing.totalSeasons && season >= existing.totalSeasons && process.env.TMDB_API_KEY) {
+      if (tmdbId > 0 && existing.totalSeasons && season >= existing.totalSeasons && process.env.TMDB_API_KEY) {
         try {
           const seasonDetail = await getSeasonDetails(tmdbId, season, process.env.TMDB_API_KEY);
           if (episode >= seasonDetail.episode_count) {
@@ -263,7 +395,7 @@ export async function POST(request: NextRequest) {
     status,
     progress,
     completedAt,
-    lastWatchedSite: "cinejoy",
+    lastWatchedSite: site,
     updatedAt: now,
   };
   items[index] = updated;
@@ -286,6 +418,8 @@ export async function POST(request: NextRequest) {
     currentEpisodePercent: updated.progress.currentEpisodePercent ?? 0,
     lastCompletedSeason: updated.progress.lastCompletedSeason ?? null,
     lastCompletedEpisode: updated.progress.lastCompletedEpisode ?? null,
+    site,
+    matchedBy: body?.tmdbId ? "tmdb" : (wasMissing ? "tmdb-title" : "library"),
     queued,
   });
 }

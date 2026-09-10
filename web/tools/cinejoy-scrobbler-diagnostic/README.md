@@ -1,7 +1,7 @@
-# Cinejoy extension moved
+# PBox Watch Sync extension
 
-The production Cinejoy extension now lives in its own repository:
+The browser extension lives in its own repository:
 
 https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension
 
-Use that repository for extension source changes, releases, and Chrome Web Store publishing. Pandora's Box links to the latest release automatically until the Chrome Web Store URL is configured.
+Use that repository for extension source changes and free GitHub release ZIPs. Pandora's Box links to the latest `pbox-watch-sync.zip` release from Settings → Integrations.

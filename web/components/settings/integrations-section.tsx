@@ -5,7 +5,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import {
   Link2, Unlink, RefreshCw, AlertTriangle, CheckCircle2, Clock, History, GitMerge,
-  Download, Copy, ExternalLink, Film, Tv, ShieldCheck,
+  Download, Copy, ExternalLink, Film, Tv, ShieldCheck, MonitorPlay,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
@@ -45,9 +45,9 @@ interface Conflict {
 }
 
 const MIN_CINEJOY_LIBRARY_SYNC_VERSION = "1.1.0";
-const CINEJOY_EXTENSION_RELEASE_URL = "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-cinejoy-auto-sync.zip";
-const CINEJOY_EXTENSION_STORE_URL = process.env.NEXT_PUBLIC_CINEJOY_EXTENSION_STORE_URL?.trim() ?? "";
-const CINEJOY_EXTENSION_INSTALL_URL = CINEJOY_EXTENSION_STORE_URL || CINEJOY_EXTENSION_RELEASE_URL;
+const MIN_WATCH_SYNC_VERSION = "1.2.0";
+const WATCH_SYNC_RELEASE_URL = "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-watch-sync.zip";
+const WATCH_SYNC_RELEASE_API = "https://api.github.com/repos/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest";
 
 function versionAtLeast(current: string | null, minimum: string): boolean {
   if (!current) return false;
@@ -100,9 +100,15 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
   const [loading, setLoading] = useState(signedIn);
   const [cinejoyExtensionInstalled, setCinejoyExtensionInstalled] = useState(false);
   const [cinejoyExtensionVersion, setCinejoyExtensionVersion] = useState<string | null>(null);
+  const [latestExtensionVersion, setLatestExtensionVersion] = useState<string | null>(null);
   const [cinejoyLibrarySyncing, setCinejoyLibrarySyncing] = useState(false);
   const cinejoyListSyncSupported = cinejoyExtensionInstalled
     && versionAtLeast(cinejoyExtensionVersion, MIN_CINEJOY_LIBRARY_SYNC_VERSION);
+  const watchSyncSupported = cinejoyExtensionInstalled
+    && versionAtLeast(cinejoyExtensionVersion, MIN_WATCH_SYNC_VERSION);
+  const extensionUpdateAvailable = cinejoyExtensionInstalled
+    && latestExtensionVersion != null
+    && !versionAtLeast(cinejoyExtensionVersion, latestExtensionVersion);
 
   const load = useCallback(async () => {
     try {
@@ -137,19 +143,36 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
   useEffect(() => {
     function detectExtension() {
       setCinejoyExtensionInstalled(
-        document.documentElement.getAttribute("data-pbox-cinejoy-extension") === "1"
+        document.documentElement.getAttribute("data-pbox-watch-sync-extension") === "1"
+        || document.documentElement.getAttribute("data-pbox-cinejoy-extension") === "1"
       );
       setCinejoyExtensionVersion(
-        document.documentElement.getAttribute("data-pbox-cinejoy-extension-version")
+        document.documentElement.getAttribute("data-pbox-watch-sync-extension-version")
+        || document.documentElement.getAttribute("data-pbox-cinejoy-extension-version")
       );
     }
 
     const frame = window.requestAnimationFrame(detectExtension);
     window.addEventListener("pbox-cinejoy-extension-ready", detectExtension);
+    window.addEventListener("pbox-watch-sync-extension-ready", detectExtension);
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("pbox-cinejoy-extension-ready", detectExtension);
+      window.removeEventListener("pbox-watch-sync-extension-ready", detectExtension);
     };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(WATCH_SYNC_RELEASE_API, { headers: { Accept: "application/vnd.github+json" } })
+      .then(async (response) => response.ok ? response.json() as Promise<{ tag_name?: string }> : null)
+      .then((release) => {
+        if (cancelled) return;
+        const version = release?.tag_name?.replace(/^v/i, "").trim();
+        if (version) setLatestExtensionVersion(version);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -262,34 +285,38 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
         <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--accent-rgb)/0.22)] bg-[linear-gradient(145deg,rgb(var(--accent-rgb)/0.08),var(--bg-surface)_42%)]">
           <div className="p-4 sm:p-5">
             <div className="flex items-start gap-3 sm:gap-4">
-              <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black shadow-sm">
-                <Image src="/integrations/cinejoy.png" alt="Cinejoy" width={48} height={48} className="size-full object-cover" />
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-[rgb(var(--accent-rgb)/0.25)] bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)] shadow-sm">
+                <MonitorPlay className="size-6" />
               </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold">Cinejoy Auto Sync</p>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Browser extension</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold">PBox Watch Sync</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">Browser extension · multi-site watch tracking</p>
+                  </div>
+                  {extensionUpdateAvailable ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-300">
+                      <AlertTriangle className="size-3" /> Update available · v{latestExtensionVersion}
+                    </span>
+                  ) : watchSyncSupported ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-300">
+                      <CheckCircle2 className="size-3" /> Active{cinejoyExtensionVersion ? ` · v${cinejoyExtensionVersion}` : ""}
+                    </span>
+                  ) : cinejoyExtensionInstalled ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-300">
+                      <AlertTriangle className="size-3" /> Update required{cinejoyExtensionVersion ? ` · v${cinejoyExtensionVersion}` : ""}
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                      Extension not detected
+                    </span>
+                  )}
                 </div>
-                {cinejoyListSyncSupported ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-300">
-                    <CheckCircle2 className="size-3" /> Extension detected{cinejoyExtensionVersion ? ` · v${cinejoyExtensionVersion}` : ""}
-                  </span>
-                ) : cinejoyExtensionInstalled ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-300">
-                    <AlertTriangle className="size-3" /> Update required{cinejoyExtensionVersion ? ` · v${cinejoyExtensionVersion}` : ""}
-                  </span>
-                ) : (
-                  <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
-                    Extension not detected
-                  </span>
-                )}
+                <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[var(--text-secondary)]">
+                  Tracks long-form movie and episode playback on Cinejoy, Netflix, Prime Video and compatible HTML5 players. PBox records the live percentage, resumes progress, and marks movies or episodes complete at the finish threshold.
+                </p>
               </div>
-              <p className="mt-2 max-w-xl text-xs leading-relaxed text-[var(--text-secondary)]">
-                Copies your PBox movie/show list into Cinejoy, then updates PBox with live Cinejoy playback, completed episodes and completed movies.
-              </p>
             </div>
-          </div>
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] text-[var(--text-muted)] sm:max-w-md">
               <span className="inline-flex items-center gap-1.5"><Film className="size-3.5 text-[var(--accent)]" /> Movies</span>
@@ -299,28 +326,44 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
 
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Button asChild size="sm" className="w-full sm:w-auto">
-              <a href={CINEJOY_EXTENSION_INSTALL_URL} target="_blank" rel="noreferrer">
-                <Download className="size-4" /> {CINEJOY_EXTENSION_STORE_URL ? "Install from Chrome Web Store" : "Download latest extension"}
-              </a>
-            </Button>
-              <Button
-                size="sm"
-                variant="glass"
-                className="w-full sm:w-auto"
-                loading={cinejoyLibrarySyncing}
-                disabled={!cinejoyListSyncSupported}
-                onClick={syncPboxListToCinejoy}
-              >
-                <RefreshCw className="size-4" /> Sync PBox list to Cinejoy
+                <a href={WATCH_SYNC_RELEASE_URL} target="_blank" rel="noreferrer">
+                  <Download className="size-4" /> Download latest ZIP
+                </a>
               </Button>
               <Button size="sm" variant="glass" className="w-full sm:w-auto" onClick={() => void copyExtensionPage()}>
-              <Copy className="size-4" /> Copy Chrome setup page
-            </Button>
-              <Button asChild size="sm" variant="glass" className="w-full sm:w-auto">
-              <a href="https://cinejoy.to/" target="_blank" rel="noreferrer">
-                <ExternalLink className="size-4" /> Open Cinejoy
-              </a>
-            </Button>
+                <Copy className="size-4" /> Copy Chrome setup page
+              </Button>
+            </div>
+
+            <div className="mt-5 rounded-[var(--radius-md)] border border-[var(--border)] bg-black/10 p-3.5">
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black">
+                  <Image src="/integrations/cinejoy.png" alt="Cinejoy" width={40} height={40} className="size-full object-cover" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">Cinejoy list bridge</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
+                    Cinejoy also supports one-way library import from PBox because its URLs expose exact TMDB IDs. Netflix, Prime Video and other sites only send playback progress back to PBox.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <Button
+                  size="sm"
+                  variant="glass"
+                  className="w-full sm:w-auto"
+                  loading={cinejoyLibrarySyncing}
+                  disabled={!cinejoyListSyncSupported}
+                  onClick={syncPboxListToCinejoy}
+                >
+                  <RefreshCw className="size-4" /> Sync PBox list to Cinejoy
+                </Button>
+                <Button asChild size="sm" variant="glass" className="w-full sm:w-auto">
+                  <a href="https://cinejoy.to/" target="_blank" rel="noreferrer">
+                    <ExternalLink className="size-4" /> Open Cinejoy
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -330,36 +373,36 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
               <a href="/faq" className="text-xs font-medium text-[var(--accent)] hover:underline">Full FAQ</a>
             </div>
             <div className="grid gap-2 md:grid-cols-2">
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
-              <summary className="cursor-pointer font-medium">How do I install it?</summary>
-              <p className="mt-2 text-[var(--text-muted)]">
-                Use “Download latest extension” above for the newest GitHub release. Extract it, open chrome://extensions, enable Developer mode, choose Load unpacked, then select the folder containing manifest.json. Once the Chrome Web Store listing is connected, this button becomes the store install link instead.
-              </p>
-            </details>
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
-              <summary className="cursor-pointer font-medium">How will extension updates work?</summary>
-              <p className="mt-2 text-[var(--text-muted)]">
-                Releases now come from the dedicated extension GitHub repo. After the Chrome Web Store listing is enabled, Chrome will install approved updates automatically in the background; users will no longer need to replace ZIP files for routine updates.
-              </p>
-            </details>
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
-              <summary className="cursor-pointer font-medium">Do I need to connect anything after installing?</summary>
-              <p className="mt-2 text-[var(--text-muted)]">
-                No account linking or Trakt VIP is needed. Keep PBox signed in. Use “Sync PBox list to Cinejoy” once for an immediate full import; new PBox titles are then picked up automatically while PBox is open.
-              </p>
-            </details>
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
-              <summary className="cursor-pointer font-medium">What gets synced between PBox and Cinejoy?</summary>
-              <p className="mt-2 text-[var(--text-muted)]">
-                PBox movies and TV/anime entries with TMDB IDs are added to Cinejoy lists. Cinejoy sends live movie/episode progress back to PBox, including exact season/episode completion and completed movies.
-              </p>
-            </details>
-            <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
-              <summary className="cursor-pointer font-medium">How do I know it is working?</summary>
-              <p className="mt-2 text-[var(--text-muted)]">
-                Reload this Settings page after installation. The Cinejoy card will show “Extension detected” when the browser extension is active.
-              </p>
-            </details>
+              <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
+                <summary className="cursor-pointer font-medium">How do I install it?</summary>
+                <p className="mt-2 text-[var(--text-muted)]">
+                  Download the latest ZIP, extract it, open chrome://extensions, enable Developer mode, choose Load unpacked, then select the extracted folder containing manifest.json.
+                </p>
+              </details>
+              <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
+                <summary className="cursor-pointer font-medium">How do updates work?</summary>
+                <p className="mt-2 text-[var(--text-muted)]">
+                  Settings checks the newest GitHub release automatically. When an update is shown, download the latest ZIP, replace the files in your existing extension folder, then click Reload on its chrome://extensions card.
+                </p>
+              </details>
+              <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
+                <summary className="cursor-pointer font-medium">Which players can it track?</summary>
+                <p className="mt-2 text-[var(--text-muted)]">
+                  Cinejoy, Netflix and Prime Video have targeted detection. The extension also watches compatible long-form HTML5 video players on other sites and only updates PBox when the title can be matched confidently.
+                </p>
+              </details>
+              <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
+                <summary className="cursor-pointer font-medium">Do I link my Netflix or Prime account?</summary>
+                <p className="mt-2 text-[var(--text-muted)]">
+                  No. Keep PBox signed in in the same browser and watch normally. The extension reads the current player state in the browser; it does not need your streaming-service password or Trakt VIP.
+                </p>
+              </details>
+              <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs md:col-span-2">
+                <summary className="cursor-pointer font-medium">What is special about Cinejoy?</summary>
+                <p className="mt-2 text-[var(--text-muted)]">
+                  Cinejoy exposes TMDB IDs, so PBox can identify titles exactly and can also copy your PBox movie/show list into a Cinejoy list. Other supported sites use conservative title and episode matching for playback updates only.
+                </p>
+              </details>
             </div>
           </div>
         </div>

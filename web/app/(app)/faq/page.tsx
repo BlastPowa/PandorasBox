@@ -5,9 +5,7 @@ import { ContactForm } from "@/components/faq/contact-form";
 
 export const metadata = { title: "FAQ & Help · PBox" };
 
-const CINEJOY_EXTENSION_RELEASE_URL = "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-cinejoy-auto-sync.zip";
-const CINEJOY_EXTENSION_STORE_URL = process.env.NEXT_PUBLIC_CINEJOY_EXTENSION_STORE_URL?.trim() ?? "";
-const CINEJOY_EXTENSION_INSTALL_URL = CINEJOY_EXTENSION_STORE_URL || CINEJOY_EXTENSION_RELEASE_URL;
+const WATCH_SYNC_RELEASE_URL = "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-watch-sync.zip";
 
 const ENTRIES: FaqEntry[] = [
   {
@@ -54,49 +52,56 @@ const ENTRIES: FaqEntry[] = [
     ),
   },
   {
-    question: "How do I set up Cinejoy Auto Sync?",
+    question: "How do I set up PBox Watch Sync?",
     answer: (
       <div className="space-y-3">
         <p>
-          PBox can copy your movie/show library into Cinejoy and automatically update watched movies and episode
-          progress back in PBox while you watch. You do not need a Trakt VIP account.
+          PBox Watch Sync tracks movie and episode progress from Cinejoy, Netflix, Prime Video and compatible
+          long-form HTML5 players. You do not need to connect your streaming-service account or use Trakt VIP.
         </p>
         <ol className="list-decimal space-y-1 pl-5">
           <li>
-            <a
-              className="text-[var(--accent)] underline underline-offset-2"
-              href={CINEJOY_EXTENSION_INSTALL_URL}
-            >
-              {CINEJOY_EXTENSION_STORE_URL ? "Install Cinejoy Auto Sync from the Chrome Web Store" : "Download the latest Cinejoy Auto Sync release"}
+            <a className="text-[var(--accent)] underline underline-offset-2" href={WATCH_SYNC_RELEASE_URL}>
+              Download the latest PBox Watch Sync ZIP
             </a>{" "}
-            {CINEJOY_EXTENSION_STORE_URL ? "and let Chrome manage future approved updates automatically." : "and extract the ZIP file. This link always follows the newest GitHub release."}
+            and extract it to a permanent folder.
           </li>
-          {!CINEJOY_EXTENSION_STORE_URL && (
-            <>
-              <li>
-                Open <span className="text-[var(--text)]">chrome://extensions</span> in Chrome or a Chromium browser.
-              </li>
-              <li>
-                Turn on <span className="text-[var(--text)]">Developer mode</span>, click{" "}
-                <span className="text-[var(--text)]">Load unpacked</span>, then select the extracted folder containing{" "}
-                <span className="text-[var(--text)]">manifest.json</span>.
-              </li>
-              <li>If an older unpacked PBox Cinejoy extension is already installed, replace its extracted files and click <span className="text-[var(--text)]">Reload</span> on the extension card.</li>
-            </>
-          )}
-          <li>Sign in to PBox once in the same browser.</li>
+          <li>Open <span className="text-[var(--text)]">chrome://extensions</span> in Chrome or a Chromium browser.</li>
           <li>
-            Open <span className="text-[var(--text)]">Settings → Integrations</span> and click{" "}
-            <span className="text-[var(--text)]">Sync PBox list to Cinejoy</span>. The extension creates/uses a Cinejoy list and copies your TMDB movies and shows into it.
+            Turn on <span className="text-[var(--text)]">Developer mode</span>, click{" "}
+            <span className="text-[var(--text)]">Load unpacked</span>, then choose the extracted folder containing{" "}
+            <span className="text-[var(--text)]">manifest.json</span>.
           </li>
-          <li>After that, watch movies and shows on Cinejoy normally. New PBox library additions are picked up automatically while PBox is open.</li>
+          <li>Sign in to PBox in the same browser. Settings → Integrations should show <span className="text-[var(--text)]">PBox Watch Sync · Active</span>.</li>
+          <li>Watch normally. PBox receives live percentage progress and marks a movie or episode complete when playback reaches the completion threshold.</li>
         </ol>
         <p>
-          Cinejoy playback sends live progress, completed movies and the exact completed season/episode back to PBox.
-          Home shows the active percentage meter and the latest completion. Reload Settings → Integrations to confirm
-          the Cinejoy card says <span className="text-[var(--text)]">Extension detected</span>.
+          Cinejoy has an extra list bridge because its URLs expose exact TMDB IDs. Use{" "}
+          <span className="text-[var(--text)]">Sync PBox list to Cinejoy</span> if you want your PBox movie/show list copied there.
+          Netflix, Prime Video and other supported sites only need the extension for watch-progress updates.
         </p>
       </div>
+    ),
+  },
+  {
+    question: "How do PBox Watch Sync updates work?",
+    answer: (
+      <p>
+        Settings checks the latest free GitHub release automatically. When it shows an update, download the new ZIP,
+        replace the files in your existing extension folder, then click <span className="text-[var(--text)]">Reload</span>{" "}
+        on the extension card in <span className="text-[var(--text)]">chrome://extensions</span>. Chrome does not silently
+        auto-update an unpacked extension.
+      </p>
+    ),
+  },
+  {
+    question: "Which streaming sites can PBox Watch Sync track?",
+    answer: (
+      <p>
+        Cinejoy, Netflix and Prime Video have targeted detection. The extension also watches compatible long-form HTML5
+        video players on other sites. Site layouts and DRM players can change, so PBox only writes progress when the title
+        and, for shows, the season and episode can be identified confidently. Ambiguous playback is ignored.
+      </p>
     ),
   },
   {
@@ -105,8 +110,8 @@ const ENTRIES: FaqEntry[] = [
       <p>
         It&apos;s a shortcut back to everything you&apos;ve set to <span className="text-[var(--text)]">Watching</span> or{" "}
         <span className="text-[var(--text)]">Reading</span>, sorted so titles you&apos;ve already started come first.
-        Progress can be updated manually in PBox, and Cinejoy playback can be tracked automatically when the
-        Cinejoy Auto Sync extension is installed from <span className="text-[var(--text)]">Settings → Integrations</span>.
+        Progress can be updated manually in PBox, and supported streaming playback can be tracked automatically when
+        PBox Watch Sync is installed from <span className="text-[var(--text)]">Settings → Integrations</span>.
       </p>
     ),
   },
