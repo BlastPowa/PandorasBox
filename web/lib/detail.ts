@@ -49,6 +49,33 @@ export interface DetailData {
   cast?: CastMember[];
   ratings?: Rating[];
   animeEpisodes?: JikanEpisode[];
+  about?: DetailAbout;
+  galleryImages?: DetailGalleryImage[];
+}
+
+export interface DetailAbout {
+  releaseDate?: string | null;
+  lastAirDate?: string | null;
+  certification?: string | null;
+  originalTitle?: string | null;
+  status?: string | null;
+  seriesType?: string | null;
+  creators?: string[];
+  directors?: string[];
+  writers?: string[];
+  productionCompanies?: string[];
+  networks?: string[];
+  countries?: string[];
+  originalLanguage?: string | null;
+  budget?: number | null;
+  revenue?: number | null;
+  collection?: string | null;
+}
+
+export interface DetailGalleryImage {
+  url: string;
+  width: number;
+  height: number;
 }
 
 export interface CastMember {
@@ -79,6 +106,51 @@ interface TMDBAggregateCredits {
 }
 
 const MAX_CAST = 20;
+
+function uniqueNames(values: (string | null | undefined)[], limit = 8): string[] {
+  return [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))].slice(0, limit);
+}
+
+function movieCertification(
+  results: { iso_3166_1: string; release_dates: { certification: string; type: number }[] }[] | undefined,
+  country: string
+): string | null {
+  const preferredCountries = [country.toUpperCase(), "US"];
+  for (const code of preferredCountries) {
+    const releases = results?.find((entry) => entry.iso_3166_1 === code)?.release_dates ?? [];
+    const rated = releases.filter((entry) => entry.certification.trim());
+    const preferred = rated.find((entry) => entry.type === 3) ?? rated[0];
+    if (preferred) return preferred.certification;
+  }
+  return null;
+}
+
+function seriesCertification(
+  results: { iso_3166_1: string; rating: string }[] | undefined,
+  country: string
+): string | null {
+  const preferredCountries = [country.toUpperCase(), "US"];
+  for (const code of preferredCountries) {
+    const rating = results?.find((entry) => entry.iso_3166_1 === code && entry.rating.trim())?.rating;
+    if (rating) return rating;
+  }
+  return null;
+}
+
+function galleryImages(
+  images: { backdrops?: { file_path: string; width: number; height: number; vote_average: number }[] } | undefined
+): DetailGalleryImage[] {
+  return (images?.backdrops ?? [])
+    .filter((image) => image.file_path && image.width > image.height)
+    .sort((a, b) => b.vote_average - a.vote_average)
+    .filter((image, index, list) => list.findIndex((candidate) => candidate.file_path === image.file_path) === index)
+    .slice(0, 14)
+    .map((image) => ({
+      url: getBackdropUrl(image.file_path),
+      width: image.width,
+      height: image.height,
+    }));
+}
 
 async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promise<CastMember[]> {
   try {
@@ -192,6 +264,19 @@ export async function getDetail(
           getOmdbRatings(m.title, m.release_date ? Number.parseInt(m.release_date.slice(0, 4), 10) || null : null),
         ]);
         const movieYear = m.release_date ? Number.parseInt(m.release_date.slice(0, 4), 10) || null : null;
+        const movieCrew = m.credits?.crew ?? [];
+        const directors = uniqueNames(movieCrew.filter((credit) => credit.job === "Director").map((credit) => credit.name));
+        const writers = uniqueNames(
+          movieCrew
+            .filter((credit) => credit.department === "Writing" || ["Writer", "Screenplay", "Story"].includes(credit.job))
+            .map((credit) => credit.name)
+        );
+        const movieGenres = (m.genres ?? []).map((genre) => genre.name).filter(Boolean);
+        const productionCompanies = uniqueNames((m.production_companies ?? []).map((company) => company.name), 10);
+        const countries = uniqueNames((m.production_countries ?? []).map((entry) => entry.name), 6);
+        const originalLanguage =
+          (m.spoken_languages ?? []).find((language) => language.iso_639_1 === m.original_language)?.english_name ??
+          (m.original_language ? m.original_language.toUpperCase() : null);
         indexTitle({
           mediaKey: `tmdb-${numId}`,
           mediaType: "movie",
@@ -199,7 +284,7 @@ export async function getDetail(
           year: movieYear,
           posterUrl: m.poster_path ? getPosterUrl(m.poster_path) : null,
           synopsis: m.overview || null,
-          genres: [],
+          genres: movieGenres,
         });
         return {
           id: `tmdb-${numId}`,
@@ -215,13 +300,13 @@ export async function getDetail(
           synopsis: m.overview || null,
           year: movieYear,
           score: m.vote_average > 0 ? m.vote_average : null,
-          genres: [],
-          status: null,
+          genres: movieGenres,
+          status: m.status || null,
           runtime: m.runtime,
           totalEpisodes: null,
           totalChapters: null,
           totalSeasons: null,
-          studios: [],
+          studios: productionCompanies,
           episodes: [],
           chapters: [],
           related: [],
@@ -229,6 +314,21 @@ export async function getDetail(
           autoWatchOptions: getAllWatchOptions({ type: "movie", title: m.title, tmdbProviders: providers }),
           cast,
           ratings,
+          about: {
+            releaseDate: m.release_date || null,
+            certification: movieCertification(m.release_dates?.results, country),
+            originalTitle: m.original_title && m.original_title !== m.title ? m.original_title : null,
+            status: m.status || null,
+            directors,
+            writers,
+            productionCompanies,
+            countries,
+            originalLanguage,
+            budget: m.budget > 0 ? m.budget : null,
+            revenue: m.revenue > 0 ? m.revenue : null,
+            collection: m.belongs_to_collection?.name ?? null,
+          },
+          galleryImages: galleryImages(m.images),
         };
       }
       const s = await getSeriesDetails(numId, tmdbKey);
@@ -250,6 +350,14 @@ export async function getDetail(
         getOmdbRatings(s.name, s.first_air_date ? Number.parseInt(s.first_air_date.slice(0, 4), 10) || null : null),
       ]);
       const seriesYear = s.first_air_date ? Number.parseInt(s.first_air_date.slice(0, 4), 10) || null : null;
+      const seriesGenres = (s.genres ?? []).map((genre) => genre.name).filter(Boolean);
+      const productionCompanies = uniqueNames((s.production_companies ?? []).map((company) => company.name), 10);
+      const countries = uniqueNames(
+        (s.production_countries ?? []).map((entry) => entry.name).length > 0
+          ? (s.production_countries ?? []).map((entry) => entry.name)
+          : (s.origin_country ?? []),
+        6
+      );
       indexTitle({
         mediaKey: `tmdb-${numId}`,
         mediaType: "series",
@@ -257,7 +365,7 @@ export async function getDetail(
         year: seriesYear,
         posterUrl: s.poster_path ? getPosterUrl(s.poster_path) : null,
         synopsis: s.overview || null,
-        genres: [],
+        genres: seriesGenres,
       });
       return {
         id: `tmdb-${numId}`,
@@ -273,13 +381,13 @@ export async function getDetail(
         synopsis: s.overview || null,
         year: seriesYear,
         score: s.vote_average > 0 ? s.vote_average : null,
-        genres: [],
+        genres: seriesGenres,
         status: s.status,
-        runtime: null,
+        runtime: s.episode_run_time?.[0] ?? null,
         totalEpisodes: s.number_of_episodes,
         totalChapters: null,
         totalSeasons: s.number_of_seasons,
-        studios: [],
+        studios: productionCompanies,
         episodes,
         chapters: [],
         related: [],
@@ -287,6 +395,20 @@ export async function getDetail(
         autoWatchOptions: getAllWatchOptions({ type: "series", title: s.name, tmdbProviders: providers }),
         cast: seriesCast,
         ratings: seriesRatings,
+        about: {
+          releaseDate: s.first_air_date || null,
+          lastAirDate: s.last_air_date || null,
+          certification: seriesCertification(s.content_ratings?.results, country),
+          originalTitle: s.original_name && s.original_name !== s.name ? s.original_name : null,
+          status: s.status || null,
+          seriesType: s.type || null,
+          creators: uniqueNames((s.created_by ?? []).map((creator) => creator.name)),
+          productionCompanies,
+          networks: uniqueNames((s.networks ?? []).map((network) => network.name), 8),
+          countries,
+          originalLanguage: s.original_language ? s.original_language.toUpperCase() : null,
+        },
+        galleryImages: galleryImages(s.images),
       };
     }
 

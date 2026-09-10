@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Clock, Layers, Star, Sparkles, Tv, Zap, Globe } from "lucide-react";
 import type { ReelItemType } from "@core/storage/schema";
 import { formatRuntime, formatAirDate } from "@core/utils/formatters";
-import { getDetail } from "@/lib/detail";
+import { getDetail, type DetailData } from "@/lib/detail";
 import { getCuratedLinks, getAvailability, curatedToWatchOptions } from "@/lib/db/media";
 import { getProfile } from "@/lib/auth";
 import { TypeBadge } from "@/components/ui-fx/badge";
@@ -20,6 +20,7 @@ import { getTrailerKey } from "@/lib/trailers";
 import { WhereToWatch } from "@/components/detail/where-to-watch";
 import { PosterRow } from "@/components/discovery/poster-row";
 import { ExpandableText } from "@/components/detail/expandable-text";
+import { MediaGallery } from "@/components/detail/media-gallery";
 import { BackButton } from "@/components/shell/back-button";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import { ShareDialog } from "@/components/social/share-dialog";
@@ -274,6 +275,10 @@ export default async function TitlePage({
               </section>
             )}
 
+            {(detail.galleryImages ?? []).length > 0 && (
+              <MediaGallery title={detail.title} images={detail.galleryImages ?? []} />
+            )}
+
             {detail.chapters.length > 0 && (
               <section>
                 <h2 className="mb-3 font-display text-xl font-bold">Chapters</h2>
@@ -303,6 +308,7 @@ export default async function TitlePage({
 
           {/* Where to watch */}
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+            {detail.about && <AboutCard detail={detail} />}
             <GlassCard macDots title={isReading ? "Where to Read" : "Where to Watch"}>
               <div className="p-4">
                 <WhereToWatch options={watchOptions} />
@@ -338,6 +344,97 @@ export default async function TitlePage({
       </div>
     </div>
   );
+}
+
+function AboutCard({ detail }: { detail: DetailData }) {
+  const about = detail.about;
+  if (!about) return null;
+
+  const rows = [
+    [detail.type === "series" ? "First aired" : "Released", formatDetailDate(about.releaseDate)],
+    ["Last aired", formatDetailDate(about.lastAirDate)],
+    ["Certificate", about.certification],
+    ["Status", about.status],
+    ["Type", about.seriesType],
+    ["Director", joinNames(about.directors)],
+    ["Created by", joinNames(about.creators)],
+    ["Writers", joinNames(about.writers)],
+    ["Original title", about.originalTitle],
+    ["Genres", joinNames(detail.genres)],
+    ["Original language", about.originalLanguage],
+    ["Country", joinNames(about.countries)],
+    ["Production", joinNames(about.productionCompanies)],
+    ["Network", joinNames(about.networks)],
+    ["Collection", about.collection],
+    ["Seasons", detail.totalSeasons ? String(detail.totalSeasons) : null],
+    ["Episodes", detail.totalEpisodes ? String(detail.totalEpisodes) : null],
+    [detail.type === "series" ? "Episode runtime" : "Runtime", detail.runtime ? formatRuntime(detail.runtime) : null],
+    ["Budget", formatMoney(about.budget)],
+    ["Box office", formatMoney(about.revenue)],
+  ].filter((row): row is [string, string] => Boolean(row[1]));
+
+  return (
+    <GlassCard macDots title="About">
+      <div className="p-4">
+        {(detail.score !== null || (detail.ratings ?? []).length > 0) && (
+          <div className="mb-4 grid grid-cols-2 gap-2 border-b border-[var(--border)] pb-4">
+            {detail.score !== null && (
+              <div className="rounded-[var(--radius-md)] bg-[var(--glass)] px-3 py-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">TMDB</div>
+                <div className="mt-1 flex items-center gap-1 font-mono text-sm font-bold text-[var(--gold)]">
+                  <Star className="size-3.5 fill-current" /> {detail.score.toFixed(1)}/10
+                </div>
+              </div>
+            )}
+            {(detail.ratings ?? []).map((rating) => (
+              <div key={rating.source} className="rounded-[var(--radius-md)] bg-[var(--glass)] px-3 py-2.5">
+                <div className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  {ratingLabel(rating.source)}
+                </div>
+                <div className="mt-1 font-mono text-sm font-bold text-[var(--text)]">{rating.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <dl className="space-y-3">
+          {rows.map(([label, value]) => (
+            <div key={label} className="grid grid-cols-[104px_1fr] gap-3 text-sm">
+              <dt className="text-[var(--text-muted)]">{label}</dt>
+              <dd className="min-w-0 text-[var(--text-secondary)]">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </GlassCard>
+  );
+}
+
+function joinNames(values: string[] | undefined): string | null {
+  return values && values.length > 0 ? values.join(", ") : null;
+}
+
+function formatDetailDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-IE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
+function formatMoney(value: number | null | undefined): string | null {
+  if (!value || value <= 0) return null;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function ratingLabel(source: string): string {
+  if (source === "Internet Movie Database") return "IMDb";
+  if (source === "Rotten Tomatoes") return "Rotten Tomatoes";
+  return source;
 }
 
 function Badge({

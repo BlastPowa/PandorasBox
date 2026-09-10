@@ -4,29 +4,79 @@ const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
 export interface TMDBMovie {
   id: number;
   title: string;
+  original_title: string;
   overview: string;
+  tagline: string;
   poster_path: string | null;
   backdrop_path: string | null;
   release_date: string;
   vote_average: number;
   vote_count: number;
   genre_ids: number[];
+  genres: { id: number; name: string }[];
   runtime: number | null;
+  status: string;
+  budget: number;
+  revenue: number;
+  original_language: string;
+  spoken_languages: { english_name: string; iso_639_1: string; name: string }[];
+  production_companies: { id: number; name: string; logo_path: string | null; origin_country: string }[];
+  production_countries: { iso_3166_1: string; name: string }[];
+  belongs_to_collection: { id: number; name: string; poster_path: string | null; backdrop_path: string | null } | null;
+  credits?: {
+    crew?: { id: number; name: string; department: string; job: string }[];
+  };
+  images?: TMDBImages;
+  release_dates?: {
+    results: {
+      iso_3166_1: string;
+      release_dates: { certification: string; type: number; release_date: string }[];
+    }[];
+  };
 }
 
 export interface TMDBSeries {
   id: number;
   name: string;
+  original_name: string;
   overview: string;
+  tagline: string;
   poster_path: string | null;
   backdrop_path: string | null;
   first_air_date: string;
+  last_air_date: string;
   vote_average: number;
   vote_count: number;
   genre_ids: number[];
+  genres: { id: number; name: string }[];
   number_of_seasons: number;
   number_of_episodes: number;
   status: string;
+  type: string;
+  original_language: string;
+  origin_country: string[];
+  episode_run_time: number[];
+  created_by: { id: number; name: string; profile_path: string | null }[];
+  production_companies: { id: number; name: string; logo_path: string | null; origin_country: string }[];
+  production_countries: { iso_3166_1: string; name: string }[];
+  networks: { id: number; name: string; logo_path: string | null; origin_country: string }[];
+  images?: TMDBImages;
+  content_ratings?: {
+    results: { iso_3166_1: string; rating: string }[];
+  };
+}
+
+export interface TMDBImage {
+  file_path: string;
+  width: number;
+  height: number;
+  aspect_ratio: number;
+  vote_average: number;
+}
+
+export interface TMDBImages {
+  backdrops?: TMDBImage[];
+  posters?: TMDBImage[];
 }
 
 export interface TMDBEpisode {
@@ -123,12 +173,12 @@ export async function searchSeries(query: string, apiKey: string): Promise<TMDBS
 
 export async function getMovieDetails(id: number, apiKey: string): Promise<TMDBMovie> {
   const resolvedKey = resolveApiKey(apiKey);
-  return tmdbFetch<TMDBMovie>(`/movie/${id}`, resolvedKey, { append_to_response: "credits" }, true);
+  return tmdbFetch<TMDBMovie>(`/movie/${id}`, resolvedKey, { append_to_response: "credits,images,release_dates" }, true);
 }
 
 export async function getSeriesDetails(id: number, apiKey: string): Promise<TMDBSeries> {
   const resolvedKey = resolveApiKey(apiKey);
-  return tmdbFetch<TMDBSeries>(`/tv/${id}`, resolvedKey, { append_to_response: "credits,seasons" }, true);
+  return tmdbFetch<TMDBSeries>(`/tv/${id}`, resolvedKey, { append_to_response: "credits,seasons,images,content_ratings" }, true);
 }
 
 export async function getSeasonDetails(
