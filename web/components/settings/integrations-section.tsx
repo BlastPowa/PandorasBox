@@ -268,7 +268,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
 
         {loading && <p className="text-sm text-[var(--text-muted)]">Loading integrations…</p>}
 
-        {providers.map((p) => (
+        {providers.filter((p) => p.id !== "trakt" || p.configured || p.connected).map((p) => (
           <div key={p.id} className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
             <div className="flex flex-wrap items-center gap-3">
               <span
