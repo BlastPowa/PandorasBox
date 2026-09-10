@@ -45,6 +45,9 @@ interface Conflict {
 }
 
 const MIN_CINEJOY_LIBRARY_SYNC_VERSION = "1.1.0";
+const CINEJOY_EXTENSION_RELEASE_URL = "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-cinejoy-auto-sync.zip";
+const CINEJOY_EXTENSION_STORE_URL = process.env.NEXT_PUBLIC_CINEJOY_EXTENSION_STORE_URL?.trim() ?? "";
+const CINEJOY_EXTENSION_INSTALL_URL = CINEJOY_EXTENSION_STORE_URL || CINEJOY_EXTENSION_RELEASE_URL;
 
 function versionAtLeast(current: string | null, minimum: string): boolean {
   if (!current) return false;
@@ -296,8 +299,8 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
 
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Button asChild size="sm" className="w-full sm:w-auto">
-              <a href="/downloads/pbox-cinejoy-auto-sync.zip" download>
-                <Download className="size-4" /> Download extension
+              <a href={CINEJOY_EXTENSION_INSTALL_URL} target="_blank" rel="noreferrer">
+                <Download className="size-4" /> {CINEJOY_EXTENSION_STORE_URL ? "Install from Chrome Web Store" : "Download latest extension"}
               </a>
             </Button>
               <Button
@@ -330,13 +333,13 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
             <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
               <summary className="cursor-pointer font-medium">How do I install it?</summary>
               <p className="mt-2 text-[var(--text-muted)]">
-                Download the extension ZIP and extract it. Open chrome://extensions, enable Developer mode, choose Load unpacked, then select the extracted folder that contains manifest.json. If you already installed an older version, replace its extracted files and click Reload on the extension card.
+                Use “Download latest extension” above for the newest GitHub release. Extract it, open chrome://extensions, enable Developer mode, choose Load unpacked, then select the folder containing manifest.json. Once the Chrome Web Store listing is connected, this button becomes the store install link instead.
               </p>
             </details>
             <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
-              <summary className="cursor-pointer font-medium">Why does it need to be unpacked?</summary>
+              <summary className="cursor-pointer font-medium">How will extension updates work?</summary>
               <p className="mt-2 text-[var(--text-muted)]">
-                Until the extension is published in a browser extension store, Chrome and Chromium browsers require local extensions to be loaded from an extracted folder.
+                Releases now come from the dedicated extension GitHub repo. After the Chrome Web Store listing is enabled, Chrome will install approved updates automatically in the background; users will no longer need to replace ZIP files for routine updates.
               </p>
             </details>
             <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">

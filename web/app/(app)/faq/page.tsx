@@ -5,6 +5,10 @@ import { ContactForm } from "@/components/faq/contact-form";
 
 export const metadata = { title: "FAQ & Help · PBox" };
 
+const CINEJOY_EXTENSION_RELEASE_URL = "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-cinejoy-auto-sync.zip";
+const CINEJOY_EXTENSION_STORE_URL = process.env.NEXT_PUBLIC_CINEJOY_EXTENSION_STORE_URL?.trim() ?? "";
+const CINEJOY_EXTENSION_INSTALL_URL = CINEJOY_EXTENSION_STORE_URL || CINEJOY_EXTENSION_RELEASE_URL;
+
 const ENTRIES: FaqEntry[] = [
   {
     question: "How do I add a bunch of titles at once (bulk import)?",
@@ -61,21 +65,25 @@ const ENTRIES: FaqEntry[] = [
           <li>
             <a
               className="text-[var(--accent)] underline underline-offset-2"
-              href="/downloads/pbox-cinejoy-auto-sync.zip"
+              href={CINEJOY_EXTENSION_INSTALL_URL}
             >
-              Download the Cinejoy Auto Sync extension
+              {CINEJOY_EXTENSION_STORE_URL ? "Install Cinejoy Auto Sync from the Chrome Web Store" : "Download the latest Cinejoy Auto Sync release"}
             </a>{" "}
-            and extract the ZIP file.
+            {CINEJOY_EXTENSION_STORE_URL ? "and let Chrome manage future approved updates automatically." : "and extract the ZIP file. This link always follows the newest GitHub release."}
           </li>
-          <li>
-            Open <span className="text-[var(--text)]">chrome://extensions</span> in Chrome or a Chromium browser.
-          </li>
-          <li>
-            Turn on <span className="text-[var(--text)]">Developer mode</span>, click{" "}
-            <span className="text-[var(--text)]">Load unpacked</span>, then select the extracted folder containing{" "}
-            <span className="text-[var(--text)]">manifest.json</span>.
-          </li>
-          <li>If an older PBox Cinejoy extension is already installed, replace its extracted files and click <span className="text-[var(--text)]">Reload</span> on the extension card.</li>
+          {!CINEJOY_EXTENSION_STORE_URL && (
+            <>
+              <li>
+                Open <span className="text-[var(--text)]">chrome://extensions</span> in Chrome or a Chromium browser.
+              </li>
+              <li>
+                Turn on <span className="text-[var(--text)]">Developer mode</span>, click{" "}
+                <span className="text-[var(--text)]">Load unpacked</span>, then select the extracted folder containing{" "}
+                <span className="text-[var(--text)]">manifest.json</span>.
+              </li>
+              <li>If an older unpacked PBox Cinejoy extension is already installed, replace its extracted files and click <span className="text-[var(--text)]">Reload</span> on the extension card.</li>
+            </>
+          )}
           <li>Sign in to PBox once in the same browser.</li>
           <li>
             Open <span className="text-[var(--text)]">Settings → Integrations</span> and click{" "}
