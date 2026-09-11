@@ -18,7 +18,7 @@ export const DEFAULT_PLAYER_PREFERENCES: PlayerPreferences = {
   subtitles: "auto",
   autoplayNext: true,
   completionThreshold: 90,
-  sourceOrder: ["peertube", "internet-archive", "wikimedia"],
+  sourceOrder: ["configured-feed", "peertube", "internet-archive", "wikimedia"],
 };
 
 export function readPlayerPreferences(): PlayerPreferences {

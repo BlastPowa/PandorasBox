@@ -8,7 +8,7 @@ export interface PlaybackCaption {
 
 export interface PlaybackSource {
   id: string;
-  provider: "wikimedia" | "internet-archive" | "peertube";
+  provider: "configured-feed" | "wikimedia" | "internet-archive" | "peertube";
   providerName: string;
   title: string;
   kind: PlaybackSourceKind;

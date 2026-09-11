@@ -96,6 +96,158 @@ function qualityLabel(height: unknown): string | null {
   return Number.isFinite(value) && value > 0 ? `${Math.round(value)}p` : null;
 }
 
+type ConfiguredFeedCaption = {
+  label?: unknown;
+  language?: unknown;
+  url?: unknown;
+};
+
+type ConfiguredFeedSource = {
+  id?: unknown;
+  providerName?: unknown;
+  title?: unknown;
+  type?: unknown;
+  year?: unknown;
+  season?: unknown;
+  episode?: unknown;
+  kind?: unknown;
+  url?: unknown;
+  mimeType?: unknown;
+  quality?: unknown;
+  license?: unknown;
+  sourcePageUrl?: unknown;
+  captions?: unknown;
+};
+
+function safeRemoteUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "https:" && !(process.env.NODE_ENV !== "production" && url.protocol === "http:")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function configuredFeedUrls(): string[] {
+  const configured = process.env.PBOX_PLAYBACK_FEEDS ?? "";
+  return configured
+    .split(/[\n,;]/)
+    .map((value) => safeRemoteUrl(value))
+    .filter((value): value is string => Boolean(value))
+    .slice(0, 6);
+}
+
+function configuredFeedMatches(context: PlaybackMatchContext, source: ConfiguredFeedSource): boolean {
+  const candidateTitle = text(source.title).trim();
+  if (!candidateTitle) return false;
+
+  const sourceType = text(source.type).trim().toLowerCase();
+  if (sourceType) {
+    const wantsMovie = context.type.toLowerCase() === "movie";
+    const isMovie = sourceType === "movie";
+    if (wantsMovie !== isMovie) return false;
+  }
+
+  const structuredSeason = Number(source.season);
+  const structuredEpisode = Number(source.episode);
+  const hasStructuredEpisode = Number.isInteger(structuredEpisode) && structuredEpisode > 0;
+
+  if (context.episode && hasStructuredEpisode) {
+    const wantedSeason = context.season ?? 1;
+    const candidateSeason = Number.isInteger(structuredSeason) && structuredSeason > 0 ? structuredSeason : 1;
+    if (structuredEpisode !== context.episode || candidateSeason !== wantedSeason) return false;
+    return likelyTitleMatch({ ...context, season: null, episode: null, episodeTitle: null }, candidateTitle, source.year as string | number | null | undefined);
+  }
+
+  return likelyTitleMatch(context, candidateTitle, source.year as string | number | null | undefined);
+}
+
+function configuredCaptions(value: unknown): PlaybackCaption[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((caption): PlaybackCaption | null => {
+      const item = caption as ConfiguredFeedCaption;
+      const url = safeRemoteUrl(item.url);
+      if (!url) return null;
+      const label = text(item.label).trim() || "Subtitles";
+      const language = text(item.language).trim() || "und";
+      return { label, language, url };
+    })
+    .filter((caption): caption is PlaybackCaption => Boolean(caption))
+    .slice(0, 12);
+}
+
+async function discoverConfiguredFeeds(context: PlaybackMatchContext): Promise<PlaybackSource[]> {
+  const feeds = configuredFeedUrls();
+  if (feeds.length === 0) return [];
+
+  const token = process.env.PBOX_PLAYBACK_FEED_TOKEN?.trim();
+  const results = await Promise.allSettled(feeds.map(async (feedUrl, feedIndex) => {
+    const url = new URL(feedUrl);
+    url.searchParams.set("title", context.title);
+    url.searchParams.set("type", context.type);
+    if (context.year) url.searchParams.set("year", String(context.year));
+    if (context.season) url.searchParams.set("season", String(context.season));
+    if (context.episode) url.searchParams.set("episode", String(context.episode));
+    if (context.episodeTitle) url.searchParams.set("episodeTitle", context.episodeTitle);
+
+    const response = await fetch(url, {
+      headers: {
+        "Accept": "application/json",
+        "User-Agent": "PandorasBox/1.0 (configured playback discovery)",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return [] as PlaybackSource[];
+
+    const payload = await response.json() as { sources?: unknown } | unknown[];
+    const rows = Array.isArray(payload) ? payload : Array.isArray(payload.sources) ? payload.sources : [];
+    const feedOrigin = new URL(feedUrl).origin;
+
+    return rows
+      .slice(0, 24)
+      .map((raw, sourceIndex): PlaybackSource | null => {
+        if (!raw || typeof raw !== "object") return null;
+        const source = raw as ConfiguredFeedSource;
+        if (!configuredFeedMatches(context, source)) return null;
+
+        const streamUrl = safeRemoteUrl(source.url);
+        const license = text(source.license).trim();
+        if (!streamUrl || !license) return null;
+
+        const mimeType = text(source.mimeType).trim() || null;
+        const requestedKind = text(source.kind).trim().toLowerCase();
+        const kind: PlaybackSourceKind = requestedKind === "hls" || requestedKind === "dash" || requestedKind === "direct"
+          ? requestedKind
+          : sourceKind(streamUrl, mimeType);
+        const sourcePageUrl = safeRemoteUrl(source.sourcePageUrl) ?? feedOrigin;
+        const providerName = text(source.providerName).trim() || `PBox Source ${feedIndex + 1}`;
+        const externalId = text(source.id).trim().replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80);
+
+        return {
+          id: `configured-${feedIndex}-${externalId || sourceIndex}`,
+          provider: "configured-feed",
+          providerName,
+          title: text(source.title).trim(),
+          kind,
+          url: streamUrl,
+          mimeType,
+          quality: text(source.quality).trim() || null,
+          license,
+          sourcePageUrl,
+          captions: configuredCaptions(source.captions),
+        };
+      })
+      .filter((source): source is PlaybackSource => Boolean(source));
+  }));
+
+  return results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+}
+
 type WikimediaPage = {
   pageid?: number;
   title?: string;
@@ -402,11 +554,18 @@ export async function discoverPlaybackSources(params: {
     : "";
   const searchTitle = `${params.title}${episodeSuffix}`.trim();
   const results = await Promise.allSettled([
+    discoverConfiguredFeeds(params),
     discoverWikimedia(searchTitle, params),
     discoverInternetArchive(searchTitle, params),
     discoverPeerTube(searchTitle, params),
   ]);
+  const seen = new Set<string>();
   return results
     .flatMap((result) => result.status === "fulfilled" ? result.value : [])
-    .slice(0, 18);
+    .filter((source) => {
+      if (seen.has(source.url)) return false;
+      seen.add(source.url);
+      return true;
+    })
+    .slice(0, 24);
 }

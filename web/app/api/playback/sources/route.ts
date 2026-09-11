@@ -20,6 +20,6 @@ export async function GET(request: Request) {
   const sources = await discoverPlaybackSources({ title, type, year, season, episode, episodeTitle });
   return NextResponse.json(
     { sources },
-    { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } }
+    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "@/lib/playback/preferences";
 
 const SOURCE_LABELS = {
+  "configured-feed": "PBox sources",
   peertube: "PeerTube",
   "internet-archive": "Internet Archive",
   wikimedia: "Wikimedia Commons",
