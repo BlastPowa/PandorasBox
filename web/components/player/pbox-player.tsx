@@ -19,11 +19,13 @@ import {
   RectangleHorizontal,
   SkipForward,
   Sparkles,
+  UsersRound,
 } from "lucide-react";
 import type { PlaybackSource } from "@/lib/playback/types";
 import { useLibrary } from "@/lib/library/use-library";
 import { readPlayerPreferences, writePlayerPreferences, type PlayerPreferences } from "@/lib/playback/preferences";
 import { PlayerAppearanceControls } from "./player-appearance-controls";
+import { WatchPartyPanel } from "./watch-party-panel";
 import {
   PBoxBack10Icon,
   PBoxCaptionsIcon,
@@ -88,6 +90,7 @@ export function PBoxPlayer({
   sources,
   onAutoNext,
   onOpenEpisodes,
+  onWatchPartyMediaChange,
 }: {
   itemId: string;
   title: string;
@@ -96,6 +99,7 @@ export function PBoxPlayer({
   sources: PlaybackSource[];
   onAutoNext?: () => void;
   onOpenEpisodes?: () => void;
+  onWatchPartyMediaChange?: (media: { season: number | null; episode: number | null }) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playerRef = useRef<HTMLDivElement | null>(null);
@@ -119,7 +123,18 @@ export function PBoxPlayer({
   const [autoFallback, setAutoFallback] = useState(preferences.autoFallback);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [watchPartyOpen, setWatchPartyOpen] = useState(false);
+  const [watchPartyInviteCount, setWatchPartyInviteCount] = useState(0);
   const [seekPreview, setSeekPreview] = useState<{ percent: number; time: number } | null>(null);
+
+  const watchPartyMedia = useMemo(() => ({
+    mediaKey: `${mediaType}:${itemId}`,
+    title,
+    mediaType,
+    season: episodeContext?.season ?? null,
+    episode: episodeContext?.episode ?? null,
+    watchPath: typeof window === "undefined" ? "" : window.location.pathname,
+  }), [episodeContext?.episode, episodeContext?.season, itemId, mediaType, title]);
 
   const persistPreferences = useCallback((patch: Partial<PlayerPreferences>) => {
     setPreferences((current) => {
@@ -481,7 +496,7 @@ export function PBoxPlayer({
   if (!source) return null;
 
   return (
-    <div ref={playerRef} style={playerStyle} data-player-icon-style={preferences.iconStyle} className="overflow-hidden rounded-[var(--radius-lg)] border border-white/10 bg-black shadow-2xl">
+    <div ref={playerRef} style={playerStyle} data-player-icon-style={preferences.iconStyle} className="relative overflow-hidden rounded-[var(--radius-lg)] border border-white/10 bg-black shadow-2xl">
       <div className="relative bg-black" style={{ aspectRatio: playerAspectRatio }}>
         <video
           ref={videoRef}
@@ -611,8 +626,18 @@ export function PBoxPlayer({
               </label>
             )}
             {source.captions.length > 0 && <button type="button" onClick={toggleCaptions} className={`grid size-[var(--pbox-player-control-size)] place-items-center ${controlShapeClass} ${controlGlowClass} ${captionsEnabled ? "bg-white text-black" : controlSurfaceClass}`} aria-label="Toggle subtitles"><PBoxCaptionsIcon size={18} /></button>}
+            <button
+              type="button"
+              onClick={() => { setSettingsOpen(false); setWatchPartyOpen((open) => !open); }}
+              className={`relative grid size-[var(--pbox-player-control-size)] place-items-center transition ${controlShapeClass} ${controlGlowClass} ${watchPartyOpen ? "bg-white text-black" : `${controlSurfaceClass} hover:bg-white/15`}`}
+              aria-label="Watch Party"
+              title="Watch Party"
+            >
+              <UsersRound className="size-[18px]" />
+              {watchPartyInviteCount > 0 && <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-[var(--accent)] px-1 text-[8px] font-black leading-4 text-black">{Math.min(9, watchPartyInviteCount)}</span>}
+            </button>
             <div className="relative">
-              <button type="button" onClick={() => setSettingsOpen((open) => !open)} className={`grid size-[var(--pbox-player-control-size)] place-items-center transition ${controlShapeClass} ${controlGlowClass} ${settingsOpen ? "bg-white text-black" : `${controlSurfaceClass} hover:bg-white/15`}`} aria-label="Player settings"><PBoxSettingsIcon size={19} /></button>
+              <button type="button" onClick={() => { setWatchPartyOpen(false); setSettingsOpen((open) => !open); }} className={`grid size-[var(--pbox-player-control-size)] place-items-center transition ${controlShapeClass} ${controlGlowClass} ${settingsOpen ? "bg-white text-black" : `${controlSurfaceClass} hover:bg-white/15`}`} aria-label="Player settings"><PBoxSettingsIcon size={19} /></button>
               {settingsOpen && (
                 <div className="absolute bottom-12 right-0 z-30 max-h-[70vh] w-[min(360px,calc(100vw-32px))] overflow-y-auto rounded-2xl border border-white/10 bg-[#070708]/97 text-left shadow-[0_24px_80px_rgba(0,0,0,0.7)] backdrop-blur-2xl [scrollbar-width:thin]">
                   <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
@@ -808,6 +833,15 @@ export function PBoxPlayer({
           <a href={source.sourcePageUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-white/75 hover:text-white">{source.license}</a>
         </div>
       </div>
+
+      <WatchPartyPanel
+        open={watchPartyOpen}
+        onClose={() => setWatchPartyOpen(false)}
+        videoRef={videoRef}
+        media={watchPartyMedia}
+        onRemoteMediaChange={onWatchPartyMediaChange}
+        onInviteCountChange={setWatchPartyInviteCount}
+      />
     </div>
   );
 }

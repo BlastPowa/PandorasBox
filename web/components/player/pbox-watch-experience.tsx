@@ -83,13 +83,13 @@ export function PBoxWatchExperience({
   useEffect(() => {
     if (type !== "series" || !tmdbId || season === 1) return;
     const controller = new AbortController();
-    setLoadingEpisodes(true);
+    queueMicrotask(() => setLoadingEpisodes(true));
     void fetch(`/api/episodes?id=${tmdbId}&season=${season}`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json() as { episodes?: TMDBEpisode[] };
         const next = seriesEpisodes(data.episodes ?? []);
         setEpisodes(next);
-        setEpisode(next[0]?.number ?? 1);
+        setEpisode((current) => next.some((entry) => entry.number === current) ? current : (next[0]?.number ?? 1));
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -103,8 +103,10 @@ export function PBoxWatchExperience({
   useEffect(() => {
     if (type !== "series" || season !== 1) return;
     const next = seriesEpisodes(initialSeriesEpisodes);
-    setEpisodes(next);
-    setEpisode(next[0]?.number ?? 1);
+    queueMicrotask(() => {
+      setEpisodes(next);
+      setEpisode((current) => next.some((entry) => entry.number === current) ? current : (next[0]?.number ?? 1));
+    });
   }, [initialSeriesEpisodes, season, type]);
 
   const selectedEpisode = useMemo(() => episodes.find((entry) => entry.number === episode) ?? null, [episode, episodes]);
@@ -158,6 +160,12 @@ export function PBoxWatchExperience({
         showUnavailable
         onAutoNext={playNextEpisode}
         onOpenEpisodes={() => setEpisodeBrowserOpen(true)}
+        onWatchPartyMediaChange={(next) => {
+          if (next.episode == null) return;
+          setEpisode(next.episode);
+          if (type === "series" && next.season) setSeason(next.season);
+          setEpisodeBrowserOpen(false);
+        }}
       />
 
       {selectedEpisode && (

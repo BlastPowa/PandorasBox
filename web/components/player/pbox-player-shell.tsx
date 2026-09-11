@@ -17,6 +17,7 @@ export function PBoxPlayerShell({
   showUnavailable = false,
   onAutoNext,
   onOpenEpisodes,
+  onWatchPartyMediaChange,
 }: {
   itemId: string;
   title: string;
@@ -29,6 +30,7 @@ export function PBoxPlayerShell({
   showUnavailable?: boolean;
   onAutoNext?: () => void;
   onOpenEpisodes?: () => void;
+  onWatchPartyMediaChange?: (media: { season: number | null; episode: number | null }) => void;
 }) {
   const [sources, setSources] = useState<PlaybackSource[] | null>(null);
 
@@ -40,7 +42,7 @@ export function PBoxPlayerShell({
     if (season) params.set("season", String(season));
     if (episode) params.set("episode", String(episode));
     if (episodeTitle) params.set("episodeTitle", episodeTitle);
-    setSources(null);
+    queueMicrotask(() => setSources(null));
     void fetch(`/api/playback/sources?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Playback discovery failed");
@@ -99,6 +101,7 @@ export function PBoxPlayerShell({
         sources={sources}
         onAutoNext={onAutoNext}
         onOpenEpisodes={onOpenEpisodes}
+        onWatchPartyMediaChange={onWatchPartyMediaChange}
       />
     </section>
   );
