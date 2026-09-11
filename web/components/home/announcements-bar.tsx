@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Megaphone, X, ChevronDown } from "lucide-react";
+import { Megaphone, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface Announcement {
@@ -32,14 +32,13 @@ function dismiss(id: string) {
 }
 
 const VARIANT_STYLES: Record<Announcement["variant"], string> = {
-  info: "border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.1)] text-[var(--text)]",
-  success: "border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.1)] text-[var(--text)]",
-  warning: "border-[rgb(var(--gold-rgb)/0.3)] bg-[rgb(var(--gold-rgb)/0.1)] text-[var(--gold)]",
+  info: "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]",
+  success: "border-[rgba(34,197,94,0.35)] bg-[rgba(34,197,94,0.12)] text-emerald-300",
+  warning: "border-[rgb(var(--gold-rgb)/0.35)] bg-[rgb(var(--gold-rgb)/0.12)] text-[var(--gold)]",
 };
 
 export function AnnouncementsBar() {
-  const [items, setItems] = useState<Announcement[]>([]);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -50,10 +49,11 @@ export function AnnouncementsBar() {
         .select("id, title, body, variant")
         .eq("active", true)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(1);
       if (cancelled) return;
+      const latest = (data as Announcement[] | null)?.[0] ?? null;
       const dismissed = getDismissed();
-      setItems(((data as Announcement[] | null) ?? []).filter((a) => !dismissed.has(a.id)));
+      setAnnouncement(latest && !dismissed.has(latest.id) ? latest : null);
       setLoaded(true);
     })();
     return () => {
@@ -61,56 +61,36 @@ export function AnnouncementsBar() {
     };
   }, []);
 
-  if (!loaded || items.length === 0) return null;
-
-  // Only ever surface the newest undismissed announcement — stacking them
-  // pushes the hero off-screen. Dismissing it reveals the next, if any.
-  const visible = items.slice(0, 1);
+  if (!loaded || !announcement) return null;
 
   return (
-    <div className="space-y-2">
-      {visible.map((a) => {
-        const open = openId === a.id;
-        return (
-          <div key={a.id} className={`overflow-hidden rounded-[var(--radius-md)] border ${VARIANT_STYLES[a.variant]}`}>
-            <button
-              onClick={() => setOpenId(open ? null : a.id)}
-              className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold"
-            >
-              <Megaphone className="size-4 shrink-0" />
-              <span className="min-w-0 flex-1 truncate">{a.title}</span>
-              {a.body && (
-                <ChevronDown className={`size-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
-              )}
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  dismiss(a.id);
-                  setItems((prev) => prev.filter((i) => i.id !== a.id));
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.stopPropagation();
-                    dismiss(a.id);
-                    setItems((prev) => prev.filter((i) => i.id !== a.id));
-                  }
-                }}
-                className="grid size-6 shrink-0 place-items-center rounded-full hover:bg-[rgba(255,255,255,0.1)]"
-                aria-label="Dismiss announcement"
-              >
-                <X className="size-3.5" />
-              </span>
-            </button>
-            {open && a.body && (
-              <p className="border-t border-[rgba(255,255,255,0.1)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-                {a.body}
-              </p>
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <aside className="pbox-announcement-toast" aria-live="polite" aria-label="Admin announcement">
+      <div className="flex items-start gap-3 p-4">
+        <div className={`grid size-10 shrink-0 place-items-center rounded-xl border ${VARIANT_STYLES[announcement.variant]}`}>
+          <Megaphone className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1 pt-0.5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">PBox update</p>
+          <h2 className="mt-1 text-sm font-semibold text-[var(--text)]">{announcement.title}</h2>
+          {announcement.body && (
+            <p className="mt-1.5 max-h-32 overflow-y-auto pr-1 text-sm leading-relaxed text-[var(--text-secondary)]">
+              {announcement.body}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            dismiss(announcement.id);
+            setAnnouncement(null);
+          }}
+          className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--glass)] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          aria-label="Dismiss announcement"
+          title="Dismiss"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
+    </aside>
   );
 }

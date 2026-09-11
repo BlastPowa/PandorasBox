@@ -260,6 +260,22 @@ body::before {
   animation: pbox-toast-from-right 220ms ease-out both;
 }
 
+.pbox-announcement-toast {
+  position: fixed;
+  top: calc(var(--safe-top) + 4.75rem);
+  right: max(1.25rem, var(--safe-right));
+  z-index: 40;
+  width: min(26rem, calc(100vw - 2rem));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-elevated) 96%, transparent);
+  overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  animation: pbox-toast-from-right 220ms ease-out both;
+}
+
 @media (max-width: 767px) {
   .pbox-social-toast {
     top: calc(var(--safe-top) + 0.75rem);
@@ -269,10 +285,19 @@ body::before {
     width: auto;
     animation-name: pbox-toast-from-left;
   }
+
+  .pbox-announcement-toast {
+    top: calc(var(--safe-top) + 4.5rem);
+    right: max(0.75rem, var(--safe-right));
+    left: max(0.75rem, var(--safe-left));
+    width: auto;
+    animation-name: pbox-toast-from-left;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pbox-social-toast { animation: none; }
+  .pbox-social-toast,
+  .pbox-announcement-toast { animation: none; }
 }
 
 @media (min-width: 768px) {
