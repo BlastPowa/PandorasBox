@@ -23,7 +23,7 @@ function BaseIcon({ size = 20, children, style, ...props }: IconProps) {
 }
 
 export function PBoxPlayIcon(props: IconProps) {
-  return <BaseIcon {...props}><path d="M8.2 6.2v11.6l9-5.8-9-5.8Z" fill="currentColor" stroke="none" /><path d="M4.5 4.5h15v15h-15z" opacity=".34" /></BaseIcon>;
+  return <BaseIcon {...props}><path d="M8.2 6.2v11.6l9-5.8-9-5.8Z" fill="currentColor" stroke="none" /></BaseIcon>;
 }
 
 export function PBoxPauseIcon(props: IconProps) {
