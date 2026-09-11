@@ -68,6 +68,7 @@ export function PBoxPlayer({
   const [muted, setMuted] = useState(false);
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
   const [captionsEnabled, setCaptionsEnabled] = useState(preferences.subtitles !== "off");
+  const [captionIndex, setCaptionIndex] = useState(0);
   const [autoFallback, setAutoFallback] = useState(preferences.autoFallback);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -240,15 +241,19 @@ export function PBoxPlayer({
     setFallbackMessage(null);
   }, [episodeContext, getById, itemId, mediaType, source.id]);
 
-  const toggleCaptions = () => {
+  const applyCaptionTrack = useCallback((enabled: boolean, selectedIndex = captionIndex) => {
     const video = videoRef.current;
     if (!video) return;
-    const next = !captionsEnabled;
     for (let index = 0; index < video.textTracks.length; index += 1) {
-      video.textTracks[index]!.mode = next ? "showing" : "disabled";
+      video.textTracks[index]!.mode = enabled && index === selectedIndex ? "showing" : "disabled";
     }
+  }, [captionIndex]);
+
+  const toggleCaptions = useCallback(() => {
+    const next = !captionsEnabled;
+    applyCaptionTrack(next);
     setCaptionsEnabled(next);
-  };
+  }, [applyCaptionTrack, captionsEnabled]);
 
   const togglePlay = async () => {
     const video = videoRef.current;
@@ -293,6 +298,32 @@ export function PBoxPlayer({
     if (document.fullscreenElement) await document.exitFullscreen();
     else await container.requestFullscreen();
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, button, [contenteditable='true']")) return;
+      const key = event.key.toLowerCase();
+      if (event.code === "Space" || key === "k") {
+        event.preventDefault();
+        void togglePlay();
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        seekBy(-10);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        seekBy(10);
+      } else if (key === "m") {
+        toggleMute();
+      } else if (key === "f") {
+        void requestFullscreen();
+      } else if (key === "c" && source.captions.length > 0) {
+        toggleCaptions();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [source.captions.length, toggleCaptions]);
 
   if (!source) return null;
 
@@ -427,10 +458,25 @@ export function PBoxPlayer({
                     <span className={`relative h-5 w-9 rounded-full transition ${autoFallback ? "bg-[var(--accent)]" : "bg-white/15"}`}><span className={`absolute top-0.5 size-4 rounded-full bg-white transition ${autoFallback ? "left-[18px]" : "left-0.5"}`} /></span>
                   </button>
                   {source.captions.length > 0 && (
-                    <button type="button" onClick={toggleCaptions} className="mt-2 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs">
-                      <span className="font-semibold text-white">Subtitles</span>
-                      <span className={`rounded-full px-2 py-1 text-[9px] font-black uppercase ${captionsEnabled ? "bg-white text-black" : "bg-white/10 text-white/55"}`}>{captionsEnabled ? "On" : "Off"}</span>
-                    </button>
+                    <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-white">Subtitles</span>
+                        <button type="button" onClick={toggleCaptions} className={`rounded-full px-2 py-1 text-[9px] font-black uppercase ${captionsEnabled ? "bg-white text-black" : "bg-white/10 text-white/55"}`}>{captionsEnabled ? "On" : "Off"}</button>
+                      </div>
+                      <select
+                        value={captionIndex}
+                        onChange={(event) => {
+                          const nextIndex = Number(event.target.value);
+                          setCaptionIndex(nextIndex);
+                          setCaptionsEnabled(true);
+                          applyCaptionTrack(true, nextIndex);
+                        }}
+                        className="mt-2 w-full rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-[11px] font-semibold text-white outline-none"
+                        aria-label="Subtitle language"
+                      >
+                        {source.captions.map((caption, index) => <option key={`${caption.url}-${index}`} value={index}>{caption.label || caption.language}</option>)}
+                      </select>
+                    </div>
                   )}
                   <div className="mt-3 rounded-xl bg-white/[0.035] px-3 py-2 text-[10px] leading-relaxed text-white/45">
                     Completion is marked at {preferences.completionThreshold}% watched. Persistent defaults are in Settings → Player.

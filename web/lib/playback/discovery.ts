@@ -332,12 +332,20 @@ export async function discoverPlaybackSources(params: {
   title: string;
   type: string;
   year?: number | null;
+  season?: number | null;
+  episode?: number | null;
+  episodeTitle?: string | null;
 }): Promise<PlaybackSource[]> {
-  if (params.type !== "movie") return [];
+  const episodeSuffix = params.episode
+    ? params.episodeTitle
+      ? ` ${params.episodeTitle}`
+      : ` S${params.season ?? 1}E${params.episode}`
+    : "";
+  const searchTitle = `${params.title}${episodeSuffix}`.trim();
   const results = await Promise.allSettled([
-    discoverWikimedia(params.title),
-    discoverInternetArchive(params.title, params.year),
-    discoverPeerTube(params.title),
+    discoverWikimedia(searchTitle),
+    discoverInternetArchive(searchTitle, params.type === "movie" ? params.year : null),
+    discoverPeerTube(searchTitle),
   ]);
   return results
     .flatMap((result) => result.status === "fulfilled" ? result.value : [])
