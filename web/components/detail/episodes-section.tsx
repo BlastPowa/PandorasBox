@@ -94,7 +94,7 @@ export function EpisodesSection({
   const seasons = Array.from({ length: Math.max(1, totalSeasons) }, (_, i) => i + 1);
 
   return (
-    <section className="mt-10 border-t border-[var(--border)] pt-8">
+    <section id="pbox-episodes" className="mt-10 scroll-mt-24 border-t border-[var(--border)] pt-8">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold">Episodes</h2>
         <div className="flex items-center gap-2">

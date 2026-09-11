@@ -39,7 +39,7 @@ export function PBoxPlayerShell({
   if (type !== "movie" || (sources !== null && sources.length === 0)) return null;
   if (sources === null) {
     return (
-      <section className="space-y-3">
+      <section id="pbox-player" className="scroll-mt-24 space-y-3">
         <div className="flex items-center gap-2">
           <PlaySquare className="size-5 text-[var(--accent)]" />
           <h2 className="font-display text-xl font-bold">PBox Player</h2>
@@ -51,7 +51,7 @@ export function PBoxPlayerShell({
   }
 
   return (
-    <section className="space-y-3">
+    <section id="pbox-player" className="scroll-mt-24 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <PlaySquare className="size-5 text-[var(--accent)]" />
         <h2 className="font-display text-xl font-bold">PBox Player</h2>

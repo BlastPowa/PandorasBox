@@ -84,7 +84,7 @@ export function AnimeEpisodesSection({
   if (episodes.length === 0) return null;
 
   return (
-    <section className="mt-10 border-t border-[var(--border)] pt-8">
+    <section id="pbox-episodes" className="mt-10 scroll-mt-24 border-t border-[var(--border)] pt-8">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold">Episodes</h2>
         {item && (

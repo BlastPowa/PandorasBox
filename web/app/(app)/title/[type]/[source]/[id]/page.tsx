@@ -26,6 +26,7 @@ import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import { ShareDialog } from "@/components/social/share-dialog";
 import { FriendsWithTitle } from "@/components/social/friends-with-title";
 import { PBoxPlayerShell } from "@/components/player/pbox-player-shell";
+import { WatchOnPBoxButton } from "@/components/player/watch-on-pbox-button";
 
 const VALID_TYPES: ReelItemType[] = ["movie", "series", "anime", "manga", "manhwa"];
 
@@ -189,6 +190,7 @@ export default async function TitlePage({
             )}
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
+              <WatchOnPBoxButton title={detail.title} type={detail.type} year={detail.year} />
               <AddToLibrary seed={seed} />
               <TrailerButton
                 type={detail.type}
@@ -312,18 +314,20 @@ export default async function TitlePage({
           {/* Where to watch */}
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             {detail.about && <AboutCard detail={detail} />}
-            <GlassCard macDots title={isReading ? "Where to Read" : "Where to Watch"}>
-              <div className="p-4">
-                <WhereToWatch options={watchOptions} />
-                <Link
-                  href="/sites"
-                  className="glass glow-ring mt-4 flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 py-2.5 text-sm font-semibold"
-                >
-                  <Globe className="size-4 text-[var(--accent)]" />
-                  Can&apos;t find it? Browse all sites
-                </Link>
-              </div>
-            </GlassCard>
+            <div id="where-to-watch" className="scroll-mt-24">
+              <GlassCard macDots title={isReading ? "Where to Read" : "Where to Watch"}>
+                <div className="p-4">
+                  <WhereToWatch options={watchOptions} />
+                  <Link
+                    href="/sites"
+                    className="glass glow-ring mt-4 flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 py-2.5 text-sm font-semibold"
+                  >
+                    <Globe className="size-4 text-[var(--accent)]" />
+                    Can&apos;t find it? Browse all sites
+                  </Link>
+                </div>
+              </GlassCard>
+            </div>
             <Suspense fallback={<div className="skeleton h-28 rounded-[var(--radius-lg)]" />}><FriendsWithTitle mediaKey={detail.id} /></Suspense>
           </aside>
         </div>
