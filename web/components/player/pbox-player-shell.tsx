@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { PlaySquare, Server, Settings2, ShieldCheck } from "lucide-react";
 import type { PlaybackSource } from "@/lib/playback/types";
 import { PBoxPlayer } from "./pbox-player";
+import { PlayerQuickSettings } from "./player-quick-settings";
 
 type PlaybackConfiguration = {
   jellyfin: boolean;
@@ -46,6 +46,7 @@ export function PBoxPlayerShell({
 }) {
   const [sources, setSources] = useState<PlaybackSource[] | null>(null);
   const [configuration, setConfiguration] = useState<PlaybackConfiguration | null>(null);
+  const [quickSettingsOpen, setQuickSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (type !== "movie" && type !== "series" && type !== "anime") return;
@@ -91,13 +92,15 @@ export function PBoxPlayerShell({
               ? `This PBox deployment has no Jellyfin, Emby, or authorised playback feed configured, so ${episode ? "this episode" : "this title"} has nowhere to load video from inside the site.`
               : `A playback source is connected, but ${episode ? "this episode" : "this title"} was not found in it and no matching verified open source was available.`}
           </p>
-          <Link
-            href="/settings#player"
+          <button
+            type="button"
+            onClick={() => setQuickSettingsOpen(true)}
             className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-extrabold text-black shadow-lg shadow-black/30 transition hover:brightness-110"
           >
             <Settings2 className="size-4" /> Playback settings
-          </Link>
+          </button>
         </div>
+        <PlayerQuickSettings open={quickSettingsOpen} onClose={() => setQuickSettingsOpen(false)} configuration={configuration} />
       </section>
     );
   }

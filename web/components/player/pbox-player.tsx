@@ -855,6 +855,14 @@ export function PBoxPlayer({
                       <span className="flex-1 text-[13px] font-semibold text-white/90">Auto Fallback</span>
                       <span className={`relative h-5 w-9 rounded-full transition ${autoFallback ? "bg-[var(--accent)]" : "bg-white/15"}`}><span className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-all ${autoFallback ? "left-[18px]" : "left-0.5"}`} /></span>
                     </button>
+
+                    <label className="block px-4 py-3">
+                      <span className="flex items-center justify-between gap-3 text-[13px] font-semibold text-white/90">
+                        Completion threshold
+                        <span className="rounded-full bg-[rgb(var(--accent-rgb)/0.14)] px-2 py-1 font-mono text-[10px] font-bold text-[var(--accent)]">{preferences.completionThreshold}%</span>
+                      </span>
+                      <input type="range" min={70} max={100} step={1} value={preferences.completionThreshold} onChange={(event) => persistPreferences({ completionThreshold: Number(event.target.value) })} className="mt-3 w-full accent-[var(--accent)]" />
+                    </label>
                   </div>
 
                   <div className="border-y border-white/[0.07] bg-white/[0.015] px-4 py-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/20">Appearance</div>
