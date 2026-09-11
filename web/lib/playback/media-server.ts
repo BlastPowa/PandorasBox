@@ -88,11 +88,18 @@ export function getMediaServerConfigurationStatus(): Record<MediaServerProvider,
 }
 
 export function mediaServerHeaders(config: MediaServerConfig): HeadersInit {
-  return {
+  const headers: Record<string, string> = {
     "Accept": "application/json",
     "User-Agent": "PandorasBox/1.0 (personal media playback)",
-    "X-Emby-Token": config.apiKey,
   };
+
+  if (config.provider === "jellyfin") {
+    headers.Authorization = `MediaBrowser Client="PandorasBox", Device="PandorasBox Server", DeviceId="pandoras-box", Version="1.0.0", Token="${config.apiKey}"`;
+  } else {
+    headers["X-Emby-Token"] = config.apiKey;
+  }
+
+  return headers;
 }
 
 function apiUrl(config: MediaServerConfig, path: string): URL {
