@@ -274,8 +274,8 @@ async function discoverConfiguredFeeds(context: PlaybackMatchContext): Promise<P
         if (!configuredFeedMatches(context, source)) return null;
 
         const streamUrl = safeRemoteUrl(source.url);
-        const license = text(source.license).trim();
-        if (!streamUrl || !license) return null;
+        const license = text(source.license).trim() || "Authorised configured source";
+        if (!streamUrl) return null;
 
         const mimeType = text(source.mimeType).trim() || null;
         const requestedKind = text(source.kind).trim().toLowerCase();
