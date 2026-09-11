@@ -1,5 +1,6 @@
 import "server-only";
 import type { PlaybackCaption, PlaybackSource, PlaybackSourceKind } from "./types";
+import { discoverMediaServers } from "./media-server";
 
 const OPEN_LICENSE = /(public\s*domain|creative\s*commons|\bcc[- ]?(?:by|zero|0|sa|nc|nd)\b)/i;
 
@@ -854,6 +855,7 @@ export async function discoverPlaybackSources(params: {
     : "";
   const searchTitle = `${params.title}${episodeSuffix}`.trim();
   const results = await Promise.allSettled([
+    discoverMediaServers(params),
     discoverConfiguredFeeds(params),
     discoverWikimedia(searchTitle, params),
     discoverInternetArchive(searchTitle, params),
