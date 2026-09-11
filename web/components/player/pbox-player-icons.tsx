@@ -2,7 +2,7 @@ import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
-function BaseIcon({ size = 20, children, ...props }: IconProps) {
+function BaseIcon({ size = 20, children, style, ...props }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -10,10 +10,11 @@ function BaseIcon({ size = 20, children, ...props }: IconProps) {
       height={size}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="var(--pbox-icon-stroke, 1.8)"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      style={{ opacity: "var(--pbox-icon-opacity, 1)", ...style }}
       {...props}
     >
       {children}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, RotateCcw } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
+import { PlayerAppearanceControls } from "@/components/player/player-appearance-controls";
 import {
   DEFAULT_PLAYER_PREFERENCES,
   readPlayerPreferences,
@@ -153,6 +154,21 @@ export function PlayerSettingsSection() {
               className="mt-4 w-full accent-[var(--accent)]"
             />
           </label>
+        </div>
+      </GlassCard>
+
+      <GlassCard macDots title="Player appearance">
+        <div className="space-y-4 p-5">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text)]">Personalise the PBox player</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+              Change the player accent, control sizing and on-screen feedback. Appearance is saved with your other player preferences on this device.
+            </p>
+          </div>
+          <PlayerAppearanceControls
+            preferences={settings}
+            onChange={(patch) => setSettings((current) => ({ ...current, ...patch }))}
+          />
         </div>
       </GlassCard>
 
