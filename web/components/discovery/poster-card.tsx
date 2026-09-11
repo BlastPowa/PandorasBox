@@ -1,7 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Play } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { TypeBadge } from "@/components/ui-fx/badge";
+import { pboxWatchHref } from "@/lib/playback/watch-route";
 import { cn } from "@/lib/utils";
 
 export function PosterCard({
@@ -17,16 +19,17 @@ export function PosterCard({
     item.type === "comic"
       ? `/comic/${item.id.replace("comicvine-", "")}`
       : `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId ?? item.id}`;
+  const watchHref = pboxWatchHref(item);
   return (
-    <Link
-      href={href}
+    <div
       style={style}
       className={cn(
-        "group pb-card-3d relative block overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)]",
+        "group pb-card-3d relative overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)]",
         className
       )}
     >
-      <div className="relative aspect-[2/3] w-full">
+      <Link href={href} aria-label={`View details for ${item.title}`} className="block">
+        <div className="relative aspect-[2/3] w-full">
         {item.posterUrl ? (
           <Image
             src={item.posterUrl}
@@ -59,7 +62,17 @@ export function PosterCard({
             </span>
           )}
         </div>
-      </div>
-    </Link>
+        </div>
+      </Link>
+      {watchHref && (
+        <Link
+          href={watchHref}
+          aria-label={`Watch ${item.title} on Pandora's Box`}
+          className="absolute left-1/2 top-1/2 z-20 inline-flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-black shadow-[0_12px_34px_rgba(0,0,0,0.5)] transition hover:scale-110 focus-visible:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:scale-90 sm:opacity-0 sm:group-hover:scale-100 sm:group-hover:opacity-100 sm:group-focus-within:scale-100 sm:group-focus-within:opacity-100"
+        >
+          <Play className="ml-0.5 size-5 fill-current" />
+        </Link>
+      )}
+    </div>
   );
 }
