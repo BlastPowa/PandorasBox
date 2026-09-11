@@ -1,14 +1,18 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+const scriptSrc = process.env.NODE_ENV === "production"
+  ? "script-src 'self' 'unsafe-inline'"
+  : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  // React/Next require inline; eval kept for dev/runtime chunk loading
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  // Theme bootstrap requires inline script; development keeps the additional local runtime allowance.
+  scriptSrc,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   // Images are now loaded straight from their source CDNs (see lib/image-loader.ts),
@@ -28,11 +32,14 @@ const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+  { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, ".."),
   poweredByHeader: false,
+  productionBrowserSourceMaps: false,
   images: {
     // Serve remote artwork directly from the source CDNs instead of Vercel's
     // Image Optimization. These providers already return correctly-sized,
