@@ -71,7 +71,7 @@ export function CommandPalette() {
     ...navMatches.map((n) => ({ kind: "nav" as const, href: n.href, label: n.label })),
     ...results.map((r) => ({
       kind: "result" as const,
-      href: `/title/${r.type}/${r.source}/${r.anilistId ?? r.tmdbId ?? r.mangadexId}`,
+      href: `/title/${r.type}/${r.source}/${r.anilistId ?? r.tmdbId ?? r.mangadexId ?? r.id}`,
       label: r.title,
       item: r,
     })),
@@ -146,7 +146,7 @@ export function CommandPalette() {
               <div>
                 <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Titles</p>
                 {results.map((r) => {
-                  const href = `/title/${r.type}/${r.source}/${r.anilistId ?? r.tmdbId ?? r.mangadexId}`;
+                  const href = `/title/${r.type}/${r.source}/${r.anilistId ?? r.tmdbId ?? r.mangadexId ?? r.id}`;
                   const idx = flat.findIndex((f) => f.kind === "result" && f.href === href && f.label === r.title);
                   return (
                     <button

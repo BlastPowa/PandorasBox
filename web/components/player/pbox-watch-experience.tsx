@@ -77,9 +77,11 @@ export function PBoxWatchExperience({
   collectionItems: UnifiedSearchResult[];
 }) {
   const router = useRouter();
-  const [season, setSeason] = useState(() => type === "series" ? Math.max(1, initialSeason) : 1);
+  const usesTmdbSeasons = Boolean(tmdbId && (type === "series" || type === "anime"));
+  const usesContinuousAnimeEpisodes = type === "anime" && !usesTmdbSeasons;
+  const [season, setSeason] = useState(() => usesTmdbSeasons ? Math.max(1, initialSeason) : 1);
   const [episodes, setEpisodes] = useState<WatchEpisode[]>(() =>
-    type === "series" ? seriesEpisodes(initialSeriesEpisodes) : animeEpisodes(initialAnimeEpisodes)
+    usesTmdbSeasons ? seriesEpisodes(initialSeriesEpisodes) : animeEpisodes(initialAnimeEpisodes)
   );
   const [episode, setEpisode] = useState<number | null>(() =>
     type === "movie" ? null : (initialEpisode ?? episodes[0]?.number ?? 1)
@@ -106,7 +108,7 @@ export function PBoxWatchExperience({
   }, [episodeBrowserOpen]);
 
   useEffect(() => {
-    if (type !== "series" || !tmdbId || season === 1) return;
+    if (!usesTmdbSeasons || !tmdbId || season === 1) return;
     const controller = new AbortController();
     queueMicrotask(() => setLoadingEpisodes(true));
     void fetch(`/api/episodes?id=${tmdbId}&season=${season}`, { signal: controller.signal })
@@ -123,16 +125,16 @@ export function PBoxWatchExperience({
       })
       .finally(() => setLoadingEpisodes(false));
     return () => controller.abort();
-  }, [season, tmdbId, type]);
+  }, [season, tmdbId, usesTmdbSeasons]);
 
   useEffect(() => {
-    if (type !== "series" || season !== 1) return;
+    if (!usesTmdbSeasons || season !== 1) return;
     const next = seriesEpisodes(initialSeriesEpisodes);
     queueMicrotask(() => {
       setEpisodes(next);
       setEpisode((current) => next.some((entry) => entry.number === current) ? current : (next[0]?.number ?? 1));
     });
-  }, [initialSeriesEpisodes, season, type]);
+  }, [initialSeriesEpisodes, season, usesTmdbSeasons]);
 
   const filteredEpisodes = useMemo(() => {
     const query = episodeQuery.trim().toLowerCase();
@@ -145,7 +147,7 @@ export function PBoxWatchExperience({
   }, [episodeQuery, episodes]);
   const seasonCount = Math.max(1, totalSeasons ?? 1);
   const numberedEpisodes = useMemo(() => {
-    if (type !== "anime" || !totalEpisodes || totalEpisodes <= episodes.length) return episodes;
+    if (!usesContinuousAnimeEpisodes || !totalEpisodes || totalEpisodes <= episodes.length) return episodes;
     const knownEpisodes = new Map(episodes.map((entry) => [entry.number, entry]));
     return Array.from({ length: totalEpisodes }, (_, index) => {
       const number = index + 1;
@@ -157,7 +159,7 @@ export function PBoxWatchExperience({
         runtime: null,
       };
     });
-  }, [episodes, totalEpisodes, type]);
+  }, [episodes, totalEpisodes, usesContinuousAnimeEpisodes]);
   const selectedEpisode = useMemo(() => numberedEpisodes.find((entry) => entry.number === episode) ?? null, [episode, numberedEpisodes]);
   const filteredNumberedEpisodes = useMemo(() => {
     const query = episodeQuery.trim().toLowerCase();
@@ -175,8 +177,8 @@ export function PBoxWatchExperience({
   }, [episodeRange, filteredNumberedEpisodes]);
   const isFinalEpisode = Boolean(
     episode &&
-    ((type === "series" && season === seasonCount && selectedEpisode && selectedEpisode.number === episodes.at(-1)?.number) ||
-      (type === "anime" && totalEpisodes && episode >= totalEpisodes))
+    ((usesTmdbSeasons && season === seasonCount && selectedEpisode && selectedEpisode.number === episodes.at(-1)?.number) ||
+      (usesContinuousAnimeEpisodes && totalEpisodes && episode >= totalEpisodes))
   );
 
   const movieContinuation = useMemo(() => {
@@ -195,7 +197,7 @@ export function PBoxWatchExperience({
 
   const playNextEpisode = useCallback(() => {
     if (!episode) return;
-    if (type === "anime") {
+    if (usesContinuousAnimeEpisodes) {
       if (!totalEpisodes || episode < totalEpisodes) setEpisode(episode + 1);
       return;
     }
@@ -210,7 +212,7 @@ export function PBoxWatchExperience({
       setSeason((value) => Math.min(seasonCount, value + 1));
       setEpisodeRange(0);
     }
-  }, [episode, episodes, season, seasonCount, totalEpisodes, type]);
+  }, [episode, episodes, season, seasonCount, totalEpisodes, usesContinuousAnimeEpisodes]);
 
   const selectEpisode = useCallback((nextEpisode: number) => {
     setEpisode(nextEpisode);
@@ -284,7 +286,7 @@ export function PBoxWatchExperience({
         titleAliases={titleAliases}
         type={type}
         year={year}
-        season={type === "series" ? season : 1}
+        season={usesTmdbSeasons ? season : 1}
         episode={episode}
         episodeTitle={selectedEpisode?.title ?? null}
         isFinalEpisode={isFinalEpisode}
@@ -297,7 +299,7 @@ export function PBoxWatchExperience({
         onWatchPartyMediaChange={(next) => {
           if (next.episode == null) return;
           setEpisode(next.episode);
-          if (type === "series" && next.season) {
+          if (usesTmdbSeasons && next.season) {
             setSeason(next.season);
             setEpisodeRange(0);
           }
@@ -309,7 +311,7 @@ export function PBoxWatchExperience({
         <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">
-              {type === "series" ? `Season ${season} · ` : ""}Episode {selectedEpisode.number}
+              {usesTmdbSeasons ? `Season ${season} · ` : ""}Episode {selectedEpisode.number}
             </p>
             <h2 className="mt-1 text-lg font-bold text-white">{selectedEpisode.title}</h2>
             {selectedEpisode.overview && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/55">{selectedEpisode.overview}</p>}
@@ -349,7 +351,7 @@ export function PBoxWatchExperience({
               <h2 className="mt-2 font-display text-3xl font-black tracking-tight xl:text-5xl">{title}</h2>
               {selectedEpisode && (
                 <>
-                  <p className="mt-3 text-sm font-bold text-white/85">{type === "series" ? `S${season} · ` : ""}E{selectedEpisode.number} · {selectedEpisode.title}</p>
+                  <p className="mt-3 text-sm font-bold text-white/85">{usesTmdbSeasons ? `S${season} · ` : ""}E{selectedEpisode.number} · {selectedEpisode.title}</p>
                   {selectedEpisode.overview && <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/55">{selectedEpisode.overview}</p>}
                 </>
               )}
@@ -362,7 +364,7 @@ export function PBoxWatchExperience({
                 <p className="text-base font-extrabold tracking-tight">Episodes</p>
                 <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">{title}</p>
               </div>
-              {type === "series" && seasonCount > 1 && (
+              {usesTmdbSeasons && seasonCount > 1 && (
                 <div className="relative">
                   <button
                     type="button"
@@ -407,7 +409,7 @@ export function PBoxWatchExperience({
 
             <div className="border-b border-white/8 px-3 py-2.5 sm:px-4">
               <div className="flex items-center gap-2">
-                {type === "series" && seasonCount > 1 && (
+                {usesTmdbSeasons && seasonCount > 1 && (
                   <>
                     <button type="button" aria-label="Previous season" disabled={season <= 1} onClick={() => {
                       setSeason((value) => Math.max(1, value - 1));
@@ -507,7 +509,7 @@ export function PBoxWatchExperience({
                         <span className="min-w-0 flex-1">
                           <span className={`block truncate text-xs font-extrabold ${active ? "text-white" : "text-white/75"}`}>{entry.title}</span>
                           <span className="mt-0.5 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-white/30">
-                            {type === "series" ? `S${season} · E${entry.number}` : `Episode ${entry.number}`}
+                            {usesTmdbSeasons ? `S${season} · E${entry.number}` : `Episode ${entry.number}`}
                             {entry.runtime ? <span>· {entry.runtime}m</span> : null}
                           </span>
                         </span>
@@ -533,7 +535,7 @@ export function PBoxWatchExperience({
                           {active && <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-black"><Check className="size-3" strokeWidth={3} /> Now playing</span>}
                           {entry.runtime && <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 text-[9px] font-bold text-white/80 backdrop-blur"><Clock3 className="size-3" /> {entry.runtime}m</span>}
                           <div className="absolute inset-x-0 bottom-0 p-3.5">
-                            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">{type === "series" ? `S${season} · ` : ""}E{entry.number}</p>
+                            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">{usesTmdbSeasons ? `S${season} · ` : ""}E{entry.number}</p>
                             <p className="mt-1 line-clamp-1 text-sm font-extrabold text-white">{entry.title}</p>
                             {entry.overview && <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-white/48">{entry.overview}</p>}
                           </div>

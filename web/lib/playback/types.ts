@@ -8,7 +8,7 @@ export interface PlaybackCaption {
 
 export interface PlaybackSource {
   id: string;
-  provider: "configured-feed" | "local-file" | "wikimedia" | "internet-archive" | "peertube" | "nasa" | "europeana" | "dvids" | "jellyfin" | "emby";
+  provider: "configured-feed" | "local-file" | "manual-stream" | "wikimedia" | "internet-archive" | "peertube" | "nasa" | "europeana" | "dvids" | "jellyfin" | "emby";
   providerName: string;
   title: string;
   kind: PlaybackSourceKind;

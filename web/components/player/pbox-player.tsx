@@ -210,7 +210,7 @@ export function PBoxPlayer({
     }
     const next = orderedSources.findIndex((candidate, index) => index !== sourceIndex && !failedSourcesRef.current.has(candidate.id));
     if (next < 0) {
-      setFallbackMessage("All available mirrors failed. Try again later or choose an external watch option.");
+      setFallbackMessage(`${reason} No more mirrors are available. Try another source or an external watch option.`);
       return;
     }
     const nextSource = orderedSources[next]!;
@@ -233,27 +233,34 @@ export function PBoxPlayer({
       if (video.readyState < HTMLMediaElement.HAVE_METADATA) fallbackToNextSource("Mirror timed out.");
     }, 12_000);
 
-    if (source.kind === "hls" && Hls.isSupported()) {
-      hls = new Hls();
-      hls.loadSource(source.url);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (!data.fatal) return;
-        const attempts = recoveryAttemptsRef.current.get(source.id) ?? 0;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && attempts === 0) {
-          recoveryAttemptsRef.current.set(source.id, 1);
-          setFallbackMessage(`Mirror ${sourceIndex + 1}/${orderedSources.length} lost its connection. Reconnecting…`);
-          hls?.startLoad();
-          return;
-        }
-        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && attempts <= 1) {
-          recoveryAttemptsRef.current.set(source.id, attempts + 1);
-          setFallbackMessage(`Mirror ${sourceIndex + 1}/${orderedSources.length} hit a playback error. Recovering…`);
-          hls?.recoverMediaError();
-          return;
-        }
-        fallbackToNextSource("HLS playback failed.");
-      });
+    if (source.kind === "hls") {
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(source.url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (!data.fatal) return;
+          const attempts = recoveryAttemptsRef.current.get(source.id) ?? 0;
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && attempts === 0) {
+            recoveryAttemptsRef.current.set(source.id, 1);
+            setFallbackMessage(`Mirror ${sourceIndex + 1}/${orderedSources.length} lost its connection. Reconnecting…`);
+            hls?.startLoad();
+            return;
+          }
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR && attempts <= 1) {
+            recoveryAttemptsRef.current.set(source.id, attempts + 1);
+            setFallbackMessage(`Mirror ${sourceIndex + 1}/${orderedSources.length} hit a playback error. Recovering…`);
+            hls?.recoverMediaError();
+            return;
+          }
+          fallbackToNextSource(`HLS playback failed${data.details ? ` (${data.details})` : ""}.`);
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = source.url;
+        video.load();
+      } else {
+        fallbackToNextSource("HLS playback is not supported by this browser.");
+      }
     } else if (source.kind === "dash") {
       void import("dashjs")
         .then((dashjs) => {
@@ -553,7 +560,13 @@ export function PBoxPlayer({
           }}
           onTimeUpdate={(event) => { setCurrentTime(event.currentTarget.currentTime); void syncProgress(false); }}
           onEnded={handleEnded}
-          onError={() => fallbackToNextSource("Mirror failed.")}
+          onError={(event) => {
+            // Resetting the previous source with removeAttribute("src") + load()
+            // can emit a late error with no currentSrc. Ignore that stale event so
+            // it cannot mark the newly selected mirror as failed.
+            if (!event.currentTarget.currentSrc) return;
+            fallbackToNextSource("Mirror failed.");
+          }}
           onStalled={() => {
             if (videoRef.current && videoRef.current.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
               if (sourceLoadTimerRef.current !== null) window.clearTimeout(sourceLoadTimerRef.current);

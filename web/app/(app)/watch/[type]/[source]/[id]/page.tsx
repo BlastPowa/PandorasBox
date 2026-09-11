@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Captions, Keyboard, PlaySquare } from "lucide-react";
+import { ArrowLeft, Captions, ExternalLink, Keyboard, PlaySquare } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { ReelItemType } from "@core/storage/schema";
 import { getDetail } from "@/lib/detail";
@@ -113,6 +113,31 @@ export default async function WatchPage({
             <p className="mt-2 leading-relaxed">Use CC for a quick on/off toggle, or choose a subtitle language from player settings.</p>
           </div>
         </div>
+
+        {detail.autoWatchOptions.length > 0 && (
+          <section className="mt-4 rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-bold text-white/85">Where to watch</h2>
+                <p className="mt-0.5 text-xs text-white/40">Official providers and lawful search options for this title.</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {detail.autoWatchOptions.slice(0, 10).map((option) => (
+                <a
+                  key={`${option.name}:${option.url}`}
+                  href={option.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-xs font-semibold text-white/65 transition hover:bg-white/8 hover:text-white"
+                >
+                  {option.name}
+                  <ExternalLink className="size-3" />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

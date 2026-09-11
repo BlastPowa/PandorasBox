@@ -3,6 +3,8 @@ import { searchMovies, searchSeries, getPosterUrl } from "../api/tmdb";
 import type { TMDBMovie, TMDBSeries } from "../api/tmdb";
 import { searchAniList, formatAniListDescription } from "../api/anilist";
 import type { AniListMedia } from "../api/anilist";
+import { searchJikanAnime } from "../api/jikan";
+import type { JikanAnime } from "../api/jikan";
 import { normaliseTitle } from "./formatters";
 
 export interface UnifiedSearchResult {
@@ -80,6 +82,18 @@ function mapSeries(series: TMDBSeries): UnifiedSearchResult {
   };
 }
 
+function isLikelyAnimeSeries(series: TMDBSeries): boolean {
+  const japaneseOrigin = series.original_language === "ja" || series.origin_country?.includes("JP");
+  return Boolean(japaneseOrigin && series.genre_ids?.includes(16));
+}
+
+function mapTmdbAnime(series: TMDBSeries): UnifiedSearchResult {
+  return {
+    ...mapSeries(series),
+    type: "anime",
+  };
+}
+
 function mapAniList(media: AniListMedia): UnifiedSearchResult {
   const isManga = media.format === "MANGA" || media.format === "ONE_SHOT" || media.format === "NOVEL";
   const type: ReelItemType = isManga ? "manga" : "anime";
@@ -101,6 +115,27 @@ function mapAniList(media: AniListMedia): UnifiedSearchResult {
   };
 }
 
+function mapJikanAnime(media: JikanAnime): UnifiedSearchResult {
+  const yearValue = media.aired.from?.slice(0, 4) ?? "";
+  const parsedYear = Number.parseInt(yearValue, 10);
+  return {
+    id: `jikan-${media.mal_id}`,
+    source: "anilist",
+    type: "anime",
+    title: media.title_english?.trim() || media.title,
+    posterUrl: media.images.jpg.large_image_url || media.images.jpg.image_url || null,
+    year: Number.isFinite(parsedYear) ? parsedYear : null,
+    synopsis: media.synopsis,
+    score: media.score,
+    totalEpisodes: media.episodes,
+    totalChapters: null,
+    anilistId: null,
+    tmdbId: null,
+    mangadexId: null,
+    malId: media.mal_id,
+  };
+}
+
 export async function unifiedSearch(
   query: string,
   tmdbApiKey: string,
@@ -114,7 +149,7 @@ export async function unifiedSearch(
 
   const [movieResults, seriesResults, aniListResults] = await Promise.allSettled([
     includeMovies && tmdbApiKey ? searchMovies(query, tmdbApiKey) : Promise.resolve([]),
-    includeSeries && tmdbApiKey ? searchSeries(query, tmdbApiKey) : Promise.resolve([]),
+    (includeSeries || includeAnime) && tmdbApiKey ? searchSeries(query, tmdbApiKey) : Promise.resolve([]),
     includeAnime || includeManga || includeManhwa
       ? searchAniList(query)
       : Promise.resolve([]),
@@ -125,7 +160,7 @@ export async function unifiedSearch(
   if (movieResults.status === "fulfilled") {
     results.push(...movieResults.value.map(mapMovie));
   }
-  if (seriesResults.status === "fulfilled") {
+  if (includeSeries && seriesResults.status === "fulfilled") {
     results.push(...seriesResults.value.map(mapSeries));
   }
 
@@ -139,6 +174,31 @@ export async function unifiedSearch(
       }
       results.push(mapped);
     }
+  }
+
+  const hasAnimeResult = results.some((result) => result.type === "anime");
+  if (includeAnime && !hasAnimeResult) {
+    try {
+      const jikanResults = await searchJikanAnime(query);
+      results.push(...jikanResults.map(mapJikanAnime));
+    } catch {
+      // Keep movie/series/manga results usable if Jikan is temporarily unavailable.
+    }
+  }
+
+
+  if (includeAnime && seriesResults.status === "fulfilled") {
+    const existingTmdbAnime = new Set(
+      results
+        .filter((result) => result.type === "anime" && result.tmdbId !== null)
+        .map((result) => result.tmdbId)
+    );
+    results.push(
+      ...seriesResults.value
+        .filter(isLikelyAnimeSeries)
+        .map(mapTmdbAnime)
+        .filter((result) => !existingTmdbAnime.has(result.tmdbId))
+    );
   }
 
   const filtered = results.filter((result) => {
@@ -162,6 +222,10 @@ export async function unifiedSearch(
     const bExact = normaliseTitle(b.title) === normalisedQuery ? 1 : 0;
     if (aExact !== bExact) {
       return bExact - aExact;
+    }
+    if (a.type === "anime" && b.type === "anime" && a.source !== b.source) {
+      if (a.source === "tmdb") return -1;
+      if (b.source === "tmdb") return 1;
     }
     return (b.score ?? 0) - (a.score ?? 0);
   });

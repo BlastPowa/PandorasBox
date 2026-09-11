@@ -19,7 +19,9 @@ export function libraryItemHref(item: ReelItem): string {
 
   if (item.source === "anilist") {
     const id = numericId(item.anilistId, item.id, "anilist");
-    return id ? `/title/${item.type}/anilist/${id}` : `/search?q=${encodeURIComponent(item.title)}`;
+    if (id) return `/title/${item.type}/anilist/${id}`;
+    if (item.type === "anime" && item.malId) return `/title/anime/anilist/jikan-${item.malId}`;
+    return `/search?q=${encodeURIComponent(item.title)}`;
   }
 
   if (item.source === "mangadex") {

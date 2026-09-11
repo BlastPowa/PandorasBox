@@ -15,6 +15,7 @@ import { episodeMediaKey } from "@/lib/reviews/reviews";
 
 export function EpisodesSection({
   itemId,
+  mediaType = "series",
   source,
   sourceId,
   tmdbId,
@@ -22,6 +23,7 @@ export function EpisodesSection({
   initialEpisodes,
 }: {
   itemId: string;
+  mediaType?: "series" | "anime";
   source: string;
   sourceId: string;
   tmdbId: number;
@@ -98,7 +100,7 @@ export function EpisodesSection({
 
   const seasons = Array.from({ length: Math.max(1, totalSeasons) }, (_, i) => i + 1);
   const watchHref = (episode: number) =>
-    `/watch/series/${encodeURIComponent(source)}/${encodeURIComponent(sourceId)}?season=${season}&episode=${episode}`;
+    `/watch/${mediaType}/${encodeURIComponent(source)}/${encodeURIComponent(sourceId)}?season=${season}&episode=${episode}`;
 
   return (
     <section id="pbox-episodes" className="mt-10 scroll-mt-24 border-t border-[var(--border)] pt-8">

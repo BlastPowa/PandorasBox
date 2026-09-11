@@ -12,7 +12,7 @@ import {
 } from "@core/api/tmdb";
 import type { TMDBEpisode, TMDBWatchProviders } from "@core/api/tmdb";
 import { getAniListMedia, formatAniListDescription } from "@core/api/anilist";
-import { getJikanAnimeEpisodes, searchJikanAnime } from "@core/api/jikan";
+import { getJikanAnime, getJikanAnimeEpisodes, searchJikanAnime } from "@core/api/jikan";
 import type { JikanAnime, JikanEpisode } from "@core/api/jikan";
 import { getMangaDexManga, getMangaDexChapters, getMangaDexCoverUrl } from "@core/api/mangadex";
 import type { MangaDexChapter } from "@core/api/mangadex";
@@ -354,6 +354,77 @@ async function getJikanAnimeFallback(
   };
 }
 
+async function getJikanAnimeDetail(malId: number): Promise<DetailData | null> {
+  if (!Number.isFinite(malId) || malId <= 0) return null;
+
+  let anime: JikanAnime;
+  try {
+    anime = await getJikanAnime(malId);
+  } catch {
+    return null;
+  }
+
+  let animeEpisodes: JikanEpisode[] = [];
+  try {
+    animeEpisodes = await getJikanAnimeEpisodes(malId, 1);
+  } catch {
+    animeEpisodes = [];
+  }
+
+  const resolvedTitle = anime.title_english?.trim() || anime.title;
+  const originalTitle = anime.title.trim() && normaliseLookupTitle(anime.title) !== normaliseLookupTitle(resolvedTitle)
+    ? anime.title.trim()
+    : null;
+  const year = jikanAnimeYear(anime);
+  const genres = anime.genres.map((genre) => genre.name);
+  const posterUrl = anime.images.jpg.large_image_url || anime.images.jpg.image_url || null;
+
+  indexTitle({
+    mediaKey: `jikan-${malId}`,
+    mediaType: "anime",
+    title: resolvedTitle,
+    altTitles: originalTitle ? [originalTitle] : [],
+    year,
+    posterUrl,
+    synopsis: anime.synopsis,
+    genres,
+  });
+
+  return {
+    id: `jikan-${malId}`,
+    type: "anime",
+    source: "anilist",
+    tmdbId: null,
+    anilistId: null,
+    mangadexId: null,
+    malId,
+    title: resolvedTitle,
+    posterUrl,
+    backdropUrl: null,
+    synopsis: anime.synopsis,
+    year,
+    score: anime.score,
+    genres,
+    status: anime.status,
+    runtime: null,
+    totalEpisodes: anime.episodes,
+    totalChapters: null,
+    totalSeasons: null,
+    studios: [],
+    episodes: [],
+    chapters: [],
+    related: [],
+    tmdbProviders: null,
+    autoWatchOptions: getAllWatchOptions({ type: "anime", title: resolvedTitle }),
+    animeEpisodes,
+    about: {
+      releaseDate: anime.aired.from,
+      originalTitle,
+      status: anime.status,
+    },
+  };
+}
+
 export async function getDetail(
   type: ReelItemType,
   source: string,
@@ -363,7 +434,7 @@ export async function getDetail(
 ): Promise<DetailData | null> {
   const tmdbKey = process.env.TMDB_API_KEY ?? "";
   try {
-    if ((type === "movie" || type === "series") && source === "tmdb") {
+    if ((type === "movie" || type === "series" || type === "anime") && source === "tmdb") {
       if (!tmdbKey) return tmdbUnavailable(type, id);
       const numId = Number.parseInt(id, 10);
       if (type === "movie") {
@@ -447,6 +518,7 @@ export async function getDetail(
           galleryImages: galleryImages(m.images),
         };
       }
+      const isAnime = type === "anime";
       const s = await getSeriesDetails(numId, tmdbKey);
       let providers: TMDBWatchProviders | null = null;
       try {
@@ -476,7 +548,7 @@ export async function getDetail(
       );
       indexTitle({
         mediaKey: `tmdb-${numId}`,
-        mediaType: "series",
+        mediaType: isAnime ? "anime" : "series",
         title: s.name,
         year: seriesYear,
         posterUrl: s.poster_path ? getPosterUrl(s.poster_path) : null,
@@ -485,7 +557,7 @@ export async function getDetail(
       });
       return {
         id: `tmdb-${numId}`,
-        type: "series",
+        type: isAnime ? "anime" : "series",
         source: "tmdb",
         tmdbId: numId,
         anilistId: null,
@@ -508,9 +580,18 @@ export async function getDetail(
         chapters: [],
         related: [],
         tmdbProviders: providers,
-        autoWatchOptions: getAllWatchOptions({ type: "series", title: s.name, tmdbProviders: providers }),
+        autoWatchOptions: getAllWatchOptions({ type: isAnime ? "anime" : "series", title: s.name, tmdbProviders: providers }),
         cast: seriesCast,
         ratings: seriesRatings,
+        animeEpisodes: isAnime
+          ? episodes.map((episode) => ({
+              mal_id: episode.episode_number,
+              title: episode.name || `Episode ${episode.episode_number}`,
+              aired: episode.air_date || "",
+              filler: false,
+              recap: false,
+            }))
+          : undefined,
         about: {
           releaseDate: s.first_air_date || null,
           lastAirDate: s.last_air_date || null,
@@ -526,6 +607,11 @@ export async function getDetail(
         },
         galleryImages: galleryImages(s.images),
       };
+    }
+
+    if (type === "anime" && source === "anilist" && id.startsWith("jikan-")) {
+      const malId = Number.parseInt(id.slice("jikan-".length), 10);
+      return await getJikanAnimeDetail(malId);
     }
 
     if (type === "anime" || (source === "anilist" && (type === "manga" || type === "manhwa"))) {

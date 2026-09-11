@@ -335,9 +335,10 @@ export default async function TitlePage({
           </aside>
         </div>
 
-        {detail.type === "series" && detail.tmdbId !== null && (detail.episodes.length > 0 || (detail.totalSeasons ?? 0) > 0) && (
+        {(detail.type === "series" || detail.type === "anime") && detail.tmdbId !== null && (detail.episodes.length > 0 || (detail.totalSeasons ?? 0) > 0) && (
           <EpisodesSection
             itemId={detail.id}
+            mediaType={detail.type}
             source={detail.source}
             sourceId={decodeURIComponent(id)}
             tmdbId={detail.tmdbId}
@@ -346,7 +347,7 @@ export default async function TitlePage({
           />
         )}
 
-        {detail.type === "anime" && detail.malId !== null && (detail.animeEpisodes ?? []).length > 0 && (
+        {detail.type === "anime" && detail.tmdbId === null && detail.malId !== null && (detail.animeEpisodes ?? []).length > 0 && (
           <AnimeEpisodesSection
             itemId={detail.id}
             source={detail.source}
