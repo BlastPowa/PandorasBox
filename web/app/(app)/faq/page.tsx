@@ -56,7 +56,7 @@ const ENTRIES: FaqEntry[] = [
     answer: (
       <div className="space-y-3">
         <p>
-          PBox Watch Sync tracks movie and episode progress from Cinejoy, Netflix, Prime Video and compatible
+          PBox Watch Sync tracks movie and episode progress from Cinejoy, CinemaOS, Netflix, Prime Video and compatible
           long-form HTML5 players. You do not need to connect your streaming-service account or use Trakt VIP.
         </p>
         <ol className="list-decimal space-y-1 pl-5">
@@ -78,7 +78,7 @@ const ENTRIES: FaqEntry[] = [
         <p>
           Cinejoy has an extra list bridge because its URLs expose exact TMDB IDs. Use{" "}
           <span className="text-[var(--text)]">Sync PBox list to Cinejoy</span> if you want your PBox movie/show list copied there.
-          Netflix, Prime Video and other supported sites only need the extension for watch-progress updates.
+          CinemaOS, Netflix, Prime Video and other supported sites only need the extension for watch-progress updates.
         </p>
       </div>
     ),
@@ -114,7 +114,7 @@ const ENTRIES: FaqEntry[] = [
     question: "Which streaming sites can PBox Watch Sync track?",
     answer: (
       <p>
-        Cinejoy, Netflix and Prime Video have targeted detection. The extension also watches compatible long-form HTML5
+        Cinejoy, CinemaOS, Netflix and Prime Video have targeted detection. The extension also watches compatible long-form HTML5
         video players on other sites. Site layouts and DRM players can change, so PBox only writes progress when the title
         and, for shows, the season and episode can be identified confidently. Ambiguous playback is ignored.
       </p>

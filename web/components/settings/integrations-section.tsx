@@ -45,7 +45,7 @@ interface Conflict {
 }
 
 const MIN_CINEJOY_LIBRARY_SYNC_VERSION = "1.1.0";
-const MIN_WATCH_SYNC_VERSION = "1.2.0";
+const MIN_WATCH_SYNC_VERSION = "1.2.1";
 const WATCH_SYNC_RELEASE_URL = "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-watch-sync.zip";
 const WATCH_SYNC_RELEASE_API = "https://api.github.com/repos/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest";
 
@@ -313,7 +313,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                   )}
                 </div>
                 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[var(--text-secondary)]">
-                  Tracks long-form movie and episode playback on Cinejoy, Netflix, Prime Video and compatible HTML5 players. PBox records the live percentage, resumes progress, and marks movies or episodes complete at the finish threshold.
+                  Tracks long-form movie and episode playback on Cinejoy, CinemaOS, Netflix, Prime Video and compatible HTML5 players. PBox records the live percentage, resumes progress, and marks movies or episodes complete at the finish threshold.
                 </p>
               </div>
             </div>
@@ -388,7 +388,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
               <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">
                 <summary className="cursor-pointer font-medium">Which players can it track?</summary>
                 <p className="mt-2 text-[var(--text-muted)]">
-                  Cinejoy, Netflix and Prime Video have targeted detection. The extension also watches compatible long-form HTML5 video players on other sites and only updates PBox when the title can be matched confidently.
+                  Cinejoy, CinemaOS, Netflix and Prime Video have targeted detection. The extension also watches compatible long-form HTML5 video players on other sites and only updates PBox when the title can be matched confidently.
                 </p>
               </details>
               <details className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2.5 text-xs">

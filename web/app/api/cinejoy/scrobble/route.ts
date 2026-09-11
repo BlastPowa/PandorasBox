@@ -51,7 +51,7 @@ function normalizeTitle(value: string | null | undefined): string {
     .toLowerCase()
     .replace(/^(?:watch|stream)\s+/, "")
     .replace(/^(?:netflix|(?:amazon\s+)?prime\s+video)\s*[:|\-]\s*/, "")
-    .replace(/\s*[-|–—]\s*(?:netflix|(?:amazon\s+)?prime\s+video|disney\+|crunchyroll|hulu|(?:hbo\s+)?max).*$/, "")
+    .replace(/\s*[-|–—]\s*(?:cinemaos|netflix|(?:amazon\s+)?prime\s+video|disney\+|crunchyroll|hulu|(?:hbo\s+)?max).*$/, "")
     .replace(/\s+s(?:eason\s*)?\d+\s*[: .\-]?\s*e(?:pisode\s*)?\d+.*$/, "")
     .replace(/\s+season\s+\d+\s*[,·: -]+\s*episode\s+\d+.*$/, "")
     .replace(/\s+\d+\s*x\s*\d+.*$/, "")
