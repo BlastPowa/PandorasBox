@@ -27,6 +27,7 @@ type MediaServerItemsResponse = {
 
 export type MediaServerMatchContext = {
   title: string;
+  titleAliases?: string[];
   type: string;
   year?: number | null;
   season?: number | null;
@@ -101,17 +102,18 @@ function apiUrl(config: MediaServerConfig, path: string): URL {
 function itemMatches(context: MediaServerMatchContext, item: MediaServerItem): boolean {
   const itemName = item.Name?.trim() ?? "";
   if (!item.Id || !itemName) return false;
+  const wantedTitles = [context.title, ...(context.titleAliases ?? [])].map(normalise).filter(Boolean);
 
   if (context.type.toLowerCase() === "movie") {
     if (item.Type && item.Type !== "Movie") return false;
-    if (normalise(itemName) !== normalise(context.title)) return false;
+    if (!wantedTitles.includes(normalise(itemName))) return false;
     if (context.year && item.ProductionYear && item.ProductionYear !== context.year) return false;
     return true;
   }
 
   if (!context.episode) return false;
   if (item.Type && item.Type !== "Episode") return false;
-  if (normalise(item.SeriesName ?? "") !== normalise(context.title)) return false;
+  if (!wantedTitles.includes(normalise(item.SeriesName ?? ""))) return false;
   if (Number(item.ParentIndexNumber) !== (context.season ?? 1)) return false;
   if (Number(item.IndexNumber) !== context.episode) return false;
   return true;
@@ -149,9 +151,10 @@ async function discoverMediaServer(
   const config = getMediaServerConfig(provider);
   if (!config) return [];
 
+  const titles = [context.title, ...(context.titleAliases ?? [])];
   const terms = context.episode
-    ? [context.episodeTitle, context.title].filter((value): value is string => Boolean(value?.trim()))
-    : [context.title];
+    ? [context.episodeTitle, ...titles].filter((value): value is string => Boolean(value?.trim()))
+    : titles;
   const uniqueTerms = [...new Set(terms.map((value) => value.trim()))];
   const searches = await Promise.allSettled(uniqueTerms.map((term) => searchMediaServer(config, context, term)));
   const seen = new Set<string>();

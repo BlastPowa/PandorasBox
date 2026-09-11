@@ -44,6 +44,7 @@ function animeEpisodes(episodes: JikanEpisode[]): WatchEpisode[] {
 export function PBoxWatchExperience({
   itemId,
   title,
+  titleAliases,
   type,
   year,
   tmdbId,
@@ -58,6 +59,7 @@ export function PBoxWatchExperience({
 }: {
   itemId: string;
   title: string;
+  titleAliases: string[];
   type: "movie" | "series" | "anime";
   year: number | null;
   tmdbId: number | null;
@@ -223,6 +225,7 @@ export function PBoxWatchExperience({
         <PBoxPlayerShell
           itemId={itemId}
           title={title}
+          titleAliases={titleAliases}
           type={type}
           year={year}
           showUnavailable
@@ -272,6 +275,7 @@ export function PBoxWatchExperience({
         key={`${itemId}:${type}:${season}:${episode ?? 0}`}
         itemId={itemId}
         title={title}
+        titleAliases={titleAliases}
         type={type}
         year={year}
         season={type === "series" ? season : 1}

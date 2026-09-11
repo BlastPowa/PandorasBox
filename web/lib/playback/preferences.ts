@@ -46,7 +46,7 @@ export const DEFAULT_PLAYER_PREFERENCES: PlayerPreferences = {
   aspectRatio: "auto",
   dataSaver: false,
   completionThreshold: 90,
-  sourceOrder: ["jellyfin", "emby", "configured-feed", "peertube", "internet-archive", "wikimedia", "nasa"],
+  sourceOrder: ["jellyfin", "emby", "configured-feed", "peertube", "internet-archive", "wikimedia", "europeana", "dvids", "nasa"],
   accentColour: "brand",
   iconStyle: "line",
   uiScale: "medium",

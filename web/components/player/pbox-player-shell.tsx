@@ -16,6 +16,7 @@ type PlaybackConfiguration = {
 export function PBoxPlayerShell({
   itemId,
   title,
+  titleAliases = [],
   type,
   year,
   season = null,
@@ -30,6 +31,7 @@ export function PBoxPlayerShell({
 }: {
   itemId: string;
   title: string;
+  titleAliases?: string[];
   type: string;
   year: number | null;
   season?: number | null;
@@ -49,6 +51,10 @@ export function PBoxPlayerShell({
     if (type !== "movie" && type !== "series" && type !== "anime") return;
     const controller = new AbortController();
     const params = new URLSearchParams({ title, type });
+    for (const alias of titleAliases) {
+      const value = alias.trim();
+      if (value && value.toLowerCase() !== title.toLowerCase()) params.append("alias", value);
+    }
     if (year) params.set("year", String(year));
     if (season) params.set("season", String(season));
     if (episode) params.set("episode", String(episode));
@@ -67,7 +73,7 @@ export function PBoxPlayerShell({
         setConfiguration(null);
       });
     return () => controller.abort();
-  }, [episode, episodeTitle, season, title, type, year]);
+  }, [episode, episodeTitle, season, title, titleAliases, type, year]);
 
   if (type !== "movie" && type !== "series" && type !== "anime") return null;
   if (sources !== null && sources.length === 0) {

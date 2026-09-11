@@ -12,8 +12,8 @@ import {
 } from "@core/api/tmdb";
 import type { TMDBEpisode, TMDBWatchProviders } from "@core/api/tmdb";
 import { getAniListMedia, formatAniListDescription } from "@core/api/anilist";
-import { getJikanAnimeEpisodes } from "@core/api/jikan";
-import type { JikanEpisode } from "@core/api/jikan";
+import { getJikanAnimeEpisodes, searchJikanAnime } from "@core/api/jikan";
+import type { JikanAnime, JikanEpisode } from "@core/api/jikan";
 import { getMangaDexManga, getMangaDexChapters, getMangaDexCoverUrl } from "@core/api/mangadex";
 import type { MangaDexChapter } from "@core/api/mangadex";
 import { getAllWatchOptions } from "@core/api/watchProviders";
@@ -241,11 +241,125 @@ function key(type: ReelItemType, id: string): string {
   return `anilist-${id}`;
 }
 
+function normaliseLookupTitle(value: string): string {
+  return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function jikanAnimeYear(anime: JikanAnime): number | null {
+  const value = anime.aired.from?.slice(0, 4) ?? "";
+  const year = Number.parseInt(value, 10);
+  return Number.isFinite(year) ? year : null;
+}
+
+function jikanTitleMatches(anime: JikanAnime, title: string): boolean {
+  const wanted = normaliseLookupTitle(title);
+  if (!wanted) return false;
+  const candidates = [anime.title, anime.title_english ?? "", ...(anime.titles ?? []).map((entry) => entry.title)];
+  return candidates.some((candidate) => normaliseLookupTitle(candidate) === wanted);
+}
+
+function getAnimeMetadataFallback(anilistId: number, title: string, year?: number | null): DetailData {
+  return {
+    id: `anilist-${anilistId}`,
+    type: "anime",
+    source: "anilist",
+    tmdbId: null,
+    anilistId,
+    mangadexId: null,
+    malId: null,
+    title,
+    posterUrl: null,
+    backdropUrl: null,
+    synopsis: null,
+    year: year ?? null,
+    score: null,
+    genres: [],
+    status: null,
+    runtime: null,
+    totalEpisodes: null,
+    totalChapters: null,
+    totalSeasons: null,
+    studios: [],
+    episodes: [],
+    chapters: [],
+    related: [],
+    tmdbProviders: null,
+    autoWatchOptions: getAllWatchOptions({ type: "anime", title }),
+    animeEpisodes: [],
+  };
+}
+
+async function getJikanAnimeFallback(
+  anilistId: number,
+  title: string,
+  expectedYear?: number | null
+): Promise<DetailData | null> {
+  let candidates: JikanAnime[];
+  try {
+    candidates = await searchJikanAnime(title);
+  } catch {
+    return getAnimeMetadataFallback(anilistId, title, expectedYear);
+  }
+  const titleMatches = candidates.filter((anime) => jikanTitleMatches(anime, title));
+  const anime = expectedYear
+    ? titleMatches.find((candidate) => jikanAnimeYear(candidate) === expectedYear) ?? null
+    : titleMatches[0] ?? null;
+  if (!anime) return getAnimeMetadataFallback(anilistId, title, expectedYear);
+
+  let animeEpisodes: JikanEpisode[] = [];
+  try {
+    animeEpisodes = await getJikanAnimeEpisodes(anime.mal_id, 1);
+  } catch {
+    animeEpisodes = [];
+  }
+
+  const resolvedTitle = anime.title_english?.trim() || title;
+  const originalTitle = anime.title.trim() && normaliseLookupTitle(anime.title) !== normaliseLookupTitle(resolvedTitle)
+    ? anime.title.trim()
+    : null;
+  const year = jikanAnimeYear(anime) ?? expectedYear ?? null;
+
+  return {
+    id: `anilist-${anilistId}`,
+    type: "anime",
+    source: "anilist",
+    tmdbId: null,
+    anilistId,
+    mangadexId: null,
+    malId: anime.mal_id,
+    title: resolvedTitle,
+    posterUrl: anime.images.jpg.large_image_url || anime.images.jpg.image_url || null,
+    backdropUrl: null,
+    synopsis: anime.synopsis,
+    year,
+    score: anime.score,
+    genres: anime.genres.map((genre) => genre.name),
+    status: anime.status,
+    runtime: null,
+    totalEpisodes: anime.episodes,
+    totalChapters: null,
+    totalSeasons: null,
+    studios: [],
+    episodes: [],
+    chapters: [],
+    related: [],
+    tmdbProviders: null,
+    autoWatchOptions: getAllWatchOptions({ type: "anime", title: resolvedTitle }),
+    animeEpisodes,
+    about: {
+      releaseDate: anime.aired.from,
+      originalTitle,
+      status: anime.status,
+    },
+  };
+}
+
 export async function getDetail(
   type: ReelItemType,
   source: string,
   id: string,
-  country: string
+  country: string,
+  fallback?: { title?: string | null; year?: number | null }
 ): Promise<DetailData | null> {
   const tmdbKey = process.env.TMDB_API_KEY ?? "";
   try {
@@ -415,7 +529,16 @@ export async function getDetail(
     }
 
     if (type === "anime" || (source === "anilist" && (type === "manga" || type === "manhwa"))) {
-      const media = await getAniListMedia(Number.parseInt(id, 10));
+      const anilistId = Number.parseInt(id, 10);
+      let media;
+      try {
+        media = await getAniListMedia(anilistId);
+      } catch (error) {
+        if (type === "anime" && fallback?.title?.trim()) {
+          return await getJikanAnimeFallback(anilistId, fallback.title.trim(), fallback.year);
+        }
+        throw error;
+      }
       const related: UnifiedSearchResult[] = media.relations.edges.slice(0, 12).map((edge) => ({
         id: `anilist-${edge.node.id}`,
         source: "anilist",
@@ -495,6 +618,9 @@ export async function getDetail(
         tmdbProviders: null,
         autoWatchOptions: getAllWatchOptions({ type: isManga ? "manga" : "anime", title: media.title.romaji }),
         animeEpisodes,
+        about: {
+          originalTitle: media.title.romaji !== anilistTitle ? media.title.romaji : null,
+        },
       };
     }
 

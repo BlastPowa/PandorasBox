@@ -10,14 +10,27 @@ import { PBoxWatchExperience } from "@/components/player/pbox-watch-experience";
 
 export default async function WatchPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ type: string; source: string; id: string }>;
+  searchParams: Promise<{ title?: string; year?: string }>;
 }) {
   const { type, source, id } = await params;
+  const query = await searchParams;
   if (type !== "movie" && type !== "series" && type !== "anime") notFound();
 
   const profile = await getProfile();
-  const detail = await getDetail(type as ReelItemType, decodeURIComponent(source), decodeURIComponent(id), profile?.country ?? "IE");
+  const fallbackYear = query.year ? Number.parseInt(query.year, 10) : null;
+  const detail = await getDetail(
+    type as ReelItemType,
+    decodeURIComponent(source),
+    decodeURIComponent(id),
+    profile?.country ?? "IE",
+    {
+      title: query.title?.trim() || null,
+      year: Number.isFinite(fallbackYear) ? fallbackYear : null,
+    }
+  );
   if (!detail) notFound();
 
   const collectionId = detail.type === "movie" ? detail.about?.collectionId : null;
@@ -71,6 +84,7 @@ export default async function WatchPage({
           <PBoxWatchExperience
             itemId={detail.id}
             title={detail.title}
+            titleAliases={[detail.about?.originalTitle].filter((value): value is string => Boolean(value))}
             type={detail.type as "movie" | "series" | "anime"}
             year={detail.year}
             tmdbId={detail.tmdbId}

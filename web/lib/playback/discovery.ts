@@ -20,12 +20,20 @@ function normaliseTitle(value: string): string {
 
 type PlaybackMatchContext = {
   title: string;
+  titleAliases?: string[];
   type: string;
   year?: number | null;
   season?: number | null;
   episode?: number | null;
   episodeTitle?: string | null;
 };
+
+function likelyAnyTitleMatch(context: PlaybackMatchContext, candidate: string, candidateYear?: string | number | null): boolean {
+  const titles = [context.title, ...(context.titleAliases ?? [])]
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return titles.some((title) => likelyTitleMatch({ ...context, title }, candidate, candidateYear));
+}
 
 type EpisodeMarker = { season: number | null; episode: number };
 
@@ -207,10 +215,10 @@ function configuredFeedMatches(context: PlaybackMatchContext, source: Configured
     const wantedSeason = context.season ?? 1;
     const candidateSeason = Number.isInteger(structuredSeason) && structuredSeason > 0 ? structuredSeason : 1;
     if (structuredEpisode !== context.episode || candidateSeason !== wantedSeason) return false;
-    return likelyTitleMatch({ ...context, season: null, episode: null, episodeTitle: null }, candidateTitle, source.year as string | number | null | undefined);
+    return likelyAnyTitleMatch({ ...context, season: null, episode: null, episodeTitle: null }, candidateTitle, source.year as string | number | null | undefined);
   }
 
-  return likelyTitleMatch(context, candidateTitle, source.year as string | number | null | undefined);
+  return likelyAnyTitleMatch(context, candidateTitle, source.year as string | number | null | undefined);
 }
 
 function configuredCaptions(value: unknown): PlaybackCaption[] {
@@ -241,6 +249,7 @@ async function discoverConfiguredFeeds(context: PlaybackMatchContext): Promise<P
     if (context.season) url.searchParams.set("season", String(context.season));
     if (context.episode) url.searchParams.set("episode", String(context.episode));
     if (context.episodeTitle) url.searchParams.set("episodeTitle", context.episodeTitle);
+    for (const alias of context.titleAliases ?? []) url.searchParams.append("alias", alias);
 
     const response = await fetch(url, {
       headers: {
@@ -333,7 +342,7 @@ async function discoverWikimedia(title: string, context: PlaybackMatchContext): 
   const sources: PlaybackSource[] = [];
 
   for (const page of data.query?.pages ?? []) {
-    if (!page.title || !likelyTitleMatch(context, page.title)) continue;
+    if (!page.title || !likelyAnyTitleMatch(context, page.title)) continue;
     const metadata = page.imageinfo?.[0]?.extmetadata ?? {};
     const license = text(metadata.LicenseShortName?.value) || text(metadata.UsageTerms?.value);
     if (!OPEN_LICENSE.test(license)) continue;
@@ -431,7 +440,7 @@ async function discoverInternetArchive(title: string, context: PlaybackMatchCont
   });
   if (!search.ok) return [];
   const searchData = await search.json() as { response?: { docs?: ArchiveSearchDoc[] } };
-  const docs = (searchData.response?.docs ?? []).filter((doc) => doc.identifier && doc.title && likelyTitleMatch(context, doc.title, doc.year));
+  const docs = (searchData.response?.docs ?? []).filter((doc) => doc.identifier && doc.title && likelyAnyTitleMatch(context, doc.title, doc.year));
   const sources: PlaybackSource[] = [];
 
   for (const doc of docs.slice(0, 4)) {
@@ -534,7 +543,7 @@ async function discoverPeerTube(title: string, context: PlaybackMatchContext): P
   const search = await response.json() as { data?: PeerTubeSearchVideo[] };
   const matches = (search.data ?? [])
     .filter((item) => Boolean(item.uuid && item.url && item.name))
-    .filter((item) => likelyTitleMatch(context, item.name!))
+    .filter((item) => likelyAnyTitleMatch(context, item.name!))
     .filter((item) => item.privacy?.id === 1)
     .filter((item) => Boolean(peerTubeOpenLicence(item.licence)))
     .slice(0, 4);
@@ -648,7 +657,7 @@ async function discoverNasa(title: string, context: PlaybackMatchContext): Promi
     .filter(({ item, metadata }) => Boolean(item.href && metadata?.title && metadata.nasa_id))
     .filter(({ metadata }) => {
       const year = metadata?.date_created ? new Date(metadata.date_created).getUTCFullYear() : null;
-      return likelyTitleMatch(context, metadata!.title!, Number.isFinite(year) ? year : null);
+      return likelyAnyTitleMatch(context, metadata!.title!, Number.isFinite(year) ? year : null);
     })
     .slice(0, 4);
 
@@ -742,7 +751,7 @@ async function discoverEuropeana(title: string, context: PlaybackMatchContext): 
     const rights = stringValues(item.rights);
     const license = rights.join(" · ");
     if (!item.id || !itemTitle || !/video/i.test(itemType) || !OPEN_LICENSE.test(license)) continue;
-    if (!likelyTitleMatch(context, itemTitle, itemYear)) continue;
+    if (!likelyAnyTitleMatch(context, itemTitle, itemYear)) continue;
 
     const rawUrls = [...stringValues(item.edmIsShownBy), ...stringValues(item.edmHasView)];
     const captions = rawUrls
@@ -818,7 +827,7 @@ async function discoverDvids(title: string, context: PlaybackMatchContext): Prom
     .filter((item) => item.type === "video" && Boolean(item.id && item.title && item.hls_url && item.url))
     .filter((item) => {
       const year = item.date ? new Date(item.date).getUTCFullYear() : null;
-      return likelyTitleMatch(context, item.title!, Number.isFinite(year) ? year : null);
+      return likelyAnyTitleMatch(context, item.title!, Number.isFinite(year) ? year : null);
     })
     .slice(0, 5)
     .map((item, index): PlaybackSource | null => {
@@ -844,6 +853,7 @@ async function discoverDvids(title: string, context: PlaybackMatchContext): Prom
 
 export async function discoverPlaybackSources(params: {
   title: string;
+  titleAliases?: string[];
   type: string;
   year?: number | null;
   season?: number | null;
@@ -853,16 +863,25 @@ export async function discoverPlaybackSources(params: {
   const episodeSuffix = params.episode
     ? ` S${String(params.season ?? 1).padStart(2, "0")}E${String(params.episode).padStart(2, "0")}${params.episodeTitle ? ` ${params.episodeTitle}` : ""}`
     : "";
-  const searchTitle = `${params.title}${episodeSuffix}`.trim();
-  const results = await Promise.allSettled([
-    discoverMediaServers(params),
-    discoverConfiguredFeeds(params),
+  const searchTitles = [params.title, ...(params.titleAliases ?? [])]
+    .map((title) => title.trim())
+    .filter(Boolean)
+    .filter((title, index, values) => values.findIndex((value) => normaliseTitle(value) === normaliseTitle(title)) === index)
+    .slice(0, 2)
+    .map((title) => `${title}${episodeSuffix}`.trim());
+
+  const publicDiscovery = searchTitles.flatMap((searchTitle) => [
     discoverWikimedia(searchTitle, params),
     discoverInternetArchive(searchTitle, params),
     discoverPeerTube(searchTitle, params),
     discoverNasa(searchTitle, params),
     discoverEuropeana(searchTitle, params),
     discoverDvids(searchTitle, params),
+  ]);
+  const results = await Promise.allSettled([
+    discoverMediaServers(params),
+    discoverConfiguredFeeds(params),
+    ...publicDiscovery,
   ]);
   const seen = new Set<string>();
   return results

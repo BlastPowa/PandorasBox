@@ -19,6 +19,8 @@ const SOURCE_LABELS = {
   peertube: "PeerTube",
   "internet-archive": "Internet Archive",
   wikimedia: "Wikimedia Commons",
+  europeana: "Europeana",
+  dvids: "DVIDS",
   nasa: "NASA Video Library",
 } as const;
 

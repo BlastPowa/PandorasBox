@@ -4,6 +4,8 @@ const MIN_REQUEST_INTERVAL_MS = 350;
 export interface JikanAnime {
   mal_id: number;
   title: string;
+  title_english?: string | null;
+  titles?: { type: string; title: string }[];
   images: {
     jpg: {
       image_url: string;

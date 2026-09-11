@@ -5,6 +5,10 @@ import { getMediaServerConfigurationStatus } from "@/lib/playback/media-server";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const title = searchParams.get("title")?.trim() ?? "";
+  const titleAliases = searchParams.getAll("alias")
+    .map((value) => value.trim())
+    .filter((value) => value.length >= 2 && value.length <= 180 && value.toLowerCase() !== title.toLowerCase())
+    .slice(0, 4);
   const type = searchParams.get("type")?.trim() ?? "movie";
   const rawSeason = Number(searchParams.get("season"));
   const rawEpisode = Number(searchParams.get("episode"));
@@ -18,7 +22,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid title" }, { status: 400 });
   }
 
-  const sources = await discoverPlaybackSources({ title, type, year, season, episode, episodeTitle });
+  const sources = await discoverPlaybackSources({ title, titleAliases, type, year, season, episode, episodeTitle });
   const mediaServers = getMediaServerConfigurationStatus();
   const configuredFeed = Boolean(process.env.PBOX_PLAYBACK_FEEDS?.trim());
   return NextResponse.json(
