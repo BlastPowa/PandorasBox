@@ -8,6 +8,64 @@ export interface WatchOption {
   isPaid: boolean;
 }
 
+function freeLink(name: string, url: string): WatchOption {
+  return {
+    name,
+    url,
+    type: "free",
+    logoUrl: null,
+    isPaid: false,
+  };
+}
+
+function dedupeWatchOptions(options: WatchOption[]): WatchOption[] {
+  const seen = new Set<string>();
+  return options.filter((option) => {
+    const key = `${option.name.toLowerCase()}|${option.url.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function buildOpenMediaLinks(title: string): WatchOption[] {
+  const encoded = encodeURIComponent(title);
+  return [
+    freeLink("Internet Archive", `https://archive.org/search?query=${encoded}`),
+    freeLink("PeerTube / SepiaSearch", `https://sepiasearch.org/search?search=${encoded}`),
+    freeLink("YouTube", `https://www.youtube.com/results?search_query=${encoded}`),
+  ];
+}
+
+function buildInternationalFreeLinks(title: string): WatchOption[] {
+  const encoded = encodeURIComponent(title);
+  return [
+    freeLink("Plex Free Movies & TV", `https://watch.plex.tv/search?q=${encoded}`),
+    freeLink("Pluto TV", "https://pluto.tv/"),
+    freeLink("Rakuten TV Free", `https://www.rakuten.tv/ie/search?q=${encoded}`),
+    freeLink("Filmzie", "https://filmzie.com/"),
+    freeLink("Runtime", "https://www.runtime.tv/"),
+    freeLink("DistroTV", "https://www.distro.tv/"),
+    freeLink("Fawesome", "https://fawesome.tv/"),
+    freeLink("FilmRise", "https://filmrise.com/"),
+    freeLink("Samsung TV Plus", "https://www.samsungtvplus.com/"),
+    freeLink("Tubi", `https://tubitv.com/search/${encoded}`),
+    freeLink("The Roku Channel", "https://therokuchannel.roku.com/"),
+    freeLink("Kanopy", "https://www.kanopy.com/"),
+    freeLink("Hoopla", "https://www.hoopladigital.com/"),
+  ];
+}
+
+function buildIrelandFreeLinks(): WatchOption[] {
+  return [
+    freeLink("RTÉ Player", "https://www.rte.ie/player/"),
+    freeLink("Virgin Media Play", "https://www.virginmediatelevision.ie/player/"),
+    freeLink("TG4 Player", "https://www.tg4.ie/en/player/"),
+    freeLink("ARTE", "https://www.arte.tv/en/"),
+    freeLink("TV5MONDEplus", "https://www.tv5mondeplus.com/"),
+  ];
+}
+
 export function buildTMDBWatchOptions(providers: TMDBWatchProviders, title: string): WatchOption[] {
   const options: WatchOption[] = [];
   for (const provider of providers.flatrate ?? []) {
@@ -41,57 +99,32 @@ export function buildTMDBWatchOptions(providers: TMDBWatchProviders, title: stri
 }
 
 export function buildFreeMovieLinks(title: string): WatchOption[] {
+  return dedupeWatchOptions([
+    ...buildInternationalFreeLinks(title),
+    ...buildIrelandFreeLinks(),
+    ...buildOpenMediaLinks(title),
+  ]);
+}
+
+export function buildFreeSeriesLinks(title: string): WatchOption[] {
   const encoded = encodeURIComponent(title);
-  return [
-    {
-      name: "CinemaOS",
-      url: `https://cinemaos.live/search?q=${encoded}`,
-      type: "free",
-      logoUrl: null,
-      isPaid: false,
-    },
-    {
-      name: "Nepu",
-      url: `https://nepu.to/search?q=${encoded}`,
-      type: "free",
-      logoUrl: null,
-      isPaid: false,
-    },
-  ];
+  return dedupeWatchOptions([
+    ...buildInternationalFreeLinks(title),
+    ...buildIrelandFreeLinks(),
+    freeLink("iQIYI", `https://www.iq.com/search?query=${encoded}`),
+    freeLink("Viki", `https://www.viki.com/search?q=${encoded}`),
+    ...buildOpenMediaLinks(title),
+  ]);
 }
 
 export function buildFreeAnimeLinks(title: string): WatchOption[] {
   const encoded = encodeURIComponent(title);
-  return [
-    {
-      name: "CinemaOS",
-      url: `https://cinemaos.live/search?q=${encoded}`,
-      type: "free",
-      logoUrl: null,
-      isPaid: false,
-    },
-    {
-      name: "Nepu",
-      url: `https://nepu.to/search?q=${encoded}`,
-      type: "free",
-      logoUrl: null,
-      isPaid: false,
-    },
-    {
-      name: "Aniwave",
-      url: `https://aniwave.to/filter?keyword=${encoded}`,
-      type: "free",
-      logoUrl: null,
-      isPaid: false,
-    },
-    {
-      name: "Crunchyroll",
-      url: `https://www.crunchyroll.com/search?q=${encoded}`,
-      type: "free",
-      logoUrl: null,
-      isPaid: false,
-    },
-  ];
+  return dedupeWatchOptions([
+    freeLink("iQIYI", `https://www.iq.com/search?query=${encoded}`),
+    freeLink("Viki", `https://www.viki.com/search?q=${encoded}`),
+    ...buildInternationalFreeLinks(title),
+    ...buildOpenMediaLinks(title),
+  ]);
 }
 
 export function buildMangaReadLinks(title: string, mangaDexId?: string): WatchOption[] {
@@ -140,14 +173,19 @@ export function getAllWatchOptions(params: {
   if (type === "manga" || type === "manhwa") {
     return buildMangaReadLinks(title, mangaDexId);
   }
+
   const options: WatchOption[] = [];
   if (tmdbProviders) {
     options.push(...buildTMDBWatchOptions(tmdbProviders, title));
   }
+
   if (type === "anime") {
     options.push(...buildFreeAnimeLinks(title));
+  } else if (type === "series") {
+    options.push(...buildFreeSeriesLinks(title));
   } else {
     options.push(...buildFreeMovieLinks(title));
   }
-  return options;
+
+  return dedupeWatchOptions(options);
 }

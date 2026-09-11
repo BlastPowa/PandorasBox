@@ -17,6 +17,8 @@ import { AmbientBackground } from "@/components/home/ambient-background";
 import { LandscapeMediaRail } from "@/components/discovery/landscape-media-rail";
 import { getGames } from "@/lib/igdb";
 import { GameRow } from "@/components/games/game-row";
+import { ForYouRow } from "@/components/home/for-you-row";
+import { NextUpRow } from "@/components/home/next-up-row";
 
 export const revalidate = 1800;
 
@@ -81,6 +83,8 @@ async function HomeContent() {
         items={anime}
         viewAllHref="/browse/trending-anime"
       />
+      <NextUpRow />
+      <ForYouRow />
       <MyPanel />
       <FriendsActivity />
       {comingSoon.length > 0 && (

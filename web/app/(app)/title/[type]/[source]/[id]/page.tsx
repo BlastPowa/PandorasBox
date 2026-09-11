@@ -25,6 +25,7 @@ import { BackButton } from "@/components/shell/back-button";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import { ShareDialog } from "@/components/social/share-dialog";
 import { FriendsWithTitle } from "@/components/social/friends-with-title";
+import { PBoxPlayerShell } from "@/components/player/pbox-player-shell";
 
 const VALID_TYPES: ReelItemType[] = ["movie", "series", "anime", "manga", "manhwa"];
 
@@ -227,6 +228,8 @@ export default async function TitlePage({
         {/* Body */}
         <div className="mt-8 grid gap-6 sm:mt-12 lg:grid-cols-[1fr_360px]">
           <div className="min-w-0 space-y-8">
+            <PBoxPlayerShell itemId={detail.id} title={detail.title} type={detail.type} year={detail.year} />
+
             {(detail.cast ?? []).length > 0 && (
               <section>
                 <h2 className="mb-3 font-display text-xl font-bold">Cast</h2>

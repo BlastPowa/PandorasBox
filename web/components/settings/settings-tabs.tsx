@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { User, Palette, Plug, UploadCloud, Database } from "lucide-react";
+import { User, Palette, Plug, UploadCloud, Database, PlaySquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type SettingsTabKey = "account" | "appearance" | "integrations" | "import" | "backup";
+export type SettingsTabKey = "account" | "appearance" | "player" | "integrations" | "import" | "backup";
 
 const TABS: { key: SettingsTabKey; label: string; description: string; icon: typeof User }[] = [
   { key: "account", label: "Account", description: "Profile & sign-in", icon: User },
   { key: "appearance", label: "Appearance", description: "Theme & display", icon: Palette },
+  { key: "player", label: "Player", description: "Streaming & playback", icon: PlaySquare },
   { key: "integrations", label: "Integrations", description: "Sync services", icon: Plug },
   { key: "import", label: "Import", description: "Bring your lists", icon: UploadCloud },
   { key: "backup", label: "Backup", description: "Export & restore", icon: Database },
@@ -20,7 +21,7 @@ export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, Re
 
   return (
     <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-8">
-      <nav className="grid grid-cols-2 gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-2 sm:grid-cols-3 md:grid-cols-5 lg:sticky lg:top-24 lg:grid-cols-1 lg:self-start">
+      <nav className="grid grid-cols-2 gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-2 sm:grid-cols-3 lg:sticky lg:top-24 lg:grid-cols-1 lg:self-start">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (
