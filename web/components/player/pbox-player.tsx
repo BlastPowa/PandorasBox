@@ -3,9 +3,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
+import {
+  AudioLines,
+  Cast,
+  ChevronRight,
+  Cloud,
+  Gauge,
+  Languages,
+  Maximize2,
+  Monitor,
+  Palette,
+  PictureInPicture2,
+  RectangleHorizontal,
+  SkipForward,
+  Sparkles,
+} from "lucide-react";
 import type { PlaybackSource } from "@/lib/playback/types";
 import { useLibrary } from "@/lib/library/use-library";
-import { readPlayerPreferences, type PlayerPreferences } from "@/lib/playback/preferences";
+import { readPlayerPreferences, writePlayerPreferences, type PlayerPreferences } from "@/lib/playback/preferences";
 import {
   PBoxBack10Icon,
   PBoxCaptionsIcon,
@@ -43,12 +58,14 @@ export function PBoxPlayer({
   mediaType,
   episodeContext,
   sources,
+  onAutoNext,
 }: {
   itemId: string;
   title: string;
   mediaType: "movie" | "series" | "anime";
   episodeContext?: EpisodePlaybackContext;
   sources: PlaybackSource[];
+  onAutoNext?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playerRef = useRef<HTMLDivElement | null>(null);
@@ -59,7 +76,7 @@ export function PBoxPlayer({
   const resumeTimeRef = useRef(0);
   const sourceLoadTimerRef = useRef<number | null>(null);
   const { getById, signedIn, updateProgress, setStatus, markComplete } = useLibrary();
-  const [preferences] = useState<PlayerPreferences>(() => readPlayerPreferences());
+  const [preferences, setPreferences] = useState<PlayerPreferences>(() => readPlayerPreferences());
   const [sourceIndex, setSourceIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -72,6 +89,14 @@ export function PBoxPlayer({
   const [autoFallback, setAutoFallback] = useState(preferences.autoFallback);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  const persistPreferences = useCallback((patch: Partial<PlayerPreferences>) => {
+    setPreferences((current) => {
+      const next = { ...current, ...patch };
+      writePlayerPreferences(next);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     failedSourcesRef.current.clear();
     recoveryAttemptsRef.current.clear();
@@ -82,6 +107,13 @@ export function PBoxPlayer({
     const order = new Map(preferences.sourceOrder.map((provider, index) => [provider, index]));
     const preferredHeight = preferences.preferredQuality === "auto" ? null : Number.parseInt(preferences.preferredQuality, 10);
     return [...sources].sort((a, b) => {
+      if (preferences.dataSaver) {
+        const heightA = Number.parseInt(a.quality ?? "0", 10);
+        const heightB = Number.parseInt(b.quality ?? "0", 10);
+        if (heightA > 0 && heightB > 0 && heightA !== heightB) return heightA - heightB;
+        if (heightA > 0 && heightB <= 0) return -1;
+        if (heightB > 0 && heightA <= 0) return 1;
+      }
       const providerA = order.get(a.provider) ?? 99;
       const providerB = order.get(b.provider) ?? 99;
       if (providerA !== providerB) return providerA - providerB;
@@ -90,13 +122,26 @@ export function PBoxPlayer({
       const heightB = Number.parseInt(b.quality ?? "0", 10);
       return Math.abs(heightA - preferredHeight) - Math.abs(heightB - preferredHeight);
     });
-  }, [preferences.preferredQuality, preferences.sourceOrder, sources]);
+  }, [preferences.dataSaver, preferences.preferredQuality, preferences.sourceOrder, sources]);
 
   const source = orderedSources[sourceIndex] ?? orderedSources[0];
   const sourceOptions = useMemo(
     () => orderedSources.map((item, index) => ({ index, label: `${item.providerName}${item.quality ? ` · ${item.quality}` : ""}` })),
     [orderedSources]
   );
+  const qualityOptions = useMemo(
+    () => Array.from(new Set(orderedSources.map((item) => item.quality).filter((quality): quality is string => Boolean(quality))))
+      .sort((a, b) => Number.parseInt(b, 10) - Number.parseInt(a, 10)),
+    [orderedSources]
+  );
+
+  const switchSource = useCallback((nextIndex: number) => {
+    resumeTimeRef.current = videoRef.current?.currentTime ?? 0;
+    setFallbackMessage(null);
+    const nextSource = orderedSources[nextIndex];
+    if (nextSource) failedSourcesRef.current.delete(nextSource.id);
+    setSourceIndex(nextIndex);
+  }, [orderedSources]);
 
   const fallbackToNextSource = useCallback((reason: string) => {
     const video = videoRef.current;
@@ -220,6 +265,7 @@ export function PBoxPlayer({
   const handleLoadedMetadata = useCallback((video: HTMLVideoElement) => {
     if (sourceLoadTimerRef.current !== null) window.clearTimeout(sourceLoadTimerRef.current);
     setDuration(video.duration || 0);
+    video.playbackRate = preferences.playbackRate;
     if (resumeTimeRef.current > 0 && Number.isFinite(video.duration)) {
       video.currentTime = Math.min(resumeTimeRef.current, Math.max(0, video.duration - 0.25));
       resumeTimeRef.current = 0;
@@ -239,7 +285,7 @@ export function PBoxPlayer({
     }
     recoveryAttemptsRef.current.delete(source.id);
     setFallbackMessage(null);
-  }, [episodeContext, getById, itemId, mediaType, source.id]);
+  }, [episodeContext, getById, itemId, mediaType, preferences.playbackRate, source.id]);
 
   const applyCaptionTrack = useCallback((enabled: boolean, selectedIndex = captionIndex) => {
     const video = videoRef.current;
@@ -253,7 +299,8 @@ export function PBoxPlayer({
     const next = !captionsEnabled;
     applyCaptionTrack(next);
     setCaptionsEnabled(next);
-  }, [applyCaptionTrack, captionsEnabled]);
+    persistPreferences({ subtitles: next ? "on" : "off" });
+  }, [applyCaptionTrack, captionsEnabled, persistPreferences]);
 
   const togglePlay = async () => {
     const video = videoRef.current;
@@ -299,6 +346,38 @@ export function PBoxPlayer({
     else await container.requestFullscreen();
   };
 
+  const setPlaybackRate = (rate: number) => {
+    const video = videoRef.current;
+    if (video) video.playbackRate = rate;
+    persistPreferences({ playbackRate: rate });
+  };
+
+  const toggleDataSaver = () => {
+    resumeTimeRef.current = videoRef.current?.currentTime ?? 0;
+    persistPreferences({ dataSaver: !preferences.dataSaver });
+    setFallbackMessage(null);
+    setSourceIndex(0);
+  };
+
+  const handleEnded = () => {
+    setPlaying(false);
+    completedRef.current = false;
+    void syncProgress(true).finally(() => {
+      if (preferences.autoplayNext && episodeContext && !episodeContext.isFinalEpisode) onAutoNext?.();
+    });
+  };
+
+  const playerAspectRatio = preferences.aspectRatio === "4:3"
+    ? "4 / 3"
+    : preferences.aspectRatio === "21:9"
+      ? "21 / 9"
+      : "16 / 9";
+  const videoObjectFit = preferences.displayMode === "fill"
+    ? "cover"
+    : preferences.displayMode === "stretch"
+      ? "fill"
+      : "contain";
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -329,10 +408,11 @@ export function PBoxPlayer({
 
   return (
     <div ref={playerRef} className="overflow-hidden rounded-[var(--radius-lg)] border border-white/10 bg-black shadow-2xl">
-      <div className="relative aspect-video bg-black">
+      <div className="relative bg-black" style={{ aspectRatio: playerAspectRatio }}>
         <video
           ref={videoRef}
-          className="size-full object-contain"
+          className="size-full"
+          style={{ objectFit: videoObjectFit }}
           playsInline
           preload="metadata"
           onClick={() => void togglePlay()}
@@ -343,7 +423,7 @@ export function PBoxPlayer({
             if (sourceLoadTimerRef.current !== null) window.clearTimeout(sourceLoadTimerRef.current);
           }}
           onTimeUpdate={(event) => { setCurrentTime(event.currentTarget.currentTime); void syncProgress(false); }}
-          onEnded={() => { setPlaying(false); completedRef.current = false; void syncProgress(true); }}
+          onEnded={handleEnded}
           onError={() => fallbackToNextSource("Mirror failed.")}
           onStalled={() => {
             if (videoRef.current && videoRef.current.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
@@ -412,14 +492,7 @@ export function PBoxPlayer({
                 <PBoxMirrorIcon size={17} />
                 <select
                   value={sourceIndex}
-                  onChange={(event) => {
-                    resumeTimeRef.current = videoRef.current?.currentTime ?? 0;
-                    setFallbackMessage(null);
-                    const nextIndex = Number(event.target.value);
-                    const nextSource = orderedSources[nextIndex];
-                    if (nextSource) failedSourcesRef.current.delete(nextSource.id);
-                    setSourceIndex(nextIndex);
-                  }}
+                  onChange={(event) => switchSource(Number(event.target.value))}
                   className="max-w-[170px] bg-transparent py-1 text-xs font-semibold text-white outline-none"
                   aria-label="Playback mirror"
                 >
@@ -431,55 +504,181 @@ export function PBoxPlayer({
             <div className="relative">
               <button type="button" onClick={() => setSettingsOpen((open) => !open)} className={`grid size-9 place-items-center rounded-full transition ${settingsOpen ? "bg-white text-black" : "bg-white/10 hover:bg-white/15"}`} aria-label="Player settings"><PBoxSettingsIcon size={19} /></button>
               {settingsOpen && (
-                <div className="absolute bottom-12 right-0 z-20 w-72 rounded-2xl border border-white/10 bg-[#0a0a0d]/95 p-3 text-left shadow-2xl backdrop-blur-xl">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div><p className="text-sm font-bold text-white">Playback settings</p><p className="text-[10px] text-white/45">Changes here last for this player.</p></div>
+                <div className="absolute bottom-12 right-0 z-30 max-h-[70vh] w-[min(360px,calc(100vw-32px))] overflow-y-auto rounded-2xl border border-white/10 bg-[#070708]/97 text-left shadow-[0_24px_80px_rgba(0,0,0,0.7)] backdrop-blur-2xl [scrollbar-width:thin]">
+                  <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">Player settings</p>
+                      <p className="text-[10px] text-white/40">Playback controls for this device</p>
+                    </div>
                     <span className="rounded-full bg-[rgb(var(--accent-rgb)/0.14)] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[var(--accent)]">PBox</span>
                   </div>
-                  <label className="block text-[11px] font-semibold text-white/55">
-                    Mirror / quality
-                    <select
-                      value={sourceIndex}
-                      onChange={(event) => {
-                        resumeTimeRef.current = videoRef.current?.currentTime ?? 0;
-                        const nextIndex = Number(event.target.value);
-                        const nextSource = orderedSources[nextIndex];
-                        if (nextSource) failedSourcesRef.current.delete(nextSource.id);
-                        setFallbackMessage(null);
-                        setSourceIndex(nextIndex);
-                      }}
-                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-semibold text-white outline-none focus:border-[var(--accent)]"
-                    >
-                      {sourceOptions.map((option) => <option key={option.index} value={option.index} className="bg-black">{option.label}</option>)}
-                    </select>
-                  </label>
-                  <button type="button" onClick={() => setAutoFallback((value) => !value)} className="mt-3 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs">
-                    <span><span className="block font-semibold text-white">Automatic mirror fallback</span><span className="mt-0.5 block text-[10px] text-white/45">Switch source when playback fails.</span></span>
-                    <span className={`relative h-5 w-9 rounded-full transition ${autoFallback ? "bg-[var(--accent)]" : "bg-white/15"}`}><span className={`absolute top-0.5 size-4 rounded-full bg-white transition ${autoFallback ? "left-[18px]" : "left-0.5"}`} /></span>
-                  </button>
-                  {source.captions.length > 0 && (
-                    <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-white">Subtitles</span>
-                        <button type="button" onClick={toggleCaptions} className={`rounded-full px-2 py-1 text-[9px] font-black uppercase ${captionsEnabled ? "bg-white text-black" : "bg-white/10 text-white/55"}`}>{captionsEnabled ? "On" : "Off"}</button>
-                      </div>
-                      <select
-                        value={captionIndex}
-                        onChange={(event) => {
-                          const nextIndex = Number(event.target.value);
-                          setCaptionIndex(nextIndex);
-                          setCaptionsEnabled(true);
-                          applyCaptionTrack(true, nextIndex);
-                        }}
-                        className="mt-2 w-full rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-[11px] font-semibold text-white outline-none"
-                        aria-label="Subtitle language"
-                      >
-                        {source.captions.map((caption, index) => <option key={`${caption.url}-${index}`} value={index}>{caption.label || caption.language}</option>)}
-                      </select>
+
+                  <div className="divide-y divide-white/[0.055]">
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3">
+                      <Gauge className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Quality</span>
+                      {qualityOptions.length > 0 ? (
+                        <div className="flex items-center gap-1 text-white/45">
+                          <select
+                            value={source.quality ?? qualityOptions[0]}
+                            onChange={(event) => {
+                              const nextIndex = orderedSources.findIndex((item) => item.quality === event.target.value);
+                              if (nextIndex >= 0) switchSource(nextIndex);
+                            }}
+                            className="max-w-32 appearance-none bg-transparent text-right text-xs text-white/45 outline-none"
+                            aria-label="Playback quality"
+                          >
+                            {qualityOptions.map((quality) => <option key={quality} value={quality} className="bg-black text-white">{quality}</option>)}
+                          </select>
+                          <ChevronRight className="size-4" />
+                        </div>
+                      ) : <span className="text-xs text-white/35">Auto</span>}
                     </div>
-                  )}
-                  <div className="mt-3 rounded-xl bg-white/[0.035] px-3 py-2 text-[10px] leading-relaxed text-white/45">
-                    Completion is marked at {preferences.completionThreshold}% watched. Persistent defaults are in Settings → Player.
+
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3">
+                      <Cloud className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Server</span>
+                      <div className="flex min-w-0 items-center gap-1 text-white/45">
+                        <select value={sourceIndex} onChange={(event) => switchSource(Number(event.target.value))} className="max-w-40 appearance-none truncate bg-transparent text-right text-xs text-white/45 outline-none" aria-label="Playback server">
+                          {sourceOptions.map((option) => <option key={option.index} value={option.index} className="bg-black text-white">{option.label}</option>)}
+                        </select>
+                        <ChevronRight className="size-4 shrink-0" />
+                      </div>
+                    </div>
+
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3">
+                      <Languages className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Subtitles</span>
+                      {source.captions.length > 0 ? (
+                        <div className="flex min-w-0 items-center gap-1 text-white/45">
+                          <select
+                            value={captionsEnabled ? String(captionIndex) : "off"}
+                            onChange={(event) => {
+                              if (event.target.value === "off") {
+                                applyCaptionTrack(false);
+                                setCaptionsEnabled(false);
+                                persistPreferences({ subtitles: "off" });
+                                return;
+                              }
+                              const nextIndex = Number(event.target.value);
+                              setCaptionIndex(nextIndex);
+                              setCaptionsEnabled(true);
+                              applyCaptionTrack(true, nextIndex);
+                              persistPreferences({ subtitles: "on" });
+                            }}
+                            className="max-w-36 appearance-none truncate bg-transparent text-right text-xs text-white/45 outline-none"
+                            aria-label="Subtitle language"
+                          >
+                            <option value="off" className="bg-black text-white">Off</option>
+                            {source.captions.map((caption, index) => <option key={`${caption.url}-${index}`} value={index} className="bg-black text-white">{caption.label || caption.language}</option>)}
+                          </select>
+                          <ChevronRight className="size-4 shrink-0" />
+                        </div>
+                      ) : <span className="text-xs text-white/30">None</span>}
+                    </div>
+
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3 opacity-55">
+                      <AudioLines className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Audio Track</span>
+                      <span className="text-xs text-white/40">Default</span>
+                    </div>
+                  </div>
+
+                  <div className="border-y border-white/[0.07] bg-white/[0.015] px-4 py-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/20">Playback</div>
+
+                  <div className="divide-y divide-white/[0.055]">
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3">
+                      <Gauge className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Speed</span>
+                      <div className="flex items-center gap-1 text-white/45">
+                        <select value={preferences.playbackRate} onChange={(event) => setPlaybackRate(Number(event.target.value))} className="appearance-none bg-transparent text-right text-xs text-white/45 outline-none" aria-label="Playback speed">
+                          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <option key={rate} value={rate} className="bg-black text-white">{rate === 1 ? "Normal" : `${rate}x`}</option>)}
+                        </select>
+                        <ChevronRight className="size-4" />
+                      </div>
+                    </div>
+
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3">
+                      <Maximize2 className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Display</span>
+                      <div className="flex items-center gap-1 text-white/45">
+                        <select value={preferences.displayMode} onChange={(event) => persistPreferences({ displayMode: event.target.value as PlayerPreferences["displayMode"] })} className="appearance-none bg-transparent text-right text-xs capitalize text-white/45 outline-none" aria-label="Display mode">
+                          <option value="fit" className="bg-black text-white">Fit</option>
+                          <option value="fill" className="bg-black text-white">Fill</option>
+                          <option value="stretch" className="bg-black text-white">Stretch</option>
+                        </select>
+                        <ChevronRight className="size-4" />
+                      </div>
+                    </div>
+
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3">
+                      <RectangleHorizontal className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Aspect Ratio</span>
+                      <div className="flex items-center gap-1 text-white/45">
+                        <select value={preferences.aspectRatio} onChange={(event) => persistPreferences({ aspectRatio: event.target.value as PlayerPreferences["aspectRatio"] })} className="appearance-none bg-transparent text-right text-xs text-white/45 outline-none" aria-label="Aspect ratio">
+                          <option value="auto" className="bg-black text-white">Auto</option>
+                          <option value="16:9" className="bg-black text-white">16:9</option>
+                          <option value="4:3" className="bg-black text-white">4:3</option>
+                          <option value="21:9" className="bg-black text-white">21:9</option>
+                        </select>
+                        <ChevronRight className="size-4" />
+                      </div>
+                    </div>
+
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3 opacity-55">
+                      <Sparkles className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Audio Boost</span>
+                      <span className="text-xs text-white/40">100%</span>
+                    </div>
+
+                    <button type="button" onClick={() => persistPreferences({ autoplayNext: !preferences.autoplayNext })} className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/[0.035]">
+                      <SkipForward className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Auto Next</span>
+                      <span className={`relative h-5 w-9 rounded-full transition ${preferences.autoplayNext ? "bg-[var(--accent)]" : "bg-white/15"}`}><span className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-all ${preferences.autoplayNext ? "left-[18px]" : "left-0.5"}`} /></span>
+                    </button>
+
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3 opacity-45" title="Requires intro and credits timing metadata from the playback source.">
+                      <SkipForward className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Auto Skip Intro/Credits</span>
+                      <span className="relative h-5 w-9 rounded-full bg-white/15"><span className="absolute left-0.5 top-0.5 size-4 rounded-full bg-white" /></span>
+                    </div>
+
+                    <button type="button" onClick={toggleDataSaver} className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/[0.035]">
+                      <Cloud className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Data Saver</span>
+                      <span className="mr-1 text-xs text-white/35">{preferences.dataSaver ? "On" : "Off"}</span>
+                      <span className={`relative h-5 w-9 rounded-full transition ${preferences.dataSaver ? "bg-[var(--accent)]" : "bg-white/15"}`}><span className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-all ${preferences.dataSaver ? "left-[18px]" : "left-0.5"}`} /></span>
+                    </button>
+
+                    <button type="button" onClick={() => { const next = !autoFallback; setAutoFallback(next); persistPreferences({ autoFallback: next }); }} className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/[0.035]">
+                      <Monitor className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Auto Fallback</span>
+                      <span className={`relative h-5 w-9 rounded-full transition ${autoFallback ? "bg-[var(--accent)]" : "bg-white/15"}`}><span className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-all ${autoFallback ? "left-[18px]" : "left-0.5"}`} /></span>
+                    </button>
+                  </div>
+
+                  <div className="border-y border-white/[0.07] bg-white/[0.015] px-4 py-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/20">Appearance</div>
+
+                  <div className="divide-y divide-white/[0.055]">
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3 opacity-65">
+                      <Palette className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Player Appearance</span>
+                      <span className="text-xs text-white/40">Cinema</span>
+                    </div>
+                    <button type="button" onClick={() => void requestPiP()} className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/[0.035]">
+                      <PictureInPicture2 className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Picture in Picture</span>
+                      <ChevronRight className="size-4 text-white/35" />
+                    </button>
+                    <div className="flex min-h-12 items-center gap-3 px-4 py-3 opacity-40" title="Casting is not available in this browser player yet.">
+                      <Cast className="size-[18px] shrink-0 text-white/50" />
+                      <span className="flex-1 text-[13px] font-semibold text-white/90">Cast</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Unavailable</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-white/[0.07] px-4 py-3 text-[10px] leading-relaxed text-white/30">
+                    Watched status is marked at {preferences.completionThreshold}% completion.
                   </div>
                 </div>
               )}

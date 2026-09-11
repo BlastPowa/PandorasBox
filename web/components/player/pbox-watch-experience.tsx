@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, ListVideo } from "lucide-react";
 import type { TMDBEpisode } from "@core/api/tmdb";
 import type { JikanEpisode } from "@core/api/jikan";
@@ -94,6 +94,22 @@ export function PBoxWatchExperience({
       (type === "anime" && totalEpisodes && episode >= totalEpisodes))
   );
 
+  const playNextEpisode = useCallback(() => {
+    if (!episode) return;
+    if (type === "anime") {
+      if (!totalEpisodes || episode < totalEpisodes) setEpisode(episode + 1);
+      return;
+    }
+
+    const currentIndex = episodes.findIndex((entry) => entry.number === episode);
+    const nextEpisode = currentIndex >= 0 ? episodes[currentIndex + 1] : null;
+    if (nextEpisode) {
+      setEpisode(nextEpisode.number);
+      return;
+    }
+    if (season < seasonCount) setSeason((value) => Math.min(seasonCount, value + 1));
+  }, [episode, episodes, season, seasonCount, totalEpisodes, type]);
+
   if (type === "movie") {
     return <PBoxPlayerShell itemId={itemId} title={title} type={type} year={year} showUnavailable />;
   }
@@ -111,6 +127,7 @@ export function PBoxWatchExperience({
           episodeTitle={selectedEpisode?.title ?? null}
           isFinalEpisode={isFinalEpisode}
           showUnavailable
+          onAutoNext={playNextEpisode}
         />
         {selectedEpisode && (
           <div className="mt-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4">
