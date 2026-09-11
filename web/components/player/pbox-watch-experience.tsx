@@ -50,6 +50,8 @@ export function PBoxWatchExperience({
   tmdbId,
   totalSeasons,
   totalEpisodes,
+  initialSeason,
+  initialEpisode,
   initialSeriesEpisodes,
   initialAnimeEpisodes,
   backdropUrl,
@@ -65,6 +67,8 @@ export function PBoxWatchExperience({
   tmdbId: number | null;
   totalSeasons: number | null;
   totalEpisodes: number | null;
+  initialSeason: number;
+  initialEpisode: number | null;
   initialSeriesEpisodes: TMDBEpisode[];
   initialAnimeEpisodes: JikanEpisode[];
   backdropUrl: string | null;
@@ -73,11 +77,13 @@ export function PBoxWatchExperience({
   collectionItems: UnifiedSearchResult[];
 }) {
   const router = useRouter();
-  const [season, setSeason] = useState(1);
+  const [season, setSeason] = useState(() => type === "series" ? Math.max(1, initialSeason) : 1);
   const [episodes, setEpisodes] = useState<WatchEpisode[]>(() =>
     type === "series" ? seriesEpisodes(initialSeriesEpisodes) : animeEpisodes(initialAnimeEpisodes)
   );
-  const [episode, setEpisode] = useState<number | null>(() => episodes[0]?.number ?? (type === "movie" ? null : 1));
+  const [episode, setEpisode] = useState<number | null>(() =>
+    type === "movie" ? null : (initialEpisode ?? episodes[0]?.number ?? 1)
+  );
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
   const [episodeBrowserOpen, setEpisodeBrowserOpen] = useState(false);
   const [episodeQuery, setEpisodeQuery] = useState("");

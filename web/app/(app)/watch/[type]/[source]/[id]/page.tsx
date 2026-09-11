@@ -13,7 +13,7 @@ export default async function WatchPage({
   searchParams,
 }: {
   params: Promise<{ type: string; source: string; id: string }>;
-  searchParams: Promise<{ title?: string; year?: string }>;
+  searchParams: Promise<{ title?: string; year?: string; season?: string; episode?: string }>;
 }) {
   const { type, source, id } = await params;
   const query = await searchParams;
@@ -21,6 +21,8 @@ export default async function WatchPage({
 
   const profile = await getProfile();
   const fallbackYear = query.year ? Number.parseInt(query.year, 10) : null;
+  const requestedSeason = query.season ? Number.parseInt(query.season, 10) : null;
+  const requestedEpisode = query.episode ? Number.parseInt(query.episode, 10) : null;
   const detail = await getDetail(
     type as ReelItemType,
     decodeURIComponent(source),
@@ -90,6 +92,8 @@ export default async function WatchPage({
             tmdbId={detail.tmdbId}
             totalSeasons={detail.totalSeasons}
             totalEpisodes={detail.totalEpisodes}
+            initialSeason={Number.isFinite(requestedSeason) && requestedSeason && requestedSeason > 0 ? requestedSeason : 1}
+            initialEpisode={Number.isFinite(requestedEpisode) && requestedEpisode && requestedEpisode > 0 ? requestedEpisode : null}
             initialSeriesEpisodes={detail.episodes}
             initialAnimeEpisodes={detail.animeEpisodes ?? []}
             backdropUrl={detail.backdropUrl ?? detail.posterUrl}
