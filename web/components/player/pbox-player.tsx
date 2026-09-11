@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import Hls from "hls.js";
-import * as dashjs from "dashjs";
 import {
   AudioLines,
   Cast,
@@ -57,6 +56,12 @@ type EpisodePlaybackContext = {
   isFinalEpisode?: boolean;
 };
 
+type DashPlayer = {
+  initialize: (video: HTMLVideoElement, url: string, autoPlay: boolean) => void;
+  on: (event: string, listener: () => void) => void;
+  destroy: () => void;
+};
+
 const ACCENT_OVERRIDES: Partial<Record<PlayerPreferences["accentColour"], { colour: string; rgb: string }>> = {
   white: { colour: "#f7f7f8", rgb: "247 247 248" },
   blue: { colour: "#3b82f6", rgb: "59 130 246" },
@@ -89,6 +94,7 @@ export function PBoxPlayer({
   episodeContext,
   sources,
   onAutoNext,
+  nextLabel = "Next up",
   onOpenEpisodes,
   onWatchPartyMediaChange,
 }: {
@@ -98,6 +104,7 @@ export function PBoxPlayer({
   episodeContext?: EpisodePlaybackContext;
   sources: PlaybackSource[];
   onAutoNext?: () => void;
+  nextLabel?: string;
   onOpenEpisodes?: () => void;
   onWatchPartyMediaChange?: (media: { season: number | null; episode: number | null }) => void;
 }) {
@@ -126,6 +133,7 @@ export function PBoxPlayer({
   const [watchPartyOpen, setWatchPartyOpen] = useState(false);
   const [watchPartyInviteCount, setWatchPartyInviteCount] = useState(0);
   const [seekPreview, setSeekPreview] = useState<{ percent: number; time: number } | null>(null);
+  const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(null);
 
   const watchPartyMedia = useMemo(() => ({
     mediaKey: `${mediaType}:${itemId}`,
@@ -218,7 +226,8 @@ export function PBoxPlayer({
     setDuration(0);
     if (sourceLoadTimerRef.current !== null) window.clearTimeout(sourceLoadTimerRef.current);
     let hls: Hls | null = null;
-    let dash: dashjs.MediaPlayerClass | null = null;
+    let dash: DashPlayer | null = null;
+    let disposed = false;
 
     sourceLoadTimerRef.current = window.setTimeout(() => {
       if (video.readyState < HTMLMediaElement.HAVE_METADATA) fallbackToNextSource("Mirror timed out.");
@@ -246,15 +255,22 @@ export function PBoxPlayer({
         fallbackToNextSource("HLS playback failed.");
       });
     } else if (source.kind === "dash") {
-      dash = dashjs.MediaPlayer().create();
-      dash.initialize(video, source.url, false);
-      dash.on(dashjs.MediaPlayer.events.ERROR, () => fallbackToNextSource("DASH playback failed."));
+      void import("dashjs")
+        .then((dashjs) => {
+          if (disposed) return;
+          const player = dashjs.MediaPlayer().create();
+          dash = player;
+          player.initialize(video, source.url, false);
+          player.on(dashjs.MediaPlayer.events.ERROR, () => fallbackToNextSource("DASH playback failed."));
+        })
+        .catch(() => fallbackToNextSource("DASH playback failed."));
     } else {
       video.src = source.url;
       video.load();
     }
 
     return () => {
+      disposed = true;
       hls?.destroy();
       dash?.destroy();
       if (sourceLoadTimerRef.current !== null) window.clearTimeout(sourceLoadTimerRef.current);
@@ -410,9 +426,33 @@ export function PBoxPlayer({
     setPlaying(false);
     completedRef.current = false;
     void syncProgress(true).finally(() => {
-      if (preferences.autoplayNext && episodeContext && !episodeContext.isFinalEpisode) onAutoNext?.();
+      const canAdvance = Boolean(onAutoNext && (!episodeContext || !episodeContext.isFinalEpisode));
+      if (preferences.autoplayNext && canAdvance) setAutoNextCountdown(20);
     });
   };
+
+  useEffect(() => {
+    if (autoNextCountdown === null) return;
+    if (!preferences.autoplayNext) {
+      queueMicrotask(() => setAutoNextCountdown(null));
+      return;
+    }
+    if (autoNextCountdown <= 0) {
+      queueMicrotask(() => {
+        setAutoNextCountdown(null);
+        onAutoNext?.();
+      });
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setAutoNextCountdown((current) => current === null ? null : Math.max(0, current - 1));
+    }, 1_000);
+    return () => window.clearTimeout(timer);
+  }, [autoNextCountdown, onAutoNext, preferences.autoplayNext]);
+
+  useEffect(() => {
+    queueMicrotask(() => setAutoNextCountdown(null));
+  }, [itemId, sourceIndex]);
 
   const playerAspectRatio = preferences.aspectRatio === "4:3"
     ? "4 / 3"
@@ -505,7 +545,7 @@ export function PBoxPlayer({
           playsInline
           preload="metadata"
           onClick={() => void togglePlay()}
-          onPlay={() => { setPlaying(true); void syncProgress(true); }}
+          onPlay={() => { setPlaying(true); setAutoNextCountdown(null); void syncProgress(true); }}
           onPause={() => { setPlaying(false); void syncProgress(true); }}
           onLoadedMetadata={(event) => handleLoadedMetadata(event.currentTarget)}
           onCanPlay={() => {
@@ -525,6 +565,32 @@ export function PBoxPlayer({
             <track key={caption.url} kind="subtitles" src={caption.url} srcLang={caption.language} label={caption.label} default={index === 0 && preferences.subtitles !== "off"} />
           ))}
         </video>
+        {autoNextCountdown !== null && (
+          <div className="absolute inset-0 z-20 grid place-items-center bg-black/70 p-5 text-center backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-3xl border border-white/12 bg-[#09090b]/95 p-6 shadow-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Auto Next</p>
+              <h3 className="mt-2 font-display text-2xl font-black text-white">{nextLabel}</h3>
+              <p className="mt-2 text-sm text-white/55">Starting in <span className="font-black text-white">{autoNextCountdown}s</span></p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setAutoNextCountdown(null); onAutoNext?.(); }}
+                  className="rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-black text-black transition hover:brightness-110"
+                >
+                  Play next now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAutoNextCountdown(null)}
+                  className="rounded-full border border-white/12 bg-white/5 px-5 py-2.5 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+              <p className="mt-4 text-[10px] text-white/35">Auto Next can be toggled in Player settings.</p>
+            </div>
+          </div>
+        )}
         {!playing && (
           <button
             type="button"

@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, ListVideo, Search, X } from "lucide-react";
 import type { TMDBEpisode } from "@core/api/tmdb";
 import type { JikanEpisode } from "@core/api/jikan";
+import type { UnifiedSearchResult } from "@core/utils/search";
+import { PosterRow } from "@/components/discovery/poster-row";
 import { PBoxPlayerShell } from "./pbox-player-shell";
 
 type WatchEpisode = {
@@ -49,6 +52,9 @@ export function PBoxWatchExperience({
   initialSeriesEpisodes,
   initialAnimeEpisodes,
   backdropUrl,
+  synopsis,
+  collectionName,
+  collectionItems,
 }: {
   itemId: string;
   title: string;
@@ -60,7 +66,11 @@ export function PBoxWatchExperience({
   initialSeriesEpisodes: TMDBEpisode[];
   initialAnimeEpisodes: JikanEpisode[];
   backdropUrl: string | null;
+  synopsis: string | null;
+  collectionName: string | null;
+  collectionItems: UnifiedSearchResult[];
 }) {
+  const router = useRouter();
   const [season, setSeason] = useState(1);
   const [episodes, setEpisodes] = useState<WatchEpisode[]>(() =>
     type === "series" ? seriesEpisodes(initialSeriesEpisodes) : animeEpisodes(initialAnimeEpisodes)
@@ -161,6 +171,20 @@ export function PBoxWatchExperience({
       (type === "anime" && totalEpisodes && episode >= totalEpisodes))
   );
 
+  const movieContinuation = useMemo(() => {
+    if (type !== "movie" || !tmdbId || collectionItems.length < 2) return null;
+    const currentIndex = collectionItems.findIndex((item) => item.tmdbId === tmdbId);
+    if (currentIndex < 0) return null;
+    const nextMovie = collectionItems[currentIndex + 1] ?? null;
+    return { currentIndex, nextMovie };
+  }, [collectionItems, tmdbId, type]);
+
+  const playNextMovie = useCallback(() => {
+    const nextMovie = movieContinuation?.nextMovie;
+    if (!nextMovie?.tmdbId) return;
+    router.push(`/watch/movie/tmdb/${nextMovie.tmdbId}`);
+  }, [movieContinuation, router]);
+
   const playNextEpisode = useCallback(() => {
     if (!episode) return;
     if (type === "anime") {
@@ -193,7 +217,53 @@ export function PBoxWatchExperience({
   }, []);
 
   if (type === "movie") {
-    return <PBoxPlayerShell itemId={itemId} title={title} type={type} year={year} showUnavailable />;
+    const nextMovie = movieContinuation?.nextMovie ?? null;
+    return (
+      <div className="min-w-0 space-y-4">
+        <PBoxPlayerShell
+          itemId={itemId}
+          title={title}
+          type={type}
+          year={year}
+          showUnavailable
+          onAutoNext={nextMovie?.tmdbId ? playNextMovie : undefined}
+          nextLabel={nextMovie ? `${nextMovie.title}${nextMovie.year ? ` (${nextMovie.year})` : ""}` : undefined}
+        />
+
+        <section className="rounded-2xl border border-white/8 bg-white/[0.035] p-4 sm:p-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">About this movie</p>
+          <h2 className="mt-1 text-lg font-bold text-white">{title}</h2>
+          <p className="mt-2 max-w-4xl text-sm leading-relaxed text-white/58">
+            {synopsis || "No description is available for this movie yet."}
+          </p>
+          {nextMovie && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/25 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">Next in {collectionName ?? "this collection"}</p>
+                <p className="mt-1 truncate text-sm font-bold text-white/85">{nextMovie.title}{nextMovie.year ? ` · ${nextMovie.year}` : ""}</p>
+              </div>
+              <button
+                type="button"
+                onClick={playNextMovie}
+                className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-black text-black transition hover:brightness-110"
+              >
+                Play next
+              </button>
+            </div>
+          )}
+        </section>
+
+        {collectionItems.length > 1 && (
+          <section className="rounded-2xl border border-white/8 bg-white/[0.025] p-4 sm:p-5">
+            <PosterRow
+              title={collectionName ?? "Connected movies"}
+              subtitle="Release order · Auto Next follows this sequence when enabled in player settings"
+              items={collectionItems}
+            />
+          </section>
+        )}
+      </div>
+    );
   }
 
   return (

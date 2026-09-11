@@ -70,6 +70,7 @@ export interface DetailAbout {
   budget?: number | null;
   revenue?: number | null;
   collection?: string | null;
+  collectionId?: number | null;
 }
 
 export interface DetailGalleryImage {
@@ -324,10 +325,11 @@ export async function getDetail(
             productionCompanies,
             countries,
             originalLanguage,
-            budget: m.budget > 0 ? m.budget : null,
-            revenue: m.revenue > 0 ? m.revenue : null,
-            collection: m.belongs_to_collection?.name ?? null,
-          },
+              budget: m.budget > 0 ? m.budget : null,
+              revenue: m.revenue > 0 ? m.revenue : null,
+              collection: m.belongs_to_collection?.name ?? null,
+              collectionId: m.belongs_to_collection?.id ?? null,
+            },
           galleryImages: galleryImages(m.images),
         };
       }

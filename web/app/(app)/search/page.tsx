@@ -4,18 +4,31 @@ import { runSearch } from "@/lib/search-server";
 import { FilterableGrid } from "@/components/discovery/type-filter";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { SearchModeTabs } from "@/components/search/search-mode-tabs";
+import { getFranchiseOrders, matchFranchiseQuery } from "@/lib/franchises";
 
 export const dynamic = "force-dynamic";
 
 async function Results({ q }: { q: string }) {
-  const results = await runSearch(q);
+  const franchiseDef = matchFranchiseQuery(q);
+  const [results, franchiseOrders] = await Promise.all([
+    runSearch(q),
+    franchiseDef ? getFranchiseOrders(franchiseDef.slug) : Promise.resolve(null),
+  ]);
+  const franchise = franchiseDef && franchiseOrders
+    ? {
+        slug: franchiseDef.slug,
+        name: franchiseDef.name,
+        description: franchiseDef.description,
+        ...franchiseOrders,
+      }
+    : null;
   return (
     <>
       <p className="mb-4 text-sm text-[var(--text-secondary)]">
         {results.length} result{results.length === 1 ? "" : "s"} for{" "}
         <span className="font-semibold text-[var(--text)]">&ldquo;{q}&rdquo;</span>
       </p>
-      <FilterableGrid items={results} />
+      <FilterableGrid items={results} franchise={franchise} />
     </>
   );
 }

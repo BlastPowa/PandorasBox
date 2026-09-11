@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import type { ReelItemType } from "@core/storage/schema";
 import { getDetail } from "@/lib/detail";
 import { getProfile } from "@/lib/auth";
+import { getCollectionItems } from "@/lib/franchises";
 import { PBoxWatchExperience } from "@/components/player/pbox-watch-experience";
 
 export default async function WatchPage({
@@ -18,6 +19,11 @@ export default async function WatchPage({
   const profile = await getProfile();
   const detail = await getDetail(type as ReelItemType, decodeURIComponent(source), decodeURIComponent(id), profile?.country ?? "IE");
   if (!detail) notFound();
+
+  const collectionId = detail.type === "movie" ? detail.about?.collectionId : null;
+  const collectionItems = collectionId
+    ? await getCollectionItems(collectionId)
+    : [];
 
   const titleHref = `/title/${detail.type}/${detail.source}/${encodeURIComponent(decodeURIComponent(id))}`;
 
@@ -73,6 +79,9 @@ export default async function WatchPage({
             initialSeriesEpisodes={detail.episodes}
             initialAnimeEpisodes={detail.animeEpisodes ?? []}
             backdropUrl={detail.backdropUrl ?? detail.posterUrl}
+            synopsis={detail.synopsis}
+            collectionName={detail.about?.collection ?? null}
+            collectionItems={collectionItems}
           />
         </div>
 

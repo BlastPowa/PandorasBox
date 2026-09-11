@@ -9,6 +9,8 @@ export interface FranchiseDef {
 }
 
 export const FRANCHISES: FranchiseDef[] = [
+  { slug: "harry-potter", name: "Harry Potter", description: "The eight Harry Potter films, with release and story order views.", category: "Film saga" },
+  { slug: "twilight", name: "The Twilight Saga", description: "Bella and Edward's five-film saga in order.", category: "Film saga" },
   { slug: "star-wars", name: "Star Wars", description: "Films from across the galaxy, ordered by release.", category: "Film saga" },
   { slug: "magical-fantasy", name: "Magical Fantasy", description: "Harry Potter, Narnia, Fantastic Beasts, Percy Jackson and Middle-earth.", category: "World collection" },
   { slug: "lord-of-the-rings", name: "Middle-earth", description: "The Lord of the Rings and Hobbit films in release order.", category: "Film saga" },
@@ -34,6 +36,45 @@ export const FRANCHISES: FranchiseDef[] = [
   { slug: "my-hero-anime", name: "My Hero Academia", description: "All available seasons and animated movies.", category: "Anime collection" },
   { slug: "supernatural-anime", name: "Supernatural Anime", description: "Safe supernatural adventures without adult or Ecchi results.", category: "Anime collection" },
 ];
+
+const FRANCHISE_ALIASES: Record<string, string[]> = {
+  "harry-potter": ["harry potter", "wizarding world"],
+  twilight: ["twilight", "twilight saga"],
+  "star-wars": ["star wars"],
+  "lord-of-the-rings": ["lord of the rings", "middle earth", "middle-earth", "the hobbit"],
+  mcu: ["mcu", "marvel cinematic universe"],
+  jurassic: ["jurassic park", "jurassic world"],
+  matrix: ["the matrix", "matrix"],
+  "mission-impossible": ["mission impossible", "mission: impossible"],
+  "fast-furious": ["fast and furious", "fast & furious"],
+  "hunger-games": ["hunger games"],
+  "maze-runner": ["maze runner"],
+  "pirates-caribbean": ["pirates of the caribbean"],
+  transformers: ["transformers"],
+};
+
+const CURATED_CHRONOLOGY: Record<string, number[]> = {
+  "harry-potter": [671, 672, 673, 674, 675, 767, 12444, 12445],
+  twilight: [8966, 18239, 24021, 50619, 50620],
+  "star-wars": [12180, 1894, 1893, 11, 1891, 1892, 140607, 181808, 181812],
+};
+
+function normalizeFranchiseQuery(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function matchFranchiseQuery(query: string): FranchiseDef | null {
+  const normalized = normalizeFranchiseQuery(query);
+  if (!normalized) return null;
+  for (const franchise of FRANCHISES) {
+    const aliases = FRANCHISE_ALIASES[franchise.slug] ?? [franchise.name];
+    if (aliases.some((alias) => normalized.includes(normalizeFranchiseQuery(alias)))) return franchise;
+  }
+  return null;
+}
 
 export function getFranchise(slug: string): FranchiseDef | null {
   return FRANCHISES.find((f) => f.slug === slug) ?? null;
@@ -62,6 +103,29 @@ async function fetchCollection(collectionId: number): Promise<UnifiedSearchResul
   } catch {
     return [];
   }
+}
+
+export async function getCollectionItems(collectionId: number): Promise<UnifiedSearchResult[]> {
+  return fetchCollection(collectionId);
+}
+
+export async function getFranchiseOrders(slug: string): Promise<{
+  releaseItems: UnifiedSearchResult[];
+  chronologicalItems: UnifiedSearchResult[];
+  hasCuratedChronology: boolean;
+}> {
+  const releaseItems = await getFranchiseItems(slug);
+  const order = CURATED_CHRONOLOGY[slug];
+  if (!order?.length) {
+    return { releaseItems, chronologicalItems: releaseItems, hasCuratedChronology: false };
+  }
+  const byTmdbId = new Map(releaseItems.map((item) => [item.tmdbId, item]));
+  const chronologicalItems = order
+    .map((tmdbId) => byTmdbId.get(tmdbId))
+    .filter((item): item is UnifiedSearchResult => Boolean(item));
+  const included = new Set(chronologicalItems.map((item) => item.id));
+  chronologicalItems.push(...releaseItems.filter((item) => !included.has(item.id)));
+  return { releaseItems, chronologicalItems, hasCuratedChronology: true };
 }
 
 async function fetchByCompanyChronological(companyId: number, limit = 40): Promise<UnifiedSearchResult[]> {
@@ -201,6 +265,8 @@ export async function getFranchiseItems(slug: string): Promise<UnifiedSearchResu
       return fetchCollection(10);
     case "harry-potter":
       return fetchCollection(1241);
+    case "twilight":
+      return fetchCollection(33514);
     case "magical-fantasy":
       return (await getMagicalFantasyGroups()).flatMap((group) => group.items);
     case "lord-of-the-rings":

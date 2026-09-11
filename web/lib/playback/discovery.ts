@@ -404,12 +404,23 @@ function archiveCaptions(identifier: string, files: ArchiveFile[]): PlaybackCapt
 }
 
 async function discoverInternetArchive(title: string, context: PlaybackMatchContext): Promise<PlaybackSource[]> {
-  const query = [`title:(\"${title.replace(/\"/g, "")}\")`, "mediatype:movies"];
+  const escapedTitle = context.title.replace(/\"/g, "");
+  const query = context.episode
+    ? [
+        `title:(\"${escapedTitle}\")`,
+        `(${[
+          context.episodeTitle ? `title:(\"${context.episodeTitle.replace(/\"/g, "")}\")` : null,
+          `title:(\"S${String(context.season ?? 1).padStart(2, "0")}E${String(context.episode).padStart(2, "0")}\")`,
+          `title:(\"${context.season ?? 1}x${String(context.episode).padStart(2, "0")}\")`,
+        ].filter(Boolean).join(" OR ")})`,
+        "mediatype:movies",
+      ]
+    : [`title:(\"${title.replace(/\"/g, "")}\")`, "mediatype:movies"];
   if (context.type === "movie" && context.year) query.push(`year:${context.year}`);
   const params = new URLSearchParams({
     q: query.join(" AND "),
     "fl[]": "identifier,title,year",
-    rows: "6",
+    rows: context.episode ? "12" : "6",
     page: "1",
     output: "json",
   });

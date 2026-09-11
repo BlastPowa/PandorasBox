@@ -36,6 +36,7 @@ export function PBoxPlayerShell({
   isFinalEpisode = false,
   showUnavailable = false,
   onAutoNext,
+  nextLabel,
   onOpenEpisodes,
   onWatchPartyMediaChange,
 }: {
@@ -49,6 +50,7 @@ export function PBoxPlayerShell({
   isFinalEpisode?: boolean;
   showUnavailable?: boolean;
   onAutoNext?: () => void;
+  nextLabel?: string;
   onOpenEpisodes?: () => void;
   onWatchPartyMediaChange?: (media: { season: number | null; episode: number | null }) => void;
 }) {
@@ -65,7 +67,7 @@ export function PBoxPlayerShell({
     if (episodeTitle) params.set("episodeTitle", episodeTitle);
     queueMicrotask(() => setSources(null));
     queueMicrotask(() => setTestMode(false));
-    void fetch(`/api/playback/sources?${params.toString()}`, { signal: controller.signal })
+    void fetch(`/api/playback/sources?${params.toString()}`, { signal: controller.signal, cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Playback discovery failed");
         const data = await response.json() as { sources?: PlaybackSource[] };
@@ -107,6 +109,7 @@ export function PBoxPlayerShell({
             episodeContext={episode ? { season, episode, isFinalEpisode } : undefined}
             sources={[PLAYER_TEST_SOURCE]}
             onAutoNext={onAutoNext}
+            nextLabel={nextLabel}
             onOpenEpisodes={onOpenEpisodes}
             onWatchPartyMediaChange={onWatchPartyMediaChange}
           />
@@ -165,6 +168,7 @@ export function PBoxPlayerShell({
         episodeContext={episode ? { season, episode, isFinalEpisode } : undefined}
         sources={sources}
         onAutoNext={onAutoNext}
+        nextLabel={nextLabel}
         onOpenEpisodes={onOpenEpisodes}
         onWatchPartyMediaChange={onWatchPartyMediaChange}
       />
