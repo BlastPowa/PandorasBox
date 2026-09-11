@@ -87,6 +87,7 @@ export function PBoxPlayerShell({
         <span className="text-xs text-[var(--text-muted)]">Wikimedia Commons / Internet Archive / PeerTube</span>
       </div>
       <PBoxPlayer
+        key={`${itemId}:${type}:${season ?? 0}:${episode ?? 0}`}
         itemId={itemId}
         title={title}
         mediaType={type as "movie" | "series" | "anime"}

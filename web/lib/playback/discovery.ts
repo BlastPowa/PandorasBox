@@ -17,10 +17,71 @@ function normaliseTitle(value: string): string {
     .trim();
 }
 
-function likelyTitleMatch(query: string, candidate: string): boolean {
-  const wanted = normaliseTitle(query);
+type PlaybackMatchContext = {
+  title: string;
+  type: string;
+  year?: number | null;
+  season?: number | null;
+  episode?: number | null;
+  episodeTitle?: string | null;
+};
+
+type EpisodeMarker = { season: number | null; episode: number };
+
+const TITLE_DISAMBIGUATORS = new Set(["uk", "us", "usa", "india", "australia"]);
+
+function episodeMarkers(value: string): EpisodeMarker[] {
+  const markers: EpisodeMarker[] = [];
+  const addMatches = (pattern: RegExp, hasSeason: boolean) => {
+    for (const match of value.matchAll(pattern)) {
+      const season = hasSeason ? Number(match[1]) : null;
+      const episode = Number(match[hasSeason ? 2 : 1]);
+      if (Number.isInteger(episode) && episode > 0) {
+        markers.push({ season: Number.isInteger(season) && season! > 0 ? season : null, episode });
+      }
+    }
+  };
+
+  addMatches(/\bs(?:eason)?[\s._-]*0*(\d{1,2})[\s._-]*e(?:pisode)?[\s._-]*0*(\d{1,3})\b/gi, true);
+  addMatches(/\b0*(\d{1,2})x0*(\d{1,3})\b/gi, true);
+  addMatches(/\bseason[\s._-]*0*(\d{1,2})[\s._-]*(?:episode|ep)[\s._-]*0*(\d{1,3})\b/gi, true);
+  addMatches(/\b(?:episode|ep|e)[\s._-]*0*(\d{1,3})\b/gi, false);
+
+  return markers;
+}
+
+function likelyTitleMatch(context: PlaybackMatchContext, candidate: string, candidateYear?: string | number | null): boolean {
+  const wanted = normaliseTitle(context.title);
   const found = normaliseTitle(candidate.replace(/^File:/i, ""));
-  return wanted.length >= 3 && (found.includes(wanted) || wanted.includes(found));
+  if (wanted.length < 2 || !(` ${found} `.includes(` ${wanted} `))) return false;
+
+  const wantedTokens = new Set(wanted.split(" "));
+  const foundTokens = new Set(found.split(" "));
+  for (const token of TITLE_DISAMBIGUATORS) {
+    if (foundTokens.has(token) && !wantedTokens.has(token)) return false;
+  }
+
+  if (context.type === "movie" && context.year) {
+    const metadataYear = Number(candidateYear);
+    if (Number.isFinite(metadataYear) && metadataYear > 0 && metadataYear !== context.year) return false;
+    const titleYears = [...candidate.matchAll(/\b(19\d{2}|20\d{2})\b/g)].map((match) => Number(match[1]));
+    if (titleYears.length > 0 && !titleYears.includes(context.year)) return false;
+  }
+
+  if (context.episode) {
+    const wantedSeason = context.season ?? 1;
+    const markers = episodeMarkers(candidate);
+    if (markers.some((marker) => marker.episode !== context.episode)) return false;
+    if (markers.some((marker) => marker.season !== null && marker.season !== wantedSeason)) return false;
+
+    const hasMatchingMarker = markers.some((marker) => marker.episode === context.episode && (marker.season === null || marker.season === wantedSeason));
+    const episodeTitle = normaliseTitle(context.episodeTitle ?? "");
+    const episodeTitleTokens = episodeTitle.split(" ").filter((token) => token.length >= 2 && token !== "episode" && token !== "ep");
+    const hasEpisodeTitle = episodeTitleTokens.length > 0 && episodeTitleTokens.every((token) => foundTokens.has(token));
+    if (!hasMatchingMarker && !hasEpisodeTitle) return false;
+  }
+
+  return true;
 }
 
 function sourceKind(url: string, mimeType?: string | null): PlaybackSourceKind {
@@ -48,7 +109,7 @@ type WikimediaPage = {
   }>;
 };
 
-async function discoverWikimedia(title: string): Promise<PlaybackSource[]> {
+async function discoverWikimedia(title: string, context: PlaybackMatchContext): Promise<PlaybackSource[]> {
   const params = new URLSearchParams({
     action: "query",
     generator: "search",
@@ -71,7 +132,7 @@ async function discoverWikimedia(title: string): Promise<PlaybackSource[]> {
   const sources: PlaybackSource[] = [];
 
   for (const page of data.query?.pages ?? []) {
-    if (!page.title || !likelyTitleMatch(title, page.title)) continue;
+    if (!page.title || !likelyTitleMatch(context, page.title)) continue;
     const metadata = page.imageinfo?.[0]?.extmetadata ?? {};
     const license = text(metadata.LicenseShortName?.value) || text(metadata.UsageTerms?.value);
     if (!OPEN_LICENSE.test(license)) continue;
@@ -142,9 +203,9 @@ function archiveCaptions(identifier: string, files: ArchiveFile[]): PlaybackCapt
     }));
 }
 
-async function discoverInternetArchive(title: string, year?: number | null): Promise<PlaybackSource[]> {
+async function discoverInternetArchive(title: string, context: PlaybackMatchContext): Promise<PlaybackSource[]> {
   const query = [`title:(\"${title.replace(/\"/g, "")}\")`, "mediatype:movies"];
-  if (year) query.push(`year:${year}`);
+  if (context.type === "movie" && context.year) query.push(`year:${context.year}`);
   const params = new URLSearchParams({
     q: query.join(" AND "),
     "fl[]": "identifier,title,year",
@@ -158,7 +219,7 @@ async function discoverInternetArchive(title: string, year?: number | null): Pro
   });
   if (!search.ok) return [];
   const searchData = await search.json() as { response?: { docs?: ArchiveSearchDoc[] } };
-  const docs = (searchData.response?.docs ?? []).filter((doc) => doc.identifier && doc.title && likelyTitleMatch(title, doc.title));
+  const docs = (searchData.response?.docs ?? []).filter((doc) => doc.identifier && doc.title && likelyTitleMatch(context, doc.title, doc.year));
   const sources: PlaybackSource[] = [];
 
   for (const doc of docs.slice(0, 4)) {
@@ -246,7 +307,7 @@ function peerTubeOpenLicence(licence?: { id?: number | null; label?: string }): 
   return null;
 }
 
-async function discoverPeerTube(title: string): Promise<PlaybackSource[]> {
+async function discoverPeerTube(title: string, context: PlaybackMatchContext): Promise<PlaybackSource[]> {
   const searchParams = new URLSearchParams({
     search: title,
     count: "8",
@@ -261,7 +322,7 @@ async function discoverPeerTube(title: string): Promise<PlaybackSource[]> {
   const search = await response.json() as { data?: PeerTubeSearchVideo[] };
   const matches = (search.data ?? [])
     .filter((item) => Boolean(item.uuid && item.url && item.name))
-    .filter((item) => likelyTitleMatch(title, item.name!))
+    .filter((item) => likelyTitleMatch(context, item.name!))
     .filter((item) => item.privacy?.id === 1)
     .filter((item) => Boolean(peerTubeOpenLicence(item.licence)))
     .slice(0, 4);
@@ -337,15 +398,13 @@ export async function discoverPlaybackSources(params: {
   episodeTitle?: string | null;
 }): Promise<PlaybackSource[]> {
   const episodeSuffix = params.episode
-    ? params.episodeTitle
-      ? ` ${params.episodeTitle}`
-      : ` S${params.season ?? 1}E${params.episode}`
+    ? ` S${String(params.season ?? 1).padStart(2, "0")}E${String(params.episode).padStart(2, "0")}${params.episodeTitle ? ` ${params.episodeTitle}` : ""}`
     : "";
   const searchTitle = `${params.title}${episodeSuffix}`.trim();
   const results = await Promise.allSettled([
-    discoverWikimedia(searchTitle),
-    discoverInternetArchive(searchTitle, params.type === "movie" ? params.year : null),
-    discoverPeerTube(searchTitle),
+    discoverWikimedia(searchTitle, params),
+    discoverInternetArchive(searchTitle, params),
+    discoverPeerTube(searchTitle, params),
   ]);
   return results
     .flatMap((result) => result.status === "fulfilled" ? result.value : [])
