@@ -123,6 +123,27 @@ function qualityLabel(height: unknown): string | null {
   return Number.isFinite(value) && value > 0 ? `${Math.round(value)}p` : null;
 }
 
+function mediaMimeFromUrl(value: string): string | null {
+  try {
+    const path = new URL(value).pathname.toLowerCase();
+    if (path.endsWith(".mp4")) return "video/mp4";
+    if (path.endsWith(".webm")) return "video/webm";
+    if (path.endsWith(".ogv") || path.endsWith(".ogg")) return "video/ogg";
+    if (path.endsWith(".m4v")) return "video/x-m4v";
+    if (path.endsWith(".mov")) return "video/quicktime";
+    if (path.endsWith(".m3u8")) return "application/vnd.apple.mpegurl";
+    if (path.endsWith(".mpd")) return "application/dash+xml";
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function qualityFromUrl(value: string): string | null {
+  const match = value.match(/(?:^|[^0-9])(2160|1440|1080|720|576|540|480|360|240)p?(?:[^0-9]|$)/i);
+  return match ? `${match[1]}p` : null;
+}
+
 type ConfiguredFeedCaption = {
   label?: unknown;
   language?: unknown;
@@ -664,6 +685,151 @@ async function discoverNasa(title: string, context: PlaybackMatchContext): Promi
   return results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
 }
 
+type EuropeanaItem = {
+  id?: string;
+  title?: string[] | string;
+  year?: string[] | string;
+  type?: string[] | string;
+  rights?: string[] | string;
+  edmIsShownBy?: string[] | string;
+  edmHasView?: string[] | string;
+};
+
+function stringValues(value: unknown): string[] {
+  if (typeof value === "string") return value.trim() ? [value.trim()] : [];
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim());
+}
+
+async function discoverEuropeana(title: string, context: PlaybackMatchContext): Promise<PlaybackSource[]> {
+  const apiKey = process.env.EUROPEANA_API_KEY?.trim() || "api2demo";
+  const params = new URLSearchParams({
+    wskey: apiKey,
+    query: title,
+    qf: "TYPE:VIDEO",
+    media: "true",
+    reusability: "open",
+    profile: "rich",
+    rows: "8",
+  });
+  const response = await fetch(`https://api.europeana.eu/record/v2/search.json?${params.toString()}`, {
+    headers: { "User-Agent": "PandorasBox/1.0 (open-media playback discovery)" },
+    next: { revalidate: 1800 },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) return [];
+
+  const payload = await response.json() as { success?: boolean; items?: EuropeanaItem[] };
+  if (payload.success === false) return [];
+  const sources: PlaybackSource[] = [];
+
+  for (const item of payload.items ?? []) {
+    const itemTitle = stringValues(item.title)[0];
+    const itemYear = stringValues(item.year)[0];
+    const itemType = stringValues(item.type).join(" ");
+    const rights = stringValues(item.rights);
+    const license = rights.join(" · ");
+    if (!item.id || !itemTitle || !/video/i.test(itemType) || !OPEN_LICENSE.test(license)) continue;
+    if (!likelyTitleMatch(context, itemTitle, itemYear)) continue;
+
+    const rawUrls = [...stringValues(item.edmIsShownBy), ...stringValues(item.edmHasView)];
+    const captions = rawUrls
+      .map((value) => safeRemoteUrl(value))
+      .filter((value): value is string => Boolean(value))
+      .filter((value) => new URL(value).pathname.toLowerCase().endsWith(".vtt"))
+      .slice(0, 8)
+      .map((url): PlaybackCaption => ({ label: "Subtitles", language: "und", url }));
+
+    const seenUrls = new Set<string>();
+    const playable = rawUrls
+      .map((value) => safeRemoteUrl(value))
+      .filter((value): value is string => Boolean(value))
+      .map((url) => ({ url, mime: mediaMimeFromUrl(url) }))
+      .filter((entry): entry is { url: string; mime: string } => Boolean(entry.mime))
+      .filter((entry) => {
+        if (seenUrls.has(entry.url)) return false;
+        seenUrls.add(entry.url);
+        return true;
+      });
+
+    for (const [index, entry] of playable.slice(0, 5).entries()) {
+      sources.push({
+        id: `europeana-${item.id.replace(/[^a-zA-Z0-9._-]+/g, "-")}-${index}`,
+        provider: "europeana",
+        providerName: "Europeana",
+        title: itemTitle,
+        kind: sourceKind(entry.url, entry.mime),
+        url: entry.url,
+        mimeType: entry.mime,
+        quality: qualityFromUrl(entry.url),
+        license,
+        sourcePageUrl: `https://www.europeana.eu/item${item.id}`,
+        captions,
+      });
+    }
+  }
+
+  return sources;
+}
+
+type DvidsSearchResult = {
+  id?: string;
+  type?: string;
+  title?: string;
+  date?: string;
+  hd?: boolean;
+  hls_url?: string;
+  url?: string;
+};
+
+async function discoverDvids(title: string, context: PlaybackMatchContext): Promise<PlaybackSource[]> {
+  const apiKey = process.env.DVIDS_API_KEY?.trim();
+  if (!apiKey) return [];
+
+  const params = new URLSearchParams({
+    api_key: apiKey,
+    q: title,
+    type: "video",
+    hd: "1",
+    max_results: "8",
+    sort: "score",
+  });
+  const response = await fetch(`https://api.dvidshub.net/search?${params.toString()}`, {
+    headers: { "Accept": "application/json", "User-Agent": "PandorasBox/1.0 (open-media playback discovery)" },
+    next: { revalidate: 1800 },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) return [];
+
+  const payload = await response.json() as { results?: DvidsSearchResult[] };
+  return (payload.results ?? [])
+    .filter((item) => item.type === "video" && Boolean(item.id && item.title && item.hls_url && item.url))
+    .filter((item) => {
+      const year = item.date ? new Date(item.date).getUTCFullYear() : null;
+      return likelyTitleMatch(context, item.title!, Number.isFinite(year) ? year : null);
+    })
+    .slice(0, 5)
+    .map((item, index): PlaybackSource | null => {
+      const streamUrl = safeRemoteUrl(item.hls_url);
+      const sourcePageUrl = safeRemoteUrl(item.url);
+      if (!streamUrl || !sourcePageUrl) return null;
+      return {
+        id: `dvids-${item.id!.replace(/[^a-zA-Z0-9._-]+/g, "-")}-${index}`,
+        provider: "dvids",
+        providerName: "DVIDS",
+        title: item.title!,
+        kind: "hls",
+        url: streamUrl,
+        mimeType: "application/vnd.apple.mpegurl",
+        quality: item.hd ? "HD" : null,
+        license: "DVIDS U.S. Government public media; item-specific restrictions may apply",
+        sourcePageUrl,
+        captions: [],
+      };
+    })
+    .filter((source): source is PlaybackSource => Boolean(source));
+}
+
 export async function discoverPlaybackSources(params: {
   title: string;
   type: string;
@@ -682,6 +848,8 @@ export async function discoverPlaybackSources(params: {
     discoverInternetArchive(searchTitle, params),
     discoverPeerTube(searchTitle, params),
     discoverNasa(searchTitle, params),
+    discoverEuropeana(searchTitle, params),
+    discoverDvids(searchTitle, params),
   ]);
   const seen = new Set<string>();
   return results
