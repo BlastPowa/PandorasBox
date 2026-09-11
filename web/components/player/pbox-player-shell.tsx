@@ -16,6 +16,7 @@ export function PBoxPlayerShell({
   isFinalEpisode = false,
   showUnavailable = false,
   onAutoNext,
+  onOpenEpisodes,
 }: {
   itemId: string;
   title: string;
@@ -27,6 +28,7 @@ export function PBoxPlayerShell({
   isFinalEpisode?: boolean;
   showUnavailable?: boolean;
   onAutoNext?: () => void;
+  onOpenEpisodes?: () => void;
 }) {
   const [sources, setSources] = useState<PlaybackSource[] | null>(null);
 
@@ -96,6 +98,7 @@ export function PBoxPlayerShell({
         episodeContext={episode ? { season, episode, isFinalEpisode } : undefined}
         sources={sources}
         onAutoNext={onAutoNext}
+        onOpenEpisodes={onOpenEpisodes}
       />
     </section>
   );

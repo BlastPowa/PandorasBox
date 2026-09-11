@@ -10,6 +10,7 @@ import {
   Cloud,
   Gauge,
   Languages,
+  ListVideo,
   Maximize2,
   Monitor,
   Palette,
@@ -59,6 +60,7 @@ export function PBoxPlayer({
   episodeContext,
   sources,
   onAutoNext,
+  onOpenEpisodes,
 }: {
   itemId: string;
   title: string;
@@ -66,6 +68,7 @@ export function PBoxPlayer({
   episodeContext?: EpisodePlaybackContext;
   sources: PlaybackSource[];
   onAutoNext?: () => void;
+  onOpenEpisodes?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playerRef = useRef<HTMLDivElement | null>(null);
@@ -487,6 +490,17 @@ export function PBoxPlayer({
           <span className="font-mono text-xs text-white/60">{formatTime(currentTime)} / {formatTime(duration)}</span>
 
           <div className="ml-auto flex items-center gap-2">
+            {episodeContext && onOpenEpisodes && (
+              <button
+                type="button"
+                onClick={onOpenEpisodes}
+                className="inline-flex h-9 items-center gap-2 rounded-full bg-white/10 px-3 text-xs font-semibold text-white/85 transition hover:bg-white/15 hover:text-white"
+                aria-label="Browse episodes"
+              >
+                <ListVideo className="size-4" />
+                <span className="hidden sm:inline">Episodes</span>
+              </button>
+            )}
             {sourceOptions.length > 1 && (
               <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-white/75">
                 <PBoxMirrorIcon size={17} />

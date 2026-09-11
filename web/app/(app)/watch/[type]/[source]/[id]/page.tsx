@@ -72,6 +72,7 @@ export default async function WatchPage({
             totalEpisodes={detail.totalEpisodes}
             initialSeriesEpisodes={detail.episodes}
             initialAnimeEpisodes={detail.animeEpisodes ?? []}
+            backdropUrl={detail.backdropUrl ?? detail.posterUrl}
           />
         </div>
 
