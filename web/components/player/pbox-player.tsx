@@ -520,7 +520,6 @@ export function PBoxPlayer({
               sourceLoadTimerRef.current = window.setTimeout(() => fallbackToNextSource("Mirror stalled."), 8_000);
             }
           }}
-          crossOrigin="anonymous"
         >
           {source.captions.map((caption, index) => (
             <track key={caption.url} kind="subtitles" src={caption.url} srcLang={caption.language} label={caption.label} default={index === 0 && preferences.subtitles !== "off"} />

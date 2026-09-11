@@ -180,6 +180,18 @@ export function PBoxWatchExperience({
     }
   }, [episode, episodes, season, seasonCount, totalEpisodes, type]);
 
+  const selectEpisode = useCallback((nextEpisode: number) => {
+    setEpisode(nextEpisode);
+    setEpisodeBrowserOpen(false);
+    setSeasonPickerOpen(false);
+    setEpisodeQuery("");
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        document.getElementById("pbox-player")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, []);
+
   if (type === "movie") {
     return <PBoxPlayerShell itemId={itemId} title={title} type={type} year={year} showUnavailable />;
   }
@@ -187,6 +199,7 @@ export function PBoxWatchExperience({
   return (
     <div className="min-w-0">
       <PBoxPlayerShell
+        key={`${itemId}:${type}:${season}:${episode ?? 0}`}
         itemId={itemId}
         title={title}
         type={type}
@@ -388,7 +401,7 @@ export function PBoxWatchExperience({
                         <button
                           key={entry.number}
                           type="button"
-                          onClick={() => setEpisode(entry.number)}
+                          onClick={() => selectEpisode(entry.number)}
                           title={entry.title}
                           className={`relative aspect-square rounded-xl border text-sm font-black tabular-nums transition ${active ? "border-[var(--accent)] bg-[var(--accent)] text-black shadow-[0_0_24px_rgb(var(--accent-rgb)/0.24)]" : "border-white/8 bg-white/[0.045] text-white/60 hover:border-white/20 hover:bg-white/10 hover:text-white"}`}
                         >
@@ -407,7 +420,7 @@ export function PBoxWatchExperience({
                       <button
                         key={entry.number}
                         type="button"
-                        onClick={() => setEpisode(entry.number)}
+                        onClick={() => selectEpisode(entry.number)}
                         className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${active ? "border-[rgb(var(--accent-rgb)/0.65)] bg-[rgb(var(--accent-rgb)/0.12)]" : "border-transparent bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.06]"}`}
                       >
                         <span className={`grid size-10 shrink-0 place-items-center rounded-lg text-xs font-black tabular-nums ${active ? "bg-[var(--accent)] text-black" : "bg-white/[0.06] text-white/45"}`}>{entry.number}</span>
@@ -431,7 +444,7 @@ export function PBoxWatchExperience({
                       <button
                         key={entry.number}
                         type="button"
-                        onClick={() => setEpisode(entry.number)}
+                        onClick={() => selectEpisode(entry.number)}
                         className={`group relative w-full overflow-hidden rounded-2xl border text-left shadow-lg transition duration-200 ${active ? "border-[rgb(var(--accent-rgb)/0.75)] ring-1 ring-[rgb(var(--accent-rgb)/0.35)]" : "border-white/8 hover:border-white/20"}`}
                       >
                         <div className="relative aspect-[16/8] overflow-hidden bg-[#111114]">

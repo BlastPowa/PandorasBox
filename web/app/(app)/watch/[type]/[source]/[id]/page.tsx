@@ -22,7 +22,7 @@ export default async function WatchPage({
   const titleHref = `/title/${detail.type}/${detail.source}/${encodeURIComponent(decodeURIComponent(id))}`;
 
   return (
-    <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-[#050507] text-white">
+    <div className="relative min-h-[calc(100dvh-4rem)] overflow-x-hidden bg-[#050507] text-white">
       {(detail.backdropUrl || detail.posterUrl) && (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[560px] overflow-hidden opacity-35">
           <Image
