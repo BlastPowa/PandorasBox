@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { discoverPlaybackSources } from "@/lib/playback/discovery";
+import { getMediaServerConfigurationStatus } from "@/lib/playback/media-server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,8 +19,17 @@ export async function GET(request: Request) {
   }
 
   const sources = await discoverPlaybackSources({ title, type, year, season, episode, episodeTitle });
+  const mediaServers = getMediaServerConfigurationStatus();
+  const configuredFeed = Boolean(process.env.PBOX_PLAYBACK_FEEDS?.trim());
   return NextResponse.json(
-    { sources },
+    {
+      sources,
+      configuration: {
+        ...mediaServers,
+        configuredFeed,
+        hasPrivateSource: mediaServers.jellyfin || mediaServers.emby || configuredFeed,
+      },
+    },
     { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
   );
 }

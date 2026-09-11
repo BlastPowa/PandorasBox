@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Captions, Keyboard, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Captions, Keyboard, PlaySquare } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { ReelItemType } from "@core/storage/schema";
 import { getDetail } from "@/lib/detail";
@@ -52,8 +52,8 @@ export default async function WatchPage({
             <ArrowLeft className="size-4" /> Back to title
           </Link>
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-400/10 px-3 py-2 text-emerald-200">
-              <ShieldCheck className="size-3.5" /> Verified open sources
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-white/65">
+              <PlaySquare className="size-3.5" /> PBox playback
             </span>
           </div>
         </div>

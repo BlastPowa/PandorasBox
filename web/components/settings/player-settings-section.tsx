@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowUp, CheckCircle2, CircleAlert, RotateCcw, Server } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
 import { PlayerAppearanceControls } from "@/components/player/player-appearance-controls";
@@ -13,6 +13,8 @@ import {
 } from "@/lib/playback/preferences";
 
 const SOURCE_LABELS = {
+  jellyfin: "Jellyfin",
+  emby: "Emby",
   "configured-feed": "PBox sources",
   peertube: "PeerTube",
   "internet-archive": "Internet Archive",
@@ -66,10 +68,30 @@ function SettingToggle({
 
 export function PlayerSettingsSection() {
   const [settings, setSettings] = useState<PlayerPreferences>(loadSettings);
+  const [sourceStatus, setSourceStatus] = useState<{
+    jellyfin: boolean;
+    emby: boolean;
+    configuredFeed: boolean;
+    hasPrivateSource: boolean;
+  } | null>(null);
 
   useEffect(() => {
     writePlayerPreferences(settings);
   }, [settings]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/playback/status", { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Playback status unavailable");
+        setSourceStatus(await response.json());
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setSourceStatus(null);
+      });
+    return () => controller.abort();
+  }, []);
 
   function moveSource(index: number, direction: -1 | 1) {
     const nextIndex = index + direction;
@@ -87,6 +109,47 @@ export function PlayerSettingsSection() {
 
   return (
     <div className="space-y-5">
+      <GlassCard macDots title="Playback sources">
+        <div className="space-y-4 p-5">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--accent)]">
+              <Server className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-[var(--text)]">In-site catalogue playback</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                Full movies and TV episodes can play inside PBox when this deployment has an authorised Jellyfin, Emby, or PBox playback feed connected. Open-media sources are still checked automatically when appropriate.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {[
+              ["Jellyfin", sourceStatus?.jellyfin],
+              ["Emby", sourceStatus?.emby],
+              ["PBox feed", sourceStatus?.configuredFeed],
+            ].map(([label, configured]) => (
+              <div key={String(label)} className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--glass)] px-3 py-3">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">{label}</span>
+                {configured === undefined ? (
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Checking…</span>
+                ) : configured ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400"><CheckCircle2 className="size-3.5" /> Connected</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-300"><CircleAlert className="size-3.5" /> Not set</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {sourceStatus && !sourceStatus.hasPrivateSource && (
+            <p className="rounded-[var(--radius-md)] border border-amber-300/20 bg-amber-300/[0.07] px-4 py-3 text-xs leading-relaxed text-amber-100/80">
+              No private catalogue source is connected to this PBox deployment yet. Until one is configured, titles such as current commercial TV series will not have an in-site stream even though their metadata and episode list are available.
+            </p>
+          )}
+        </div>
+      </GlassCard>
+
       <GlassCard macDots title="Player & streaming">
         <div className="space-y-5 p-5">
           <p className="text-sm leading-relaxed text-[var(--text-secondary)]">

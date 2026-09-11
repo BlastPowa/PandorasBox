@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { User, Palette, Plug, UploadCloud, Database, PlaySquare } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,19 @@ const TABS: { key: SettingsTabKey; label: string; description: string; icon: typ
 export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, ReactNode> }) {
   const [active, setActive] = useState<SettingsTabKey>("account");
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const requested = window.location.hash.slice(1) as SettingsTabKey;
+      if (TABS.some((tab) => tab.key === requested)) setActive(requested);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  function selectTab(key: SettingsTabKey) {
+    setActive(key);
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${key}`);
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-8">
       <nav className="grid grid-cols-2 gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-2 sm:grid-cols-3 lg:sticky lg:top-24 lg:grid-cols-1 lg:self-start">
@@ -27,7 +40,7 @@ export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, Re
           return (
             <button
               key={t.key}
-              onClick={() => setActive(t.key)}
+              onClick={() => selectTab(t.key)}
               aria-pressed={active === t.key}
               className={cn(
                 "group flex min-h-14 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-all",

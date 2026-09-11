@@ -79,6 +79,13 @@ export function getMediaServerConfig(provider: MediaServerProvider): MediaServer
   return { provider, providerName: definition.name, baseUrl, apiKey, userId };
 }
 
+export function getMediaServerConfigurationStatus(): Record<MediaServerProvider, boolean> {
+  return {
+    jellyfin: Boolean(getMediaServerConfig("jellyfin")),
+    emby: Boolean(getMediaServerConfig("emby")),
+  };
+}
+
 export function mediaServerHeaders(config: MediaServerConfig): HeadersInit {
   return {
     "Accept": "application/json",
@@ -107,7 +114,6 @@ function itemMatches(context: MediaServerMatchContext, item: MediaServerItem): b
   if (normalise(item.SeriesName ?? "") !== normalise(context.title)) return false;
   if (Number(item.ParentIndexNumber) !== (context.season ?? 1)) return false;
   if (Number(item.IndexNumber) !== context.episode) return false;
-  if (context.episodeTitle && normalise(itemName) !== normalise(context.episodeTitle)) return false;
   return true;
 }
 
