@@ -29,6 +29,12 @@ type PlaybackMatchContext = {
 type EpisodeMarker = { season: number | null; episode: number };
 
 const TITLE_DISAMBIGUATORS = new Set(["uk", "us", "usa", "india", "australia"]);
+const SAFE_TITLE_QUALIFIERS = new Set([
+  "full", "movie", "film", "feature", "complete", "uncut",
+  "restored", "restoration", "remastered", "remaster",
+  "public", "domain", "hd", "uhd", "4k", "1080p", "720p", "480p", "360p",
+  "mp4", "webm", "ogv", "ogg", "m4v", "mkv",
+]);
 
 function episodeMarkers(value: string): EpisodeMarker[] {
   const markers: EpisodeMarker[] = [];
@@ -53,7 +59,28 @@ function episodeMarkers(value: string): EpisodeMarker[] {
 function likelyTitleMatch(context: PlaybackMatchContext, candidate: string, candidateYear?: string | number | null): boolean {
   const wanted = normaliseTitle(context.title);
   const found = normaliseTitle(candidate.replace(/^File:/i, ""));
-  if (wanted.length < 2 || !(` ${found} `.includes(` ${wanted} `))) return false;
+  if (wanted.length < 2) return false;
+
+  const wantedParts = wanted.split(" ");
+  const foundParts = found.split(" ");
+  let matchStart = -1;
+  for (let index = 0; index <= foundParts.length - wantedParts.length; index += 1) {
+    if (wantedParts.every((part, offset) => foundParts[index + offset] === part)) {
+      matchStart = index;
+      break;
+    }
+  }
+  if (matchStart < 0) return false;
+
+  if (!context.episode) {
+    const allowedExtras = new Set(SAFE_TITLE_QUALIFIERS);
+    if (context.year) allowedExtras.add(String(context.year));
+    const extras = [
+      ...foundParts.slice(0, matchStart),
+      ...foundParts.slice(matchStart + wantedParts.length),
+    ];
+    if (extras.some((part) => !allowedExtras.has(part))) return false;
+  }
 
   const wantedTokens = new Set(wanted.split(" "));
   const foundTokens = new Set(found.split(" "));
@@ -541,6 +568,102 @@ async function discoverPeerTube(title: string, context: PlaybackMatchContext): P
   return results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
 }
 
+type NasaSearchItem = {
+  href?: string;
+  data?: Array<{
+    title?: string;
+    nasa_id?: string;
+    date_created?: string;
+  }>;
+};
+
+function nasaAssetUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.hostname.toLowerCase() !== "images-assets.nasa.gov") return null;
+    url.protocol = "https:";
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function nasaQuality(url: string): string | null {
+  const lower = url.toLowerCase();
+  if (lower.includes("~orig.")) return "Original";
+  if (lower.includes("~mobile.")) return "Mobile";
+  if (lower.includes("~preview.")) return "Preview";
+  if (lower.includes("~small.")) return "Small";
+  return null;
+}
+
+async function discoverNasa(title: string, context: PlaybackMatchContext): Promise<PlaybackSource[]> {
+  const params = new URLSearchParams({
+    q: title,
+    media_type: "video",
+    page_size: "8",
+  });
+  const response = await fetch(`https://images-api.nasa.gov/search?${params.toString()}`, {
+    headers: { "User-Agent": "PandorasBox/1.0 (open-media playback discovery)" },
+    next: { revalidate: 1800 },
+  });
+  if (!response.ok) return [];
+
+  const payload = await response.json() as { collection?: { items?: NasaSearchItem[] } };
+  const matches = (payload.collection?.items ?? [])
+    .map((item) => ({ item, metadata: item.data?.[0] }))
+    .filter(({ item, metadata }) => Boolean(item.href && metadata?.title && metadata.nasa_id))
+    .filter(({ metadata }) => {
+      const year = metadata?.date_created ? new Date(metadata.date_created).getUTCFullYear() : null;
+      return likelyTitleMatch(context, metadata!.title!, Number.isFinite(year) ? year : null);
+    })
+    .slice(0, 4);
+
+  const results = await Promise.allSettled(matches.map(async ({ item, metadata }) => {
+    const collectionUrl = safeRemoteUrl(item.href);
+    if (!collectionUrl || new URL(collectionUrl).hostname.toLowerCase() !== "images-assets.nasa.gov") return [] as PlaybackSource[];
+
+    const collectionResponse = await fetch(collectionUrl, {
+      headers: { "User-Agent": "PandorasBox/1.0 (open-media playback discovery)" },
+      next: { revalidate: 3600 },
+    });
+    if (!collectionResponse.ok) return [] as PlaybackSource[];
+    const assets = await collectionResponse.json() as unknown;
+    if (!Array.isArray(assets)) return [] as PlaybackSource[];
+
+    const urls = assets
+      .filter((value): value is string => typeof value === "string")
+      .map(nasaAssetUrl)
+      .filter((value): value is string => Boolean(value));
+    const captionUrl = urls.find((url) => url.toLowerCase().endsWith(".vtt"));
+    const captions: PlaybackCaption[] = captionUrl
+      ? [{ label: "English", language: "en", url: captionUrl }]
+      : [];
+    const playable = urls
+      .filter((url) => url.toLowerCase().endsWith(".mp4"))
+      .sort((a, b) => {
+        const rank = (url: string) => url.includes("~orig.") ? 0 : url.includes("~mobile.") ? 1 : url.includes("~small.") ? 2 : url.includes("~preview.") ? 3 : 4;
+        return rank(a.toLowerCase()) - rank(b.toLowerCase());
+      });
+
+    return playable.slice(0, 4).map((url, index): PlaybackSource => ({
+      id: `nasa-${metadata!.nasa_id}-${index}`,
+      provider: "nasa",
+      providerName: "NASA Video Library",
+      title: metadata!.title!,
+      kind: "direct",
+      url,
+      mimeType: "video/mp4",
+      quality: nasaQuality(url),
+      license: "NASA media usage guidelines",
+      sourcePageUrl: `https://images.nasa.gov/details/${encodeURIComponent(metadata!.nasa_id!)}`,
+      captions,
+    }));
+  }));
+
+  return results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+}
+
 export async function discoverPlaybackSources(params: {
   title: string;
   type: string;
@@ -558,6 +681,7 @@ export async function discoverPlaybackSources(params: {
     discoverWikimedia(searchTitle, params),
     discoverInternetArchive(searchTitle, params),
     discoverPeerTube(searchTitle, params),
+    discoverNasa(searchTitle, params),
   ]);
   const seen = new Set<string>();
   return results

@@ -16,6 +16,7 @@ const SOURCE_LABELS = {
   peertube: "PeerTube",
   "internet-archive": "Internet Archive",
   wikimedia: "Wikimedia Commons",
+  nasa: "NASA Video Library",
 } as const;
 
 type SourceId = keyof typeof SOURCE_LABELS;

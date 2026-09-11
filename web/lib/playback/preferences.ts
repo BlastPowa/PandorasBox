@@ -28,7 +28,7 @@ export const DEFAULT_PLAYER_PREFERENCES: PlayerPreferences = {
   aspectRatio: "auto",
   dataSaver: false,
   completionThreshold: 90,
-  sourceOrder: ["configured-feed", "peertube", "internet-archive", "wikimedia"],
+  sourceOrder: ["configured-feed", "peertube", "internet-archive", "wikimedia", "nasa"],
 };
 
 export function readPlayerPreferences(): PlayerPreferences {

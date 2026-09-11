@@ -65,7 +65,7 @@ Pandora's Box combines tracking with an optional in-site player for open, licens
 | Styling | Tailwind CSS, Radix UI primitives |
 | Database & Auth | Supabase (Postgres, Row Level Security, Auth, Realtime, Storage) |
 | Hosting | Vercel |
-| Data sources | TMDB (movies/TV/cast/providers), AniList (anime/manga), MangaDex (manga chapters), Jikan/MyAnimeList (anime episode synopses), Wikimedia Commons / Internet Archive / PeerTube (open playback), optional configured playback feeds, OMDb (optional critic scores), Resend (optional contact-form email) |
+| Data sources | TMDB (movies/TV/cast/providers), AniList (anime/manga), MangaDex (manga chapters), Jikan/MyAnimeList (anime episode synopses), Wikimedia Commons / Internet Archive / PeerTube / NASA Video Library (open playback), optional configured playback feeds, OMDb (optional critic scores), Resend (optional contact-form email) |
 | Styling language | CSS (via Tailwind), no separate stylesheets |
 | Config/scripting | SQL (Postgres migrations), Bash/shell scripting for tooling |
 
