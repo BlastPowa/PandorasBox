@@ -138,6 +138,21 @@ export function CollectionDetail({ id }: { id: string }) {
     }
   }
 
+  async function setCollectionCover(item: UnifiedSearchResult) {
+    if (!collection || !item.posterUrl) return;
+    try {
+      await updateCollection(collection.id, {
+        cover_mode: "item",
+        cover_url: item.posterUrl,
+        cover_item_id: item.id,
+      });
+      setCollection({ ...collection, cover_mode: "item", cover_url: item.posterUrl, cover_item_id: item.id });
+      toast.success(`${item.title} is now the collection thumbnail`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update collection thumbnail");
+    }
+  }
+
   if (loading) return <div className="skeleton h-64 w-full rounded-[var(--radius-lg)]" />;
   if (!collection) {
     return (
@@ -247,14 +262,24 @@ export function CollectionDetail({ id }: { id: string }) {
               <summary className="cursor-pointer font-semibold text-[var(--text-secondary)]">Manage items</summary>
               <div className="mt-2 space-y-1">
                 {resolved.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between py-1">
+                  <div key={r.id} className="flex items-center justify-between gap-3 py-1">
                     <span className="truncate">{r.title}</span>
-                    <button
-                      onClick={() => void removeItemFromCollection(id, r.id).then(load)}
-                      className="text-xs font-semibold text-[var(--dropped)]"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex shrink-0 items-center gap-3">
+                      {r.posterUrl && (
+                        <button
+                          onClick={() => void setCollectionCover(r)}
+                          className="text-xs font-semibold text-[var(--accent)]"
+                        >
+                          {collection.cover_item_id === r.id ? "Cover set" : "Use as cover"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => void removeItemFromCollection(id, r.id).then(load)}
+                        className="text-xs font-semibold text-[var(--dropped)]"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
