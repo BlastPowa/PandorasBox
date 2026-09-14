@@ -517,3 +517,20 @@ setupChrome();
 setupSearch();
 setupListFilters();
 void loadHome();
+
+let storageRefreshTimer: number | null = null;
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || (!changes.reel_list && !changes.reel_settings)) {
+    return;
+  }
+  if (storageRefreshTimer !== null) {
+    window.clearTimeout(storageRefreshTimer);
+  }
+  storageRefreshTimer = window.setTimeout(() => {
+    if (activeTab === "home") {
+      void loadHome();
+    } else if (activeTab === "list") {
+      void loadList();
+    }
+  }, 150);
+});

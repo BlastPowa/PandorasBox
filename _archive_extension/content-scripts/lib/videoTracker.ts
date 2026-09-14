@@ -10,14 +10,22 @@ export interface VideoTrackerConfig {
 
 const SAVE_INTERVAL_MS = 10000;
 const COMPLETION_PERCENT = 92;
+const RETRY_DELAY_MS = 900;
+const MAX_SEND_ATTEMPTS = 2;
+const MIN_PROGRESS_DELTA_SECONDS = 4;
 
-function sendProgress(event: ProgressEvent): void {
+function sendProgress(event: ProgressEvent, attempt = 0): void {
   try {
     chrome.runtime.sendMessage({ type: "saveProgress", event }, () => {
-      void chrome.runtime.lastError;
+      const runtimeError = chrome.runtime.lastError;
+      if (runtimeError && attempt < MAX_SEND_ATTEMPTS) {
+        window.setTimeout(() => sendProgress(event, attempt + 1), RETRY_DELAY_MS);
+      }
     });
   } catch {
-    return;
+    if (attempt < MAX_SEND_ATTEMPTS) {
+      window.setTimeout(() => sendProgress(event, attempt + 1), RETRY_DELAY_MS);
+    }
   }
 }
 
@@ -26,6 +34,11 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
   let trackedVideo: HTMLVideoElement | null = null;
   let completionSentForSrc: string | null = null;
   let intervalId: number | null = null;
+  let contextIntervalId: number | null = null;
+  let observer: MutationObserver | null = null;
+  let lastContextKey = "";
+  let lastSentVideoTime = -Infinity;
+  let lastSentAt = 0;
 
   function buildEvent(video: HTMLVideoElement, percent: number): ProgressEvent {
     return {
@@ -42,62 +55,149 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
     };
   }
 
-  function onTimeUpdate(this: HTMLVideoElement): void {
-    const video = this;
-    if (!Number.isFinite(video.duration) || video.duration < minDuration) {
+  function getContextKey(video: HTMLVideoElement): string {
+    return [
+      window.location.href,
+      video.currentSrc,
+      config.getTitle(),
+      config.getSeasonNumber() ?? "",
+      config.getEpisodeNumber() ?? "",
+    ].join("|");
+  }
+
+  function resetContext(video: HTMLVideoElement): void {
+    const nextKey = getContextKey(video);
+    if (nextKey === lastContextKey) {
       return;
     }
-    const percent = (video.currentTime / video.duration) * 100;
-    const srcKey = `${video.currentSrc}|${config.getEpisodeNumber() ?? ""}`;
-    if (percent > COMPLETION_PERCENT && completionSentForSrc !== srcKey) {
-      completionSentForSrc = srcKey;
-      sendProgress(buildEvent(video, percent));
+    lastContextKey = nextKey;
+    completionSentForSrc = null;
+    lastSentVideoTime = -Infinity;
+    lastSentAt = 0;
+  }
+
+  function canTrack(video: HTMLVideoElement): boolean {
+    return Number.isFinite(video.duration) && video.duration >= minDuration && video.currentTime > 0;
+  }
+
+  function emitProgress(video: HTMLVideoElement, force = false): void {
+    if (!canTrack(video)) {
+      return;
     }
+    resetContext(video);
+
+    const percent = (video.currentTime / video.duration) * 100;
+    const srcKey = `${lastContextKey}|${video.currentSrc}`;
+    if (percent >= COMPLETION_PERCENT) {
+      if (completionSentForSrc === srcKey) {
+        return;
+      }
+      completionSentForSrc = srcKey;
+      lastSentVideoTime = video.currentTime;
+      lastSentAt = Date.now();
+      sendProgress(buildEvent(video, percent));
+      return;
+    }
+
+    if (video.currentTime <= 10) {
+      return;
+    }
+    if (!force) {
+      const movedEnough = Math.abs(video.currentTime - lastSentVideoTime) >= MIN_PROGRESS_DELTA_SECONDS;
+      const intervalElapsed = Date.now() - lastSentAt >= SAVE_INTERVAL_MS;
+      if (!movedEnough || !intervalElapsed) {
+        return;
+      }
+    }
+
+    lastSentVideoTime = video.currentTime;
+    lastSentAt = Date.now();
+    sendProgress(buildEvent(video, percent));
+  }
+
+  function onTimeUpdate(this: HTMLVideoElement): void {
+    emitProgress(this);
+  }
+
+  function onPause(this: HTMLVideoElement): void {
+    emitProgress(this, true);
+  }
+
+  function onEnded(this: HTMLVideoElement): void {
+    emitProgress(this, true);
+  }
+
+  function onLoadedMetadata(this: HTMLVideoElement): void {
+    resetContext(this);
   }
 
   function attach(video: HTMLVideoElement): void {
     if (trackedVideo === video) {
+      resetContext(video);
       return;
     }
     if (trackedVideo) {
       trackedVideo.removeEventListener("timeupdate", onTimeUpdate);
+      trackedVideo.removeEventListener("pause", onPause);
+      trackedVideo.removeEventListener("ended", onEnded);
+      trackedVideo.removeEventListener("loadedmetadata", onLoadedMetadata);
     }
     trackedVideo = video;
-    completionSentForSrc = null;
+    lastContextKey = "";
+    resetContext(video);
     video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("pause", onPause);
+    video.addEventListener("ended", onEnded);
+    video.addEventListener("loadedmetadata", onLoadedMetadata);
+  }
+
+  function refreshVideo(): HTMLVideoElement | null {
+    const video = document.querySelector<HTMLVideoElement>("video");
+    if (!video) {
+      return null;
+    }
+    attach(video);
+    resetContext(video);
+    return video;
   }
 
   function tick(): void {
-    const video = document.querySelector<HTMLVideoElement>("video");
-    if (!video) {
+    const video = refreshVideo();
+    if (!video || video.paused) {
       return;
     }
-    attach(video);
-    if (video.paused || video.currentTime <= 10) {
-      return;
+    emitProgress(video);
+  }
+
+  function flushCurrentVideo(): void {
+    if (trackedVideo && !trackedVideo.ended) {
+      emitProgress(trackedVideo, true);
     }
-    if (!Number.isFinite(video.duration) || video.duration < minDuration) {
-      return;
-    }
-    const percent = (video.currentTime / video.duration) * 100;
-    if (percent > COMPLETION_PERCENT) {
-      return;
-    }
-    sendProgress(buildEvent(video, percent));
   }
 
   function start(): void {
     if (intervalId !== null) {
       return;
     }
+    refreshVideo();
     intervalId = window.setInterval(tick, SAVE_INTERVAL_MS);
-    const observer = new MutationObserver(() => {
-      const video = document.querySelector<HTMLVideoElement>("video");
-      if (video && video !== trackedVideo) {
-        attach(video);
+    contextIntervalId = window.setInterval(refreshVideo, 1000);
+    observer = new MutationObserver(refreshVideo);
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        flushCurrentVideo();
+      } else {
+        refreshVideo();
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("pagehide", flushCurrentVideo);
+    window.addEventListener("popstate", refreshVideo);
+    window.addEventListener("hashchange", refreshVideo);
   }
 
   if (document.readyState === "complete") {

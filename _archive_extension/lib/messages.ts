@@ -1,4 +1,10 @@
-import type { ReelItem, ReelItemStatus, ReelSettings, ReelProgress } from "../../core/storage/schema";
+import type {
+  ReelItem,
+  ReelItemStatus,
+  ReelItemType,
+  ReelSettings,
+  ReelProgress,
+} from "../../core/storage/schema";
 import type { ProgressEvent } from "../../core/storage/progressManager";
 import type { ReelStats } from "../../core/storage/listManager";
 import type { UnifiedSearchResult } from "../../core/utils/search";
@@ -22,7 +28,7 @@ export type ReelMessage =
   | {
       type: "getWatchProviders";
       tmdbId: number | null;
-      itemType: "movie" | "series" | "anime" | "manga" | "manhwa";
+      itemType: ReelItemType;
       title: string;
       mangadexId?: string;
     }

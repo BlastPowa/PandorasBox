@@ -11,7 +11,10 @@ function getTitle(): string {
       return titleEl.textContent.trim();
     }
   }
-  return document.title.replace(/\s*[-|]\s*Netflix.*$/i, "").trim();
+  const ogTitle = document
+    .querySelector<HTMLMetaElement>('meta[property="og:title"]')
+    ?.content.trim();
+  return (ogTitle || document.title).replace(/\s*[-|]\s*Netflix.*$/i, "").trim();
 }
 
 function getEpisodeNumber(): number | null {

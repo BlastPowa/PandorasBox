@@ -1,4 +1,5 @@
 import type { TMDBWatchProviders } from "./tmdb";
+import type { ReelItemType } from "../storage/schema";
 
 export interface WatchOption {
   name: string;
@@ -164,13 +165,13 @@ export function buildMangaReadLinks(title: string, mangaDexId?: string): WatchOp
 }
 
 export function getAllWatchOptions(params: {
-  type: "movie" | "series" | "anime" | "manga" | "manhwa";
+  type: ReelItemType;
   title: string;
   tmdbProviders?: TMDBWatchProviders | null;
   mangaDexId?: string;
 }): WatchOption[] {
   const { type, title, tmdbProviders, mangaDexId } = params;
-  if (type === "manga" || type === "manhwa") {
+  if (type === "manga" || type === "manhwa" || type === "comic") {
     return buildMangaReadLinks(title, mangaDexId);
   }
 

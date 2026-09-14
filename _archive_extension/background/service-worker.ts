@@ -13,18 +13,41 @@ import type { ReelItem } from "../../core/storage/schema";
 
 const { listManager, progressManager, cacheManager } = initManagers();
 
+async function ensureAlarm(name: string, periodInMinutes: number): Promise<void> {
+  const existing = await chrome.alarms.get(name);
+  if (!existing) {
+    await chrome.alarms.create(name, { periodInMinutes });
+  }
+}
+
+async function ensureRuntimeInfrastructure(): Promise<void> {
+  await ensureDefaultSettings();
+  await Promise.all([
+    ensureAlarm("episodeCheck", 60),
+    ensureAlarm("chapterCheck", 60),
+    ensureAlarm("progressSync", 15),
+  ]);
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   void (async () => {
     try {
-      await ensureDefaultSettings();
-      await chrome.alarms.create("episodeCheck", { periodInMinutes: 60 });
-      await chrome.alarms.create("chapterCheck", { periodInMinutes: 60 });
-      await chrome.alarms.create("progressSync", { periodInMinutes: 15 });
+      await ensureRuntimeInfrastructure();
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
     } catch (error) {
       console.error("Reel onInstalled setup failed", error);
     }
   })();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  void ensureRuntimeInfrastructure().catch((error) => {
+    console.error("Reel startup setup failed", error);
+  });
+});
+
+void ensureRuntimeInfrastructure().catch((error) => {
+  console.error("Reel runtime setup failed", error);
 });
 
 function notify(id: string, title: string, message: string): void {
@@ -83,6 +106,17 @@ async function runSupabaseSync(): Promise<{ success: boolean; message: string }>
     const message = error instanceof Error ? error.message : "Sync failed";
     console.error("Reel sync failed", error);
     return { success: false, message };
+  }
+}
+
+async function scheduleProgressSyncSoon(): Promise<void> {
+  const settings = await getSettings();
+  if (!settings.syncEnabled || !settings.supabaseUrl || !settings.supabaseAnonKey) {
+    return;
+  }
+  const pending = await chrome.alarms.get("progressSyncSoon");
+  if (!pending) {
+    await chrome.alarms.create("progressSyncSoon", { delayInMinutes: 2 });
   }
 }
 
@@ -168,7 +202,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         if (settings.notificationsEnabled) {
           await runChapterCheck();
         }
-      } else if (alarm.name === "progressSync") {
+      } else if (alarm.name === "progressSync" || alarm.name === "progressSyncSoon") {
         await runSupabaseSync();
       }
     } catch (error) {
@@ -194,6 +228,9 @@ async function handleMessage(message: ReelMessage): Promise<unknown> {
         event.itemId = match.id;
       }
       await progressManager.handleProgressEvent(event);
+      void scheduleProgressSyncSoon().catch((error) => {
+        console.error("Reel progress sync scheduling failed", error);
+      });
       return { success: true };
     }
     case "getList":
