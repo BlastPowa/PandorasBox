@@ -10,6 +10,7 @@ import { ExpandableText } from "@/components/detail/expandable-text";
 import { GameContentGallery } from "@/components/games/game-content-gallery";
 import { ShareDialog } from "@/components/social/share-dialog";
 import { FriendsWithTitle } from "@/components/social/friends-with-title";
+import { GameDetailBackdrop } from "@/components/games/game-detail-backdrop";
 
 export const revalidate = 86400;
 
@@ -35,18 +36,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="pb-14">
       <section className="relative min-h-[560px] overflow-hidden sm:min-h-[610px] lg:min-h-[660px]">
-        {game.backdropUrl || game.coverUrl ? (
-          <Image
-            src={game.backdropUrl ?? game.coverUrl!}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className={game.backdropUrl ? "object-cover object-center" : "scale-110 object-cover blur-2xl"}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgb(var(--accent-rgb)/0.26),transparent_42%),linear-gradient(145deg,var(--bg-elevated),var(--bg-base))]" />
-        )}
+        <GameDetailBackdrop images={[game.backdropUrl, ...game.screenshots, game.coverUrl]} title={game.name} />
         <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_72%,transparent)_26%,rgba(7,7,12,0.26)_62%,rgba(7,7,12,0.42)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,7,12,0.55)_0%,rgba(7,7,12,0.18)_50%,transparent_78%)]" />
 
@@ -65,9 +55,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               </div>
             )}
 
-            <div className="min-w-0 max-w-4xl flex-1 pb-1 text-white [text-shadow:0_2px_18px_rgba(0,0,0,.35)]">
+            <div className="min-w-0 max-w-4xl flex-1 rounded-[28px] border border-white/15 bg-black/22 p-5 text-white shadow-[0_24px_70px_rgba(0,0,0,.20)] backdrop-blur-xl [text-shadow:0_2px_18px_rgba(0,0,0,.35)] sm:p-7">
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-white/70">Game</p>
-              <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl">{game.name}</h1>
+              <h1 className="font-display text-4xl font-extrabold leading-[0.98] tracking-tight sm:text-5xl lg:text-6xl">{game.name}</h1>
 
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-white/80">
                 {game.rating !== null && (
@@ -141,15 +131,29 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       </section>
 
       <div className="relative z-10 mx-auto -mt-2 max-w-[1400px] space-y-10 px-4 md:px-8">
-        {(game.developers.length > 0 || game.publishers.length > 0) && (
-          <div className="pb-uiverse-card pb-uiverse-card--compact flex flex-wrap gap-x-8 gap-y-2 rounded-[var(--radius-lg)] px-4 py-3 text-xs text-[var(--text-muted)] sm:px-5">
+        {(game.developers.length > 0 || game.publishers.length > 0 || game.platforms.length > 0) && (
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {game.developers.length > 0 && (
-              <span><span className="font-semibold text-[var(--text-secondary)]">Developer</span> · {game.developers.slice(0, 3).join(", ")}</span>
+              <div className="pb-uiverse-card pb-uiverse-card--compact rounded-[var(--radius-lg)] p-4 sm:p-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Studio</p>
+                <h2 className="mt-1 font-display text-lg font-bold">{game.developers[0]}</h2>
+                {game.developers.length > 1 && <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">With {game.developers.slice(1, 4).join(", ")}</p>}
+              </div>
             )}
             {game.publishers.length > 0 && (
-              <span><span className="font-semibold text-[var(--text-secondary)]">Publisher</span> · {game.publishers.slice(0, 3).join(", ")}</span>
+              <div className="pb-uiverse-card pb-uiverse-card--compact rounded-[var(--radius-lg)] p-4 sm:p-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Publisher</p>
+                <h2 className="mt-1 font-display text-lg font-bold">{game.publishers[0]}</h2>
+                {game.publishers.length > 1 && <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">Also {game.publishers.slice(1, 4).join(", ")}</p>}
+              </div>
             )}
-          </div>
+            {game.platforms.length > 0 && (
+              <div className="pb-uiverse-card pb-uiverse-card--compact rounded-[var(--radius-lg)] p-4 sm:p-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Available on</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">{game.platforms.slice(0, 8).map((platform) => <span key={platform} className="rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-secondary)]">{platform}</span>)}</div>
+              </div>
+            )}
+          </section>
         )}
 
         <div className="max-w-xl">

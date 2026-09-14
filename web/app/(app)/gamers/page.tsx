@@ -12,12 +12,13 @@ export const metadata = {
 
 async function GamesContent() {
   const popular = await getGames("popular", 36);
-  const [mostPlayed, topRated, upcoming] = await Promise.all([
+  const [mostPlayed, topRated, upcoming, newReleases] = await Promise.all([
     getGames("most_played", 18),
     getGames("top_rated", 18),
     getGames("upcoming", 18),
+    getGames("new", 18),
   ]);
-  return <GamesBrowser initial={{ popular, mostPlayed, topRated, upcoming }} />;
+  return <GamesBrowser initial={{ popular, mostPlayed, topRated, upcoming, newReleases }} />;
 }
 
 export default function GamersPage() {

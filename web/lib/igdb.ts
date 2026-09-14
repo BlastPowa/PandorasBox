@@ -52,9 +52,11 @@ export interface GameCard {
   name: string;
   coverUrl: string | null;
   backdropUrl: string | null;
+  previewImages: string[];
   summary: string | null;
   rating: number | null;
   year: number | null;
+  releaseDate: string | null;
   platforms: string[];
   peakPlayers: number | null;
 }
@@ -73,14 +75,21 @@ interface RawCard {
 
 function mapCard(g: RawCard, peakPlayers: number | null = null): GameCard {
   const backdrop = g.artworks?.[0] ?? g.screenshots?.[0];
+  const previewImages = [...(g.artworks ?? []), ...(g.screenshots ?? [])]
+    .map((image) => igdbImage(image.image_id, "1080p"))
+    .filter((url, index, all) => all.indexOf(url) === index)
+    .slice(0, 5);
+  const releaseDate = g.first_release_date ? new Date(g.first_release_date * 1000) : null;
   return {
     id: g.id,
     name: g.name,
     coverUrl: g.cover ? igdbImage(g.cover.image_id, "cover_big") : null,
     backdropUrl: backdrop ? igdbImage(backdrop.image_id, "1080p") : null,
+    previewImages,
     summary: g.summary ?? null,
     rating: typeof g.rating === "number" ? Math.round(g.rating) / 10 : null,
-    year: g.first_release_date ? new Date(g.first_release_date * 1000).getUTCFullYear() : null,
+    year: releaseDate ? releaseDate.getUTCFullYear() : null,
+    releaseDate: releaseDate ? releaseDate.toISOString() : null,
     platforms: (g.platforms ?? []).map((platform) => platform.name),
     peakPlayers,
   };

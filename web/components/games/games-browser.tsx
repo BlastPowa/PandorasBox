@@ -9,7 +9,7 @@ import type { GameCard as GameCardData, GameSort } from "@/lib/igdb";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 import { GameCard } from "./game-card";
 import { PosterSkeleton } from "@/components/ui-fx/feedback";
-import { AmbientBackground } from "@/components/home/ambient-background";
+import { AmbientBackground, HERO_SLIDE_EVENT } from "@/components/home/ambient-background";
 import { cn } from "@/lib/utils";
 
 export interface GamesLandingData {
@@ -17,6 +17,7 @@ export interface GamesLandingData {
   mostPlayed: GameCardData[];
   topRated: GameCardData[];
   upcoming: GameCardData[];
+  newReleases: GameCardData[];
 }
 
 const TABS: { value: GameSort; label: string; icon: typeof Gamepad2 }[] = [
@@ -47,6 +48,7 @@ export function GamesBrowser({ initial }: { initial: GamesLandingData }) {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
   const [games, setGames] = useState(initial.popular);
+  const [pinnedSort, setPinnedSort] = useState<GameSort | null>(null);
   const [loading, setLoading] = useState(false);
   const hydrated = useRef(false);
 
@@ -81,7 +83,24 @@ export function GamesBrowser({ initial }: { initial: GamesLandingData }) {
   const hasFilters = Object.values(filters).some(Boolean);
   const showCuratedRows = !searching && !hasFilters;
   const resultLabel = searching ? `Results for “${debouncedQuery}”` : TABS.find((tab) => tab.value === sort)?.label ?? "Games";
-  const backdropSlides = useMemo(() => Array.from(new Set([...initial.upcoming, ...initial.popular].map((game) => game.backdropUrl).filter((url): url is string => Boolean(url)))).slice(0, 6), [initial.popular, initial.upcoming]);
+  const heroSlides = useMemo(() => {
+    const seen = new Set<number>();
+    return [...initial.upcoming, ...initial.popular]
+      .filter((game) => game.backdropUrl && !seen.has(game.id) && seen.add(game.id))
+      .slice(0, 6);
+  }, [initial.popular, initial.upcoming]);
+  const curatedRails = useMemo(() => {
+    const rows = [
+      { sort: "popular" as const, title: "Popular right now", eyebrow: "Trending", description: "Games drawing the most attention right now.", games: initial.popular.slice(0, 18) },
+      { sort: "most_played" as const, title: "Most played on Steam", eyebrow: "Live CCU", description: "Current Steam player counts, refreshed in small cached batches.", games: initial.mostPlayed },
+      { sort: "top_rated" as const, title: "Highest rated", eyebrow: "Critics & players", description: "Acclaimed games with enough ratings to keep the list useful.", games: initial.topRated },
+      { sort: "upcoming" as const, title: "Coming soon", eyebrow: "Upcoming", description: "Release dates, platforms and quick story previews before launch.", games: initial.upcoming },
+      { sort: "new" as const, title: "New releases", eyebrow: "Just landed", description: "Fresh releases worth checking out now.", games: initial.newReleases },
+    ];
+    if (!pinnedSort) return rows;
+    const selected = rows.find((row) => row.sort === pinnedSort);
+    return selected ? [selected, ...rows.filter((row) => row.sort !== pinnedSort)] : rows;
+  }, [initial.mostPlayed, initial.newReleases, initial.popular, initial.topRated, initial.upcoming, pinnedSort]);
 
   function applyFilters() {
     setFilters(draftFilters);
@@ -93,10 +112,20 @@ export function GamesBrowser({ initial }: { initial: GamesLandingData }) {
     setFilters(EMPTY_FILTERS);
   }
 
+  function selectSort(next: GameSort) {
+    if (pinnedSort === next) {
+      setPinnedSort(null);
+      setSort("popular");
+      return;
+    }
+    setPinnedSort(next);
+    setSort(next);
+  }
+
   return (
     <div className="space-y-8 pb-8">
-      <AmbientBackground imageUrl={backdropSlides[0] ?? null} imageUrls={backdropSlides} intervalMs={7200} />
-      <GamesHero popular={initial.popular} upcoming={initial.upcoming} />
+      <AmbientBackground imageUrl={heroSlides[0]?.backdropUrl ?? null} />
+      <GamesHero slides={heroSlides} />
 
       <section id="game-catalog" className="relative z-[2] space-y-5 rounded-[28px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_84%,transparent)] p-4 shadow-[0_18px_50px_rgba(15,23,42,.08)] backdrop-blur-md sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -117,7 +146,7 @@ export function GamesBrowser({ initial }: { initial: GamesLandingData }) {
           <div className="flex snap-x gap-2 overflow-x-auto px-1 pb-2 scrollbar-none" aria-label="Game sorting options">
             {TABS.map((tab) => {
               const Icon = tab.icon;
-              return <button key={tab.value} type="button" onClick={() => setSort(tab.value)} aria-pressed={sort === tab.value} className={cn("flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-full border px-4 text-xs font-bold transition", sort === tab.value ? "border-[rgb(var(--accent-rgb)/0.28)] bg-[rgb(var(--accent-rgb)/0.10)] text-[var(--accent)]" : "border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_82%,transparent)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]")}><Icon className="size-4" />{tab.label}</button>;
+              return <button key={tab.value} type="button" onClick={() => selectSort(tab.value)} aria-pressed={pinnedSort === tab.value} className={cn("flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-full border px-4 text-xs font-bold transition", pinnedSort === tab.value ? "border-[rgb(var(--accent-rgb)/0.28)] bg-[rgb(var(--accent-rgb)/0.10)] text-[var(--accent)] shadow-[0_10px_28px_rgb(var(--accent-rgb)/0.12)]" : "border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_82%,transparent)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]")}><Icon className="size-4" />{tab.label}</button>;
             })}
             <Dialog.Root open={filterOpen} onOpenChange={setFilterOpen}>
               <Dialog.Trigger asChild><button type="button" className={cn("flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-xs font-bold", hasFilters ? "border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.10)] text-[var(--accent)]" : "border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_82%,transparent)] text-[var(--text-secondary)]")}><SlidersHorizontal className="size-4" /> Filters{hasFilters ? " · On" : ""}</button></Dialog.Trigger>
@@ -136,9 +165,17 @@ export function GamesBrowser({ initial }: { initial: GamesLandingData }) {
 
       {showCuratedRows && (
         <div className="space-y-9">
-          <GameRail title="Most played on Steam" eyebrow="Live CCU" description="Current Steam player counts, refreshed in small cached batches." games={initial.mostPlayed} />
-          <GameRail title="Highest rated" eyebrow="Critics & players" description="Acclaimed games with enough ratings to keep the list useful." games={initial.topRated} />
-          <GameRail title="Coming soon" eyebrow="Upcoming" description="Games building momentum before release." games={initial.upcoming} />
+          {curatedRails.map((row) => (
+            <GameRail
+              key={row.sort}
+              title={row.title}
+              eyebrow={row.eyebrow}
+              description={row.description}
+              games={row.games}
+              upcoming={row.sort === "upcoming"}
+              highlighted={pinnedSort === row.sort}
+            />
+          ))}
         </div>
       )}
 
@@ -150,11 +187,7 @@ export function GamesBrowser({ initial }: { initial: GamesLandingData }) {
   );
 }
 
-function GamesHero({ popular, upcoming }: { popular: GameCardData[]; upcoming: GameCardData[] }) {
-  const slides = useMemo(() => {
-    const seen = new Set<number>();
-    return [...upcoming, ...popular].filter((game) => game.backdropUrl && !seen.has(game.id) && seen.add(game.id)).slice(0, 6);
-  }, [popular, upcoming]);
+function GamesHero({ slides }: { slides: GameCardData[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useReducedMotion();
@@ -163,26 +196,87 @@ function GamesHero({ popular, upcoming }: { popular: GameCardData[]; upcoming: G
     const timer = window.setInterval(() => setIndex((current) => (current + 1) % slides.length), 7000);
     return () => window.clearInterval(timer);
   }, [paused, reducedMotion, slides.length]);
-  if (slides.length === 0) return null;
   const active = slides[index];
+  useEffect(() => {
+    if (!active?.backdropUrl) return;
+    window.dispatchEvent(new CustomEvent<string | null>(HERO_SLIDE_EVENT, { detail: active.backdropUrl }));
+  }, [active?.backdropUrl]);
+  if (!active) return null;
   return <section onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)} className="relative isolate min-h-[500px] overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0_28px_80px_rgba(15,23,42,.10)] sm:min-h-[560px] lg:min-h-[620px]">
     <Image key={active.id} src={active.backdropUrl!} alt="" fill priority sizes="(max-width: 768px) 100vw, 1400px" className="object-cover object-center opacity-55 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700" />
-    <div className="absolute inset-0 bg-[var(--cinematic-scrim)] opacity-80" />
-    <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--bg-surface)_0%,transparent_88%),linear-gradient(0deg,var(--bg-surface)_0%,transparent_62%)] opacity-90" />
-    <div className="relative flex min-h-[500px] max-w-2xl flex-col justify-end p-5 pb-16 sm:min-h-[560px] sm:p-10 sm:pb-20 lg:min-h-[620px] lg:p-14 lg:pb-24">
-      <span className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-[rgb(var(--accent-rgb)/0.30)] bg-[rgb(var(--accent-rgb)/0.12)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent)] backdrop-blur-md"><Gamepad2 className="size-3.5" /> Featured game {String(index + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}</span>
-      <h1 className="max-w-[13ch] font-display text-4xl font-extrabold leading-[.95] tracking-[-.04em] text-[var(--text)] sm:text-6xl lg:text-7xl">{active.name}</h1>
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-semibold text-[var(--text-secondary)]">{active.rating !== null && <span className="inline-flex items-center gap-1"><Star className="size-4 fill-[var(--gold)] text-[var(--gold)]" />{active.rating.toFixed(1)}</span>}{active.year && <span>{active.year}</span>}{active.platforms.slice(0, 3).map((platform) => <span key={platform} className="rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_78%,transparent)] px-2 py-1 backdrop-blur-md">{platform}</span>)}</div>
-      {active.summary && <p className="mt-4 line-clamp-3 max-w-xl text-sm leading-6 text-[var(--text-secondary)] sm:text-base">{active.summary}</p>}
-      <div className="mt-6 flex flex-wrap gap-3"><Link href={`/game/${active.id}`} className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--accent)] px-6 text-sm font-extrabold text-white shadow-sm transition hover:bg-[var(--accent-hover)]">View details <ArrowRight className="size-4" /></Link><a href="#game-catalog" className="inline-flex min-h-12 items-center rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] px-6 text-sm font-bold text-[var(--text)] shadow-sm backdrop-blur-md">Explore games</a></div>
+    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,7,12,.58)_0%,rgba(5,7,12,.10)_58%,rgba(5,7,12,.28)_100%),linear-gradient(0deg,rgba(5,7,12,.72)_0%,transparent_64%)]" />
+    <div className="relative grid min-h-[500px] items-end gap-5 p-5 pb-16 sm:min-h-[560px] sm:p-10 sm:pb-20 lg:min-h-[620px] lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,.65fr)] lg:p-14 lg:pb-24">
+      <div className="max-w-2xl rounded-[28px] border border-white/16 bg-black/22 p-5 text-white shadow-[0_24px_70px_rgba(0,0,0,.22)] backdrop-blur-xl sm:p-7">
+        <span className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/18 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/80 backdrop-blur-md"><Gamepad2 className="size-3.5" /> Featured {String(index + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}</span>
+        <h1 className="max-w-[18ch] font-display text-3xl font-extrabold leading-[1] tracking-[-.035em] text-white sm:text-5xl">{active.name}</h1>
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-semibold text-white/75">{active.rating !== null && <span className="inline-flex items-center gap-1"><Star className="size-4 fill-[var(--gold)] text-[var(--gold)]" />{active.rating.toFixed(1)}</span>}{active.year && <span>{active.year}</span>}{active.platforms.slice(0, 3).map((platform) => <span key={platform} className="rounded-full border border-white/15 bg-white/10 px-2 py-1 backdrop-blur-md">{platform}</span>)}</div>
+        {active.summary && <p className="mt-4 line-clamp-3 max-w-xl text-sm leading-6 text-white/78 sm:text-base">{active.summary}</p>}
+        <div className="mt-6 flex flex-wrap gap-3"><Link href={`/game/${active.id}`} className="pb-uiverse-button inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--accent)] px-6 text-sm font-extrabold text-white shadow-sm transition hover:bg-[var(--accent-hover)]">View details <ArrowRight className="size-4" /></Link><a href="#game-catalog" className="pb-uiverse-button pb-uiverse-button--glass inline-flex min-h-12 items-center rounded-full border border-white/18 bg-white/10 px-6 text-sm font-bold text-white backdrop-blur-md">Explore games</a></div>
+      </div>
+      <div className="hidden rounded-[26px] border border-white/16 bg-black/18 p-3 shadow-[0_22px_65px_rgba(0,0,0,.20)] backdrop-blur-xl lg:block">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] border border-white/12">
+          <Image key={`preview-${active.id}`} src={active.backdropUrl!} alt="" fill sizes="420px" className="object-cover motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+          <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-3 text-white">
+            <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">Now showing</p><p className="mt-0.5 line-clamp-1 text-sm font-bold">{active.name}</p></div>
+            {active.coverUrl && <div className="relative aspect-[3/4] w-12 shrink-0 overflow-hidden rounded-lg border border-white/20"><Image src={active.coverUrl} alt="" fill sizes="48px" className="object-cover" /></div>}
+          </div>
+        </div>
+      </div>
     </div>
     <div className="absolute bottom-6 right-5 flex gap-1.5 sm:bottom-9 sm:right-10">{slides.map((game, slideIndex) => <button key={game.id} type="button" onClick={() => setIndex(slideIndex)} aria-label={`Show ${game.name}`} aria-current={slideIndex === index ? "true" : undefined} className={cn("relative h-1.5 overflow-hidden rounded-full bg-[var(--border-strong)] transition-[width]", slideIndex === index ? "w-12" : "w-3")}>{slideIndex === index && <span key={`${index}-${paused}`} className={cn("absolute inset-y-0 left-0 rounded-full bg-[var(--accent)]", reducedMotion || paused ? "w-full" : "pb-game-hero-progress")} />}</button>)}</div>
   </section>;
 }
 
-function GameRail({ title, eyebrow, description, games }: { title: string; eyebrow: string; description: string; games: GameCardData[] }) {
+function GameRail({ title, eyebrow, description, games, upcoming = false, highlighted = false }: { title: string; eyebrow: string; description: string; games: GameCardData[]; upcoming?: boolean; highlighted?: boolean }) {
   if (games.length === 0) return null;
-  return <section className="space-y-3"><div className="flex items-end justify-between gap-4"><div><span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{eyebrow}</span><h2 className="font-display text-xl font-extrabold sm:text-2xl">{title}</h2><p className="hidden text-xs text-[var(--text-muted)] sm:block">{description}</p></div><span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Swipe to explore</span></div><div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 scrollbar-none md:-mx-0 md:px-0">{games.map((game) => <GameCard key={game.id} game={game} className="w-[42vw] max-w-[190px] shrink-0 snap-start sm:w-[180px]" />)}</div></section>;
+  return <section className={cn("space-y-3 rounded-[26px] transition", highlighted && "border border-[rgb(var(--accent-rgb)/0.20)] bg-[rgb(var(--accent-rgb)/0.045)] p-4 shadow-[0_20px_55px_rgb(var(--accent-rgb)/0.08)] sm:p-5")}><div className="flex items-end justify-between gap-4"><div><span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{eyebrow}{highlighted ? " · Selected" : ""}</span><h2 className="font-display text-xl font-extrabold sm:text-2xl">{title}</h2><p className="hidden text-xs text-[var(--text-muted)] sm:block">{description}</p></div><span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Swipe to explore</span></div><div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 scrollbar-none md:-mx-0 md:px-0">{games.map((game) => upcoming ? <UpcomingGameCard key={game.id} game={game} /> : <GameCard key={game.id} game={game} className="w-[42vw] max-w-[190px] shrink-0 snap-start sm:w-[180px]" />)}</div></section>;
+}
+
+function UpcomingGameCard({ game }: { game: GameCardData }) {
+  const [hovered, setHovered] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
+  const reducedMotion = useReducedMotion();
+  const images = game.previewImages.length > 0 ? game.previewImages : [game.backdropUrl, game.coverUrl].filter((url): url is string => Boolean(url));
+
+  useEffect(() => {
+    if (!hovered || reducedMotion || images.length < 2) return;
+    const timer = window.setInterval(() => setImageIndex((current) => (current + 1) % images.length), 1800);
+    return () => window.clearInterval(timer);
+  }, [hovered, images.length, reducedMotion]);
+
+  const releaseLabel = game.releaseDate
+    ? new Intl.DateTimeFormat("en-IE", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(game.releaseDate))
+    : game.year?.toString() ?? "Release date TBA";
+
+  return (
+    <Link
+      href={`/game/${game.id}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setImageIndex(0); }}
+      onFocus={() => setHovered(true)}
+      onBlur={() => { setHovered(false); setImageIndex(0); }}
+      className="group relative w-[68vw] max-w-[330px] shrink-0 snap-start overflow-hidden rounded-[24px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] shadow-[0_18px_45px_rgba(15,23,42,.10)] backdrop-blur-xl sm:w-[300px]"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden">
+        {images[imageIndex] ? <Image key={`${game.id}-${imageIndex}`} src={images[imageIndex]} alt="" fill sizes="330px" className="object-cover transition duration-500 group-hover:scale-[1.03] motion-safe:animate-in motion-safe:fade-in" /> : <div className="size-full bg-[var(--bg-elevated)]" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-transparent" />
+        <div className="absolute inset-x-3 bottom-3 text-white">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/65">Coming soon · {releaseLabel}</p>
+          <h3 className="mt-1 line-clamp-2 text-base font-extrabold leading-tight">{game.name}</h3>
+        </div>
+      </div>
+      <div className={cn("grid transition-[grid-template-rows] duration-300", hovered ? "grid-rows-[1fr]" : "grid-rows-[0fr]") }>
+        <div className="overflow-hidden">
+          <div className="space-y-3 px-4 pb-4 pt-3">
+            {game.summary && <p className="line-clamp-3 text-xs leading-5 text-[var(--text-secondary)]">{game.summary}</p>}
+            {game.platforms.length > 0 && <div className="flex flex-wrap gap-1.5">{game.platforms.slice(0, 4).map((platform) => <span key={platform} className="rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-[9px] font-bold text-[var(--text-muted)]">{platform}</span>)}</div>}
+            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-[var(--accent)]">View more <ArrowRight className="size-3.5" /></span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
 }
 
 function GameFilterFields({ value, onChange }: { value: FilterState; onChange: (next: FilterState) => void }) {
