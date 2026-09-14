@@ -25,48 +25,63 @@ const RELEASES = [
   },
   {
     icon: Sparkles,
-    title: "Smoother cards and controls",
-    text: "Poster cards, buttons, progress panels and feature blocks now use softer glass surfaces, clearer depth and more responsive hover and press feedback.",
-  },
-  {
-    icon: ListChecks,
-    title: "Exact progress tracking",
-    text: "Keep the precise minute, episode, chapter or comic issue you reached so Continue can bring you back to the right point.",
+    title: "Recommendations that learn from your library",
+    text: "For You now separates Movies, TV, Anime and Manga, then uses your recent history, ratings and favourite genres to shape each rail.",
   },
   {
     icon: Library,
-    title: "One library for more media",
-    text: "Movies, TV, anime, manga, manhwa, comics and games can live together with status, ratings, progress and collections.",
-  },
-  {
-    icon: Compass,
-    title: "Discovery feels less cluttered",
-    text: "Browse, franchise pages, recommendations and Open the Box now share the same calmer visual system while keeping artwork at the centre.",
-  },
-  {
-    icon: CalendarDays,
-    title: "Release planning stays close",
-    text: "The Calendar keeps anime air times, movie releases, TV premieres and your tracked titles in one place.",
-  },
-  {
-    icon: Gamepad2,
-    title: "Games fit the same universe",
-    text: "Game browsing and game detail pages use the same cinematic structure, with ratings, trailers, Steam activity where available and tracking controls.",
-  },
-  {
-    icon: BookOpen,
-    title: "Comics have their own space",
-    text: "Comic discovery and detail pages are treated as first-class parts of PBox instead of being squeezed into movie or manga layouts.",
+    title: "A cleaner, artwork-led library",
+    text: "Library cards surface progress, rating and status more clearly while filters and controls stay easy to scan in both Light and Dark mode.",
   },
   {
     icon: Palette,
-    title: "More personal appearance",
-    text: "Light, Dark and Auto modes work with accent-colour choices so the interface can change without losing the artwork-led PBox atmosphere.",
+    title: "Collections look like collections",
+    text: "Collections can use an item poster as their cover, with the collection name drawn over the artwork so the shelf stays visual and compact.",
+  },
+  {
+    icon: Tv,
+    title: "Messages keep their personality",
+    text: "Chat backgrounds work again in Light mode, with message surfaces and custom backgrounds tuned so conversations do not collapse into a flat white page.",
+  },
+  {
+    icon: CalendarDays,
+    title: "A rebuilt release calendar",
+    text: "Anime, Movies and TV now have clearer schedule sections so dates, upcoming releases and tracked titles are easier to scan without mixing everything together.",
+  },
+  {
+    icon: Gamepad2,
+    title: "Games now match the PBox atmosphere",
+    text: "Game discovery uses synced artwork slideshows, glass feature cards, reorderable shelves and richer upcoming hover previews with date, platforms and story context.",
+  },
+  {
+    icon: Compass,
+    title: "Game detail pages go deeper",
+    text: "Game pages now give screenshots and artwork more room while keeping studio information, trailers, ratings and tracking controls in the same cinematic visual language.",
+  },
+  {
+    icon: BookOpen,
+    title: "Profile activity is easier to read",
+    text: "Recent activity is presented as a more visual timeline and showcases use larger artwork without changing the personal profile layout you already liked.",
+  },
+  {
+    icon: ListChecks,
+    title: "Extension tracking is faster and safer",
+    text: "Extension v1.1.0 saves on pause and visibility changes, reacts faster to single-page app navigation, retries transient writes and refreshes progress views live.",
+  },
+  {
+    icon: MoonStar,
+    title: "Light, Dark and Auto are consistent",
+    text: "The navigation theme control now sits beside Notifications and the shared glass/card system follows the selected theme on pages without artwork backgrounds.",
+  },
+  {
+    icon: Sparkles,
+    title: "Smoother cards and controls",
+    text: "Poster cards, buttons, progress panels and feature blocks use softer glass surfaces, clearer depth and more responsive hover and press feedback.",
   },
   {
     icon: Tv,
     title: "Tracking is the focus",
-    text: "The unfinished internal player and Watch Sync flow have been removed. PBox now focuses on storing, tracking, discovering and linking you to external providers.",
+    text: "The unfinished internal player, Watch Sync flow and legacy watch route are gone. PBox now focuses on storing, tracking, discovering and linking you to external providers.",
   },
 ];
 
@@ -74,7 +89,7 @@ const NEXT_UP = [
   "Optional progress reminders for titles that have gone quiet",
   "Richer activity history for episodes, chapters, issues and game sessions",
   "More cross-media recommendations that connect adaptations and franchises",
-  "Better collection covers and shareable collection presentation",
+  "Privacy-safe history imports from user-provided streaming-service exports where supported",
 ];
 
 export default function UpdatesPage() {

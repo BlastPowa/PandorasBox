@@ -10,7 +10,7 @@ Live at: https://pandoras-box-tau.vercel.app
 
 Most tracking apps only do one thing well — MyAnimeList is anime/manga-only, Letterboxd is movies-only, TV Time is TV-only. Pandora's Box combines all of it into a single library, with a dark, cinematic interface inspired by streaming platforms (Netflix/Disney+ style poster rows and hero carousels) blended with a MyAnimeList-style profile/stats system.
 
-Pandora's Box combines tracking with an optional in-site player for open, licensed, or owner-configured video sources. Titles can still link out to official providers and curated watch/read destinations when direct playback is unavailable.
+Pandora's Box is focused on universal tracking, discovery, recommendations, and exact progress. Title pages link out to official providers and curated watch/read destinations instead of trying to host playback inside the app.
 
 ## How it works
 
@@ -19,13 +19,13 @@ Pandora's Box combines tracking with an optional in-site player for open, licens
 3. **Add it to your library** with a status: Watching, Reading, Completed, On Hold, Dropped, or Planned.
 4. **Track progress** — mark episodes/chapters watched one at a time, in bulk, or undo a mistake. Progress feeds your Continue row, stats, and completion tracking.
 5. **Rate and rank** — a 1–5 star rating per title, plus separate personal Top-10-style ranking lists per category (movies, TV, anime, manga, manhwa) that you can freely reorder.
-6. **Watch or find where to watch/read** — when a verified compatible source exists, the PBox player can play it directly with mirror fallback and subtitles; otherwise the title page shows official providers and curated destinations.
+6. **Find where to continue** — title pages show official providers and curated watch/read destinations while PBox keeps your progress and library state separate from the streaming service.
 7. **Stay on top of releases** — a release calendar shows exact anime air times, real movie/TV release dates, and an "Upcoming" tab for titles announced months ahead; a "My List" filter narrows it to just what you track.
 
 ## Features
 
 **Discovery**
-- Home feed: continue-watching panel, hero carousel, trending/coming-soon/franchise rows
+- Home feed: continue-tracking panel, hero carousel, trending/coming-soon/franchise rows
 - Browse: curated rows for Marvel, DC, Disney, K-drama, western animation, and an "OG TV Shows" 2000s nostalgia row (Nickelodeon/Disney Channel/Disney XD)
 - Unified search across movies, TV, anime, and manga in one box
 - Command palette (⌘K / Ctrl+K) for instant search and navigation from anywhere
@@ -42,7 +42,6 @@ Pandora's Box combines tracking with an optional in-site player for open, licens
 - Full details, cast, trailers (YouTube), and — when configured — Rotten Tomatoes/IMDb/Metacritic scores
 - Live availability badges (new episode, now in HD, now streaming vs. theatrical)
 - Season/episode browsers with per-episode synopses (including for anime, via MyAnimeList data)
-- In-site HLS/DASH/direct player with source selection, automatic mirror fallback, subtitles, progress tracking, and completion updates when verified playback sources are available
 - Where-to-watch links (paid + free + admin-curated), with a fallback to the full sites directory
 
 **Account & access**
@@ -65,7 +64,7 @@ Pandora's Box combines tracking with an optional in-site player for open, licens
 | Styling | Tailwind CSS, Radix UI primitives |
 | Database & Auth | Supabase (Postgres, Row Level Security, Auth, Realtime, Storage) |
 | Hosting | Vercel |
-| Data sources | TMDB (movies/TV/cast/providers), AniList (anime/manga), MangaDex (manga chapters), Jikan/MyAnimeList (anime episode synopses), Wikimedia Commons / Internet Archive / PeerTube / NASA Video Library (open playback), optional configured playback feeds, OMDb (optional critic scores), Resend (optional contact-form email) |
+| Data sources | TMDB (movies/TV/cast/providers), AniList (anime/manga), MangaDex (manga chapters), Jikan/MyAnimeList (anime episode synopses), OMDb (optional critic scores), Resend (optional contact-form email) |
 | Styling language | CSS (via Tailwind), no separate stylesheets |
 | Config/scripting | SQL (Postgres migrations), Bash/shell scripting for tooling |
 
