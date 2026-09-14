@@ -8,7 +8,7 @@ export interface ThemeOption {
 }
 
 export const THEMES: ThemeOption[] = [
-  { id: "default", name: "Default", dot: "#a855f7", accent2: "#ec4899", gold: "#f5a524" },
+  { id: "default", name: "Pandora", dot: "#8b5cf6", accent2: "#ec4899", gold: "#f5a524" },
   { id: "blue", name: "Blue", dot: "#3b82f6", accent2: "#06b6d4", gold: "#60a5fa" },
   { id: "teal", name: "Teal", dot: "#14b8a6", accent2: "#22d3ee", gold: "#2dd4bf" },
   { id: "green", name: "Green", dot: "#22c55e", accent2: "#84cc16", gold: "#4ade80" },
@@ -17,6 +17,7 @@ export const THEMES: ThemeOption[] = [
 ];
 
 export const THEME_STORAGE_KEY = "pb_theme";
+export const APPEARANCE_MODE_KEY = "pb_appearance_mode";
 export const THEME_CHANGE_EVENT = "pbox:theme-change";
 
 /** Inline, pre-hydration script — applies the saved theme + density/motion
@@ -25,6 +26,11 @@ export const THEME_CHANGE_EVENT = "pbox:theme-change";
 export const THEME_INIT_SCRIPT = `
 (function () {
   try {
+    var mode = localStorage.getItem("${APPEARANCE_MODE_KEY}") || "system";
+    var resolvedMode = mode === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : mode;
+    document.documentElement.setAttribute("data-mode", resolvedMode);
     var t = localStorage.getItem("${THEME_STORAGE_KEY}");
     if (t && t !== "default") document.documentElement.setAttribute("data-theme", t);
     var palettes = ${JSON.stringify(Object.fromEntries(THEMES.map((theme) => [theme.id, [theme.dot, theme.accent2, theme.gold]])))};

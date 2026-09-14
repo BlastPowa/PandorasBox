@@ -3,12 +3,12 @@ import { getTypeLabel, getStatusLabel } from "@core/utils/formatters";
 import { cn } from "@/lib/utils";
 
 const TYPE_STYLES: Record<ReelItemType, string> = {
-  movie: "text-[#67e8f9] shadow-[inset_0_0_10px_rgba(34,211,238,0.18)]",
-  series: "text-[var(--accent)] shadow-[inset_0_0_10px_rgb(var(--accent-rgb)/0.2)]",
-  anime: "text-[var(--accent-2)] shadow-[inset_0_0_10px_rgb(var(--accent-2-rgb)/0.2)]",
-  manga: "text-[#6ee7b7] shadow-[inset_0_0_10px_rgba(52,211,153,0.18)]",
-  manhwa: "text-[var(--gold)] shadow-[inset_0_0_10px_rgb(var(--gold-rgb)/0.2)]",
-  comic: "text-[#fca5a5] shadow-[inset_0_0_10px_rgba(239,68,68,0.18)]",
+  movie: "text-[#0e7490] bg-cyan-50/90",
+  series: "text-[var(--accent)] bg-blue-50/90",
+  anime: "text-[#7c3aed] bg-violet-50/90",
+  manga: "text-[#047857] bg-emerald-50/90",
+  manhwa: "text-[#b45309] bg-amber-50/90",
+  comic: "text-[#be123c] bg-rose-50/90",
 };
 
 const STATUS_COLORS: Record<ReelItemStatus, string> = {
@@ -25,7 +25,7 @@ export function TypeBadge({ type, className }: { type: ReelItemType; className?:
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border border-current/45 bg-[rgba(5,7,12,0.88)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] shadow-[0_2px_10px_rgba(0,0,0,0.65)] backdrop-blur-md",
+        "inline-flex items-center rounded-full border border-current/35 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] shadow-sm backdrop-blur-md",
         TYPE_STYLES[type],
         className
       )}
@@ -63,7 +63,7 @@ export function Pill({
       className={cn(
         "shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
         active
-          ? "bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] text-[#0a0a0f]"
+          ? "bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] text-white"
           : "glass text-[var(--text-secondary)] hover:text-[var(--text)]",
         className
       )}

@@ -166,7 +166,7 @@ export function FriendsView() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold ${tab === t ? "bg-[var(--accent)] text-[#0a0a0f]" : "glass text-[var(--text-secondary)]"}`}
+            className={`min-h-10 rounded-full border px-4 py-1.5 text-sm font-semibold transition ${tab === t ? "border-transparent bg-[var(--accent)] text-[#0a0a0f] shadow-[0_10px_24px_rgb(var(--accent-rgb)/0.22)]" : "border-[var(--border)] bg-[var(--glass)] text-[var(--text-secondary)] hover:-translate-y-0.5 hover:border-[rgb(var(--accent-rgb)/0.35)]"}`}
           >
             {t === "friends" ? `Friends (${accepted.length})` : t === "requests" ? `Requests (${incoming.length})` : t === "messages" ? "Messages" : t === "shared" ? "Shared" : "Find people"}
           </button>
@@ -182,7 +182,7 @@ export function FriendsView() {
               const otherId = f.requester === myId ? f.addressee : f.requester;
               const p = profiles.get(otherId);
               return (
-                <div key={f.id} className="glass flex items-center gap-3 rounded-[var(--radius-lg)] p-3">
+                <div key={f.id} className="pb-uiverse-row flex items-center gap-3 rounded-[var(--radius-lg)] p-3">
                   <Avatar url={p?.avatar_url ?? null} />
                   <Link href={`/profile/${p?.username ?? ""}`} className="min-w-0 flex-1 font-semibold hover:text-[var(--accent)]">
                     {p?.username ?? "Unknown"}
@@ -204,12 +204,12 @@ export function FriendsView() {
             <EmptyState icon={<UserPlus className="size-10" />} title="No pending requests" description="" />
           )}
           {incoming.length > 0 && (
-            <GlassCard macDots title="Incoming">
+            <GlassCard macDots title="Incoming" className="pb-aura">
               <div className="space-y-2 p-3">
                 {incoming.map((f) => {
                   const p = profiles.get(f.requester);
                   return (
-                    <div key={f.id} className="flex items-center gap-3 rounded-[var(--radius-md)] p-2">
+                    <div key={f.id} className="pb-uiverse-row flex items-center gap-3 rounded-[var(--radius-md)] p-2">
                       <Avatar url={p?.avatar_url ?? null} />
                       <span className="min-w-0 flex-1 font-semibold">{p?.username ?? "Unknown"}</span>
                       <button onClick={() => void respond(f.id, true)} className="rounded-md p-1.5 text-[var(--completed)] hover:bg-[var(--glass)]"><Check className="size-4" /></button>
@@ -221,12 +221,12 @@ export function FriendsView() {
             </GlassCard>
           )}
           {outgoing.length > 0 && (
-            <GlassCard macDots title="Sent">
+            <GlassCard macDots title="Sent" className="pb-aura">
               <div className="space-y-2 p-3">
                 {outgoing.map((f) => {
                   const p = profiles.get(f.addressee);
                   return (
-                    <div key={f.id} className="flex items-center gap-3 rounded-[var(--radius-md)] p-2">
+                    <div key={f.id} className="pb-uiverse-row flex items-center gap-3 rounded-[var(--radius-md)] p-2">
                       <Avatar url={p?.avatar_url ?? null} />
                       <span className="min-w-0 flex-1 text-[var(--text-secondary)]">{p?.username ?? "Unknown"}</span>
                       <span className="text-xs text-[var(--text-muted)]">Pending</span>
@@ -249,7 +249,7 @@ export function FriendsView() {
             {results.map((p) => {
               const status = statusWith(p.id);
               return (
-                <div key={p.id} className="glass flex items-center gap-3 rounded-[var(--radius-md)] p-2.5">
+                <div key={p.id} className="pb-uiverse-row flex items-center gap-3 rounded-[var(--radius-md)] p-2.5">
                   <Avatar url={p.avatar_url} />
                   <Link href={`/profile/${p.username ?? ""}`} className="min-w-0 flex-1 font-semibold hover:text-[var(--accent)]">
                     {p.username}

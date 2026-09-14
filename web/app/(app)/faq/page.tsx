@@ -2,10 +2,9 @@ import { HelpCircle, MessageCircleQuestion } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { FaqAccordion, type FaqEntry } from "@/components/faq/faq-accordion";
 import { ContactForm } from "@/components/faq/contact-form";
+import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
 
 export const metadata = { title: "FAQ & Help · PBox" };
-
-const WATCH_SYNC_RELEASE_URL = "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-watch-sync.zip";
 
 const ENTRIES: FaqEntry[] = [
   {
@@ -52,82 +51,13 @@ const ENTRIES: FaqEntry[] = [
     ),
   },
   {
-    question: "How do I set up PBox Watch Sync?",
-    answer: (
-      <div className="space-y-3">
-        <p>
-          PBox Watch Sync tracks movie and episode progress from Cinejoy, CinemaOS, Netflix, Prime Video and compatible
-          long-form HTML5 players. You do not need to connect your streaming-service account or use Trakt VIP.
-        </p>
-        <ol className="list-decimal space-y-1 pl-5">
-          <li>
-            <a className="text-[var(--accent)] underline underline-offset-2" href={WATCH_SYNC_RELEASE_URL}>
-              Download the latest PBox Watch Sync ZIP
-            </a>{" "}
-            and extract it to a permanent folder.
-          </li>
-          <li>Open <span className="text-[var(--text)]">chrome://extensions</span> in Chrome or a Chromium browser.</li>
-          <li>
-            Turn on <span className="text-[var(--text)]">Developer mode</span>, click{" "}
-            <span className="text-[var(--text)]">Load unpacked</span>, then choose the extracted folder containing{" "}
-            <span className="text-[var(--text)]">manifest.json</span>.
-          </li>
-          <li>Sign in to PBox in the same browser. Settings → Integrations should show <span className="text-[var(--text)]">PBox Watch Sync · Active</span>.</li>
-          <li>Watch normally. PBox receives live percentage progress and marks a movie or episode complete when playback reaches the completion threshold.</li>
-        </ol>
-        <p>
-          Cinejoy has an extra list bridge because its URLs expose exact TMDB IDs. Use{" "}
-          <span className="text-[var(--text)]">Sync PBox list to Cinejoy</span> if you want your PBox movie/show list copied there.
-          CinemaOS, Netflix, Prime Video and other supported sites only need the extension for watch-progress updates.
-        </p>
-      </div>
-    ),
-  },
-  {
-    question: "How do I update PBox Watch Sync?",
-    answer: (
-      <div className="space-y-3">
-        <p>
-          PBox checks the latest free GitHub release automatically. If Settings → Integrations shows{" "}
-          <span className="text-[var(--text)]">Update available</span>, follow these steps:
-        </p>
-        <ol className="list-decimal space-y-1 pl-5">
-          <li>
-            <a className="text-[var(--accent)] underline underline-offset-2" href={WATCH_SYNC_RELEASE_URL}>
-              Download the latest PBox Watch Sync ZIP
-            </a>.
-          </li>
-          <li>Extract the new ZIP.</li>
-          <li>Replace the files inside the folder you originally loaded as the extension with the new extracted files.</li>
-          <li>Open <span className="text-[var(--text)]">chrome://extensions</span>.</li>
-          <li>Find <span className="text-[var(--text)]">PBox Watch Sync</span> and click <span className="text-[var(--text)]">Reload</span>.</li>
-          <li>Return to PBox Settings → Integrations and confirm the extension shows <span className="text-[var(--text)]">Active</span> with the new version.</li>
-        </ol>
-        <p>
-          You do not need to remove and reinstall the extension each time. Because it is installed as an unpacked extension,
-          Chrome cannot silently update it in the background.
-        </p>
-      </div>
-    ),
-  },
-  {
-    question: "Which streaming sites can PBox Watch Sync track?",
-    answer: (
-      <p>
-        Cinejoy, CinemaOS, Netflix and Prime Video have targeted detection. The extension also watches compatible long-form HTML5
-        video players on other sites. Site layouts and DRM players can change, so PBox only writes progress when the title
-        and, for shows, the season and episode can be identified confidently. Ambiguous playback is ignored.
-      </p>
-    ),
-  },
-  {
     question: "What is the \"Continue\" section on Home for?",
     answer: (
       <p>
         It&apos;s a shortcut back to everything you&apos;ve set to <span className="text-[var(--text)]">Watching</span> or{" "}
         <span className="text-[var(--text)]">Reading</span>, sorted so titles you&apos;ve already started come first.
-        Progress can be updated manually in PBox, and supported streaming playback can be tracked automatically when
-        PBox Watch Sync is installed from <span className="text-[var(--text)]">Settings → Integrations</span>.
+        Update your exact minute, episode, chapter or issue in PBox and the Continue row keeps the titles you are actively
+        following close at hand.
       </p>
     ),
   },
@@ -152,12 +82,12 @@ const ENTRIES: FaqEntry[] = [
     ),
   },
   {
-    question: "The site I want to watch/read on isn't listed — what do I do?",
+    question: "The provider I use isn't listed — what do I do?",
     answer: (
       <p>
-        Every title page has a <span className="text-[var(--text)]">&quot;Can&apos;t find it? Browse all sites&quot;</span> button
-        under Where to Watch, which opens the full curated Sites directory. If it&apos;s still missing, send a note
-        using the contact box below and an admin can add it.
+        Title pages link to available external providers when that information exists. You can also open the full{" "}
+        <span className="text-[var(--text)]">Providers</span> directory from the More menu. If a useful provider is missing,
+        send a note using the contact box below and it can be reviewed for the directory.
       </p>
     ),
   },
@@ -249,16 +179,17 @@ const ENTRIES: FaqEntry[] = [
 
 export default function FaqPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 md:px-8">
-      <div className="mb-1 flex items-center gap-2">
-        <HelpCircle className="size-6 text-[var(--accent)]" />
-        <h1 className="font-display text-2xl font-bold">FAQ &amp; Help</h1>
-      </div>
-      <p className="mb-6 text-sm text-[var(--text-secondary)]">
-        Common questions about tracking, importing lists, and how everything fits together.
-      </p>
+    <div className="mx-auto max-w-4xl px-4 py-6 md:px-8">
+      <DiscoveryPageHeader
+        eyebrow="Need a hand?"
+        title="FAQ & Help"
+        description="Quick answers for tracking progress, moving your library, finding providers and getting the most out of Pandora’s Box."
+        actions={<div className="hidden size-12 place-items-center rounded-2xl bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--accent)] sm:grid"><HelpCircle className="size-6" /></div>}
+      />
 
-      <FaqAccordion entries={ENTRIES} />
+      <div className="mt-6">
+        <FaqAccordion entries={ENTRIES} />
+      </div>
 
       <div className="mt-8">
         <GlassCard macDots title="Still stuck? Contact an admin">

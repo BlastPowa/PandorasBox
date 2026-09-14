@@ -17,7 +17,6 @@ import { UsernameEditor } from "@/components/settings/username-editor";
 import { ImportReviewWorkspace } from "@/components/settings/import-review-workspace";
 import { IntegrationsSection } from "@/components/settings/integrations-section";
 import { AppearanceSection } from "@/components/settings/appearance-section";
-import { PlayerSettingsSection } from "@/components/settings/player-settings-section";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { InstallPBoxControl } from "@/components/pwa/install-manager";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
@@ -364,7 +363,6 @@ export function SettingsView({
             </GlassCard>
           ),
           appearance: <AppearanceSection />,
-          player: <PlayerSettingsSection />,
           integrations: <IntegrationsSection signedIn={signedIn} />,
           import: (
             <>

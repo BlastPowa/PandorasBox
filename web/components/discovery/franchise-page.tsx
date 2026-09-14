@@ -34,7 +34,7 @@ export function FranchisePage({ franchise, items }: { franchise: FranchiseDef; i
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
       <BackButton fallbackHref="/browse" label="Browse" className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]" />
-      <DiscoveryPageHeader eyebrow="PBox Franchise" title={franchise.name} description={franchise.description} actions={signedIn && items.length > 0 ? <BulkAddToCollection items={items.map(toCollectionItem)} /> : <Sparkles className="hidden size-6 text-[var(--gold)] sm:block" />} />
+      <DiscoveryPageHeader eyebrow="Franchise" title={franchise.name} description={franchise.description} actions={signedIn && items.length > 0 ? <BulkAddToCollection items={items.map(toCollectionItem)} /> : <Sparkles className="hidden size-6 text-[var(--gold)] sm:block" />} />
 
       <div className="mt-6">
         {franchise.slug === "dystopian" && <div className="mb-5 flex gap-2">{(["all", "movie", "series"] as const).map((value) => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-full border px-4 py-2 text-xs font-bold capitalize ${filter === value ? "border-[var(--accent)] bg-[var(--accent)] text-[#08090d]" : "border-[var(--border)] bg-[var(--glass)]"}`}>{value === "all" ? "All in release order" : value === "movie" ? "Movies" : "TV Shows"}</button>)}</div>}

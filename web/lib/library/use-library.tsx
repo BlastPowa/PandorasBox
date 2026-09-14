@@ -42,12 +42,6 @@ export function LibraryProvider({
   const managerRef = useRef<ListManager | null>(null);
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
 
-  if (userId && !managerRef.current) {
-    const supabase = createClient();
-    supabaseRef.current = supabase;
-    managerRef.current = new ListManager(new SupabaseLibraryAdapter(supabase, userId));
-  }
-
   const refresh = useCallback(async () => {
     if (!managerRef.current) return;
     try {
@@ -63,12 +57,20 @@ export function LibraryProvider({
 
   useEffect(() => {
     if (!userId) {
-      setLoading(false);
+      managerRef.current = null;
+      supabaseRef.current = null;
+      queueMicrotask(() => setLoading(false));
       return;
     }
-    void refresh();
-    const supabase = supabaseRef.current;
-    if (!supabase) return;
+    const supabase = createClient();
+    supabaseRef.current = supabase;
+    managerRef.current = new ListManager(new SupabaseLibraryAdapter(supabase, userId));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setLoading(true);
+      void refresh();
+    });
     const channel = supabase
       .channel("library-sync")
       .on(
@@ -78,6 +80,9 @@ export function LibraryProvider({
       )
       .subscribe();
     return () => {
+      active = false;
+      managerRef.current = null;
+      supabaseRef.current = null;
       void supabase.removeChannel(channel);
     };
   }, [userId, refresh]);

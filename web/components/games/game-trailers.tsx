@@ -20,6 +20,8 @@ export function GameTrailers({ videos, title }: { videos: GameVideo[]; title: st
             onClick={() => setActive(v)}
             className="group relative aspect-video w-56 shrink-0 snap-start overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)]"
           >
+            {/* YouTube thumbnail hosts are external and vary by video; keep the direct image URL here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg`}
               alt={v.name}

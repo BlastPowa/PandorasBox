@@ -8,6 +8,18 @@ import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import type { MemorySearchResult } from "@/app/api/memory-search/route";
 
+function memoryResultHref(result: MemorySearchResult) {
+  const separator = result.id.indexOf("-");
+  const source = separator > 0 ? result.id.slice(0, separator).toLowerCase() : "";
+  const sourceId = separator > 0 ? result.id.slice(separator + 1) : "";
+  if (!sourceId) return `/search?q=${encodeURIComponent(result.title)}`;
+  if (result.type === "comic" && source === "comicvine") return `/comic/${encodeURIComponent(sourceId)}`;
+  if (["tmdb", "anilist", "mangadex"].includes(source) && ["movie", "series", "anime", "manga", "manhwa"].includes(result.type)) {
+    return `/title/${result.type}/${source}/${encodeURIComponent(sourceId)}`;
+  }
+  return `/search?q=${encodeURIComponent(result.title)}`;
+}
+
 /** Client-side throttle between searches — the shared free Gemini quota is
  * only ~20 requests/day for the whole app, so this exists purely to stop a
  * single person from rapid-fire clicking through that budget in seconds. */
@@ -87,8 +99,8 @@ export function MemorySearchPanel() {
 
       <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
         <Sparkles className="size-3 shrink-0" />
-        This uses a free-tier AI search with a limited number of lookups per day — if it's temporarily
-        unavailable, you'll still get results from our own index.
+        This uses a free-tier AI search with a limited number of lookups per day — if it’s temporarily
+        unavailable, you’ll still get results from our own index.
       </p>
 
       {notice && <p className="text-sm text-[var(--text-muted)]">{notice}</p>}
@@ -98,8 +110,8 @@ export function MemorySearchPanel() {
           {results.map((r) => (
             <Link
               key={r.id}
-              href={`/title/${r.type}/${r.id.split("-")[0]}/${r.id.split("-").slice(1).join("-")}`}
-              className="glass flex items-center gap-3 rounded-[var(--radius-md)] p-2.5 hover:border-[var(--accent)]"
+              href={memoryResultHref(r)}
+              className="pb-uiverse-row flex items-center gap-3 rounded-[var(--radius-md)] p-2.5"
             >
               <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-[6px] bg-[var(--bg-surface)]">
                 {r.posterUrl && <Image src={r.posterUrl} alt="" fill sizes="44px" className="object-cover" />}

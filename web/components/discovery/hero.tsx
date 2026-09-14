@@ -7,6 +7,7 @@ import { TypeBadge } from "@/components/ui-fx/badge";
 import { Sparkles, Star, Calendar } from "lucide-react";
 import { HERO_SLIDE_EVENT } from "@/components/home/ambient-background";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
+import { mediaItemHref } from "@/lib/library/item-href";
 import { HomeHeroActions } from "./home-hero-actions";
 
 export function Hero({ items }: { items: UnifiedSearchResult[] }) {
@@ -40,7 +41,7 @@ export function Hero({ items }: { items: UnifiedSearchResult[] }) {
 
   if (slides.length === 0) return null;
   const active = activeSlide;
-  const href = `/title/${active.type}/${active.source}/${active.anilistId ?? active.tmdbId ?? active.id}`;
+  const href = mediaItemHref(active);
 
   return (
     <section

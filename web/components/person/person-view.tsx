@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Cake, MapPin, Link2, Film } from "lucide-react";
 import type { PersonDetail, PersonCredit } from "@/lib/person";
-import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Pill, TypeBadge } from "@/components/ui-fx/badge";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { ExpandableText } from "@/components/detail/expandable-text";
@@ -68,21 +67,35 @@ export function PersonView({ person }: { person: PersonDetail }) {
   const yrs = age(person.birthday, person.deathday);
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-6 md:px-8">
-      <BackButton />
-      <div className="grid gap-6 md:grid-cols-[220px_1fr]">
-        <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-[var(--radius-lg)] bg-[var(--bg-elevated)] md:mx-0 md:w-full">
-          {person.photoUrl ? (
-            <Image src={person.photoUrl} alt={person.name} fill sizes="220px" className="object-cover" />
-          ) : (
-            <div className="grid size-full place-items-center font-display text-4xl font-bold text-[var(--text-muted)]">
-              {person.name.charAt(0)}
-            </div>
-          )}
-        </div>
+    <div className="pb-14">
+      <section className="relative overflow-hidden border-b border-[var(--border)]">
+        {person.photoUrl ? (
+          <>
+            <Image src={person.photoUrl} alt="" fill priority sizes="100vw" className="scale-125 object-cover object-[center_28%] opacity-35 blur-3xl saturate-[.9]" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_72%,transparent)_42%,rgba(8,8,12,.2)_100%)]" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_24%,rgb(var(--accent-rgb)/0.22),transparent_40%),linear-gradient(145deg,var(--bg-elevated),var(--bg-base))]" />
+        )}
 
-        <div className="min-w-0 space-y-3">
-          <h1 className="font-display text-2xl font-bold md:text-3xl">{person.name}</h1>
+        <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-9 pt-5 md:px-8 lg:pb-12">
+          <BackButton className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1.5 text-sm font-semibold text-[var(--text-secondary)] shadow-sm backdrop-blur-md transition hover:bg-[var(--glass-strong)] hover:text-[var(--text)]" />
+          <div className="mt-8 grid gap-6 md:grid-cols-[220px_1fr] md:items-end lg:mt-12">
+            <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-[22px] border border-white/20 bg-[var(--bg-elevated)] shadow-[0_26px_70px_rgba(0,0,0,.25)] md:mx-0 md:w-full">
+              {person.photoUrl ? (
+                <Image src={person.photoUrl} alt={person.name} fill sizes="220px" className="object-cover" />
+              ) : (
+                <div className="grid size-full place-items-center font-display text-5xl font-bold text-[var(--text-muted)]">
+                  {person.name.charAt(0)}
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 max-w-4xl space-y-4 pb-1">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Cast & creator</p>
+                <h1 className="font-display text-4xl font-extrabold leading-[.96] tracking-tight sm:text-6xl">{person.name}</h1>
+              </div>
           <div className="flex flex-wrap gap-2 text-xs text-[var(--text-secondary)]">
             {person.knownForDepartment && <Pill active>{person.knownForDepartment}</Pill>}
             {person.birthday && (
@@ -144,11 +157,20 @@ export function PersonView({ person }: { person: PersonDetail }) {
               Also known as: {person.alsoKnownAs.slice(0, 5).join(", ")}
             </p>
           )}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <GlassCard macDots title={`Filmography (${person.credits.length})`}>
-        <div className="space-y-4 p-4">
+      <div className="mx-auto mt-8 max-w-[1400px] px-4 md:px-8">
+        <section className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-surface)] p-4 shadow-[0_18px_55px_rgba(15,23,42,.06)] sm:p-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Across film & television</p>
+              <h2 className="mt-1 font-display text-2xl font-bold">Filmography <span className="text-[var(--text-muted)]">({person.credits.length})</span></h2>
+            </div>
+          </div>
+          <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
               {departments.map((d) => (
@@ -184,7 +206,8 @@ export function PersonView({ person }: { person: PersonDetail }) {
             <CreditGrid credits={filtered} />
           )}
         </div>
-      </GlassCard>
+        </section>
+      </div>
     </div>
   );
 }

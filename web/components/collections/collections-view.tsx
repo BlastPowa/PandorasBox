@@ -44,8 +44,19 @@ export function CollectionsView() {
   }
 
   useEffect(() => {
-    if (signedIn) void load();
-    else setLoading(false);
+    if (!signedIn) return;
+    let cancelled = false;
+    void listCollections()
+      .then((nextCollections) => {
+        if (!cancelled) setCollections(nextCollections);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : "Failed to load collections");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [signedIn]);
 
   async function onCreate(e: React.FormEvent) {
@@ -79,7 +90,7 @@ export function CollectionsView() {
 
   return (
     <div className="space-y-6">
-      <GlassCard macDots title="New collection">
+      <GlassCard macDots title="New collection" className="pb-aura">
         <form onSubmit={onCreate} className="space-y-3 p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <Input placeholder="Name (e.g. Weekend Binge)" value={name} onChange={(e) => setName(e.target.value)} />
@@ -111,7 +122,7 @@ export function CollectionsView() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {collections.map((c) => (
-            <div key={c.id} className="glass glow-ring group relative rounded-[var(--radius-lg)] p-4">
+            <div key={c.id} className="pb-uiverse-card pb-uiverse-card--feature group relative rounded-[var(--radius-lg)] p-4">
               <Link href={`/collections/${c.id}`} className="block">
                 <div className="flex items-center gap-2">
                   <VisibilityIcon visibility={c.visibility} />

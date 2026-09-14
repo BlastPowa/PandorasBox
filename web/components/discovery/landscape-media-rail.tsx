@@ -2,39 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Play, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useRef } from "react";
 import type { UnifiedSearchResult } from "@core/utils/search";
-import { pboxWatchHref } from "@/lib/playback/watch-route";
-
-function itemHref(item: UnifiedSearchResult) {
-  return item.type === "comic"
-    ? `/comic/${item.id.replace("comicvine-", "")}`
-    : `/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId ?? item.id}`;
-}
+import { mediaItemHref } from "@/lib/library/item-href";
 
 export function LandscapeMediaCard({ item }: { item: UnifiedSearchResult }) {
   const image = item.backdropUrl ?? item.posterUrl;
-  const watchHref = pboxWatchHref(item);
   return (
     <div className="group relative aspect-[16/9] w-[250px] shrink-0 snap-start overflow-hidden rounded-[var(--radius-lg)] border border-[var(--media-border)] bg-[var(--bg-surface)] shadow-xl sm:w-[290px]">
-      <Link href={itemHref(item)} aria-label={`View details for ${item.title}`} className="block size-full">
+      <Link href={mediaItemHref(item)} aria-label={`View details for ${item.title}`} className="block size-full">
         {image ? <Image src={image} alt={item.title} fill sizes="290px" className={`transition duration-500 group-hover:scale-105 ${item.backdropUrl ? "object-cover" : "object-cover object-top"}`} /> : <div className="grid size-full place-items-center bg-[linear-gradient(145deg,rgb(var(--accent-rgb)/0.28),var(--bg-elevated))] font-display text-4xl font-bold text-[var(--text-muted)]">{item.title.charAt(0)}</div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-3 pr-24">
+        <div className="absolute inset-x-0 bottom-0 p-3">
           <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-white/60"><span>{item.type}</span>{item.score !== null && <span className="inline-flex items-center gap-1 text-[var(--gold)]"><Star className="size-3 fill-current" />{item.score.toFixed(1)}</span>}</div>
           <h3 className="truncate text-sm font-bold text-white">{item.title}</h3>
         </div>
       </Link>
-      {watchHref && (
-        <Link
-          href={watchHref}
-          aria-label={`Watch ${item.title} on Pandora's Box`}
-          className="absolute bottom-3 right-3 z-20 inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3 text-xs font-black text-black shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-        >
-          <Play className="size-3.5 fill-current" /> Watch
-        </Link>
-      )}
     </div>
   );
 }

@@ -1,24 +1,14 @@
 import { Suspense } from "react";
 import {
-  getTrendingAnime,
   getPopularAnime,
+  getTrendingAnime,
   getTrendingManga,
   getTrendingMovies,
   getTrendingSeries,
 } from "@/lib/discovery";
 import { getUpcomingAnime, getUpcomingMovies, type ScheduleEntry } from "@/lib/schedule";
 import type { UnifiedSearchResult } from "@core/utils/search";
-import { Hero } from "@/components/discovery/hero";
-import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
-import { MyPanel } from "@/components/home/my-panel";
-import { FriendsActivity } from "@/components/home/friends-activity";
-import { AnnouncementsBar } from "@/components/home/announcements-bar";
-import { AmbientBackground } from "@/components/home/ambient-background";
-import { LandscapeMediaRail } from "@/components/discovery/landscape-media-rail";
-import { getGames } from "@/lib/igdb";
-import { GameRow } from "@/components/games/game-row";
-import { ForYouRow } from "@/components/home/for-you-row";
-import { NextUpRow } from "@/components/home/next-up-row";
+import { HomeDashboard } from "@/components/home/home-dashboard";
 
 export const revalidate = 1800;
 
@@ -43,81 +33,56 @@ function scheduleToResult(e: ScheduleEntry): UnifiedSearchResult {
 }
 
 async function HomeContent() {
-  const [anime, popular, manga, movies, series, games, upAnime, upMovies] = await Promise.all([
+  const [anime, popular, manga, movies, series, upAnime, upMovies] = await Promise.all([
     getTrendingAnime(),
     getPopularAnime(),
     getTrendingManga(),
     getTrendingMovies(),
     getTrendingSeries(),
-    getGames("popular", 18),
     getUpcomingAnime(),
-    getUpcomingMovies("US"),
+    getUpcomingMovies("IE"),
   ]);
 
-  // The hero is the page's full-bleed background, so only titles with wide
-  // 16:9 artwork qualify. TMDB movies/series lead (near-universal backdrops);
-  // anime fills in when it has a banner.
-  const heroPool = [
-    ...movies.slice(0, 3),
-    ...series.slice(0, 1),
-    ...anime.slice(0, 3),
-  ].filter((i) => i.backdropUrl);
-  const comingSoon = [...upMovies.slice(0, 10), ...upAnime.slice(0, 10)]
+  const upcoming = [...upMovies.slice(0, 8), ...upAnime.slice(0, 8)]
     .sort((a, b) => a.timestamp - b.timestamp)
     .map(scheduleToResult);
 
-  const heroItems = heroPool.length > 0 ? heroPool : anime.filter((i) => i.backdropUrl);
-  const spotlightShelf = [...movies.slice(0, 4), ...series.slice(0, 3), ...anime.filter((item) => item.backdropUrl).slice(0, 3)];
+  const trending = [
+    ...movies.slice(0, 3),
+    ...series.slice(0, 2),
+    ...anime.slice(0, 3),
+    ...manga.slice(0, 2),
+    ...popular.slice(0, 2),
+  ];
 
+  return <HomeDashboard trending={trending} upcoming={upcoming} generatedAt={getGeneratedAt()} />;
+}
+
+function getGeneratedAt(): number {
+  return Date.now();
+}
+
+function HomeSkeleton() {
   return (
     <div className="space-y-8">
-      <AmbientBackground imageUrl={heroItems[0]?.backdropUrl ?? null} />
-      <AnnouncementsBar />
-      <Hero items={heroItems} />
-      <div className="relative z-10 -mt-28 sm:-mt-36">
-        <LandscapeMediaRail title="Trending on PBox" items={spotlightShelf} />
+      <div className="skeleton h-[360px] w-full rounded-[28px]" />
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="skeleton h-40 rounded-2xl" />
+        <div className="skeleton h-40 rounded-2xl" />
+        <div className="skeleton h-40 rounded-2xl" />
       </div>
-      <PosterRow
-        title="Trending Anime"
-        subtitle="What everyone's watching right now"
-        items={anime}
-        viewAllHref="/browse/trending-anime"
-      />
-      <NextUpRow />
-      <ForYouRow />
-      <MyPanel />
-      <FriendsActivity />
-      {comingSoon.length > 0 && (
-        <PosterRow title="Coming Soon" subtitle="Announced & upcoming releases" items={comingSoon} />
-      )}
-      {movies.length > 0 && <PosterRow title="Trending Movies" items={movies} viewAllHref="/browse/trending-movies" />}
-      <GameRow games={games} />
-      {series.length > 0 && <PosterRow title="Trending Series" items={series} viewAllHref="/browse/trending-series" />}
-      <PosterRow title="Popular Anime" subtitle="All-time favourites" items={popular} viewAllHref="/browse/popular-anime" />
-      <PosterRow title="Trending Manga" items={manga} viewAllHref="/browse/trending-manga" />
-      {movies.length === 0 && (
-        <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--glass)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-          Add a free <span className="text-[var(--accent)]">TMDB_API_KEY</span> in{" "}
-          <code className="font-mono text-xs">web/.env.local</code> to unlock movie &amp; series rows.
-        </p>
-      )}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="skeleton h-72 rounded-[24px]" />
+        <div className="skeleton h-72 rounded-[24px]" />
+      </div>
     </div>
   );
 }
 
 export default function HomePage() {
   return (
-    <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
-      <Suspense
-        fallback={
-          <div className="space-y-8">
-            <div className="skeleton h-[340px] w-full rounded-[var(--radius-xl)]" />
-            <PosterRowSkeleton title="Trending Anime" />
-            <PosterRowSkeleton title="Trending Movies" />
-            <PosterRowSkeleton title="Trending Games" />
-          </div>
-        }
-      >
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+      <Suspense fallback={<HomeSkeleton />}>
         <HomeContent />
       </Suspense>
     </div>

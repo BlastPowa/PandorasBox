@@ -1,12 +1,17 @@
 import type { ReelItem } from "@core/storage/schema";
 
+type MediaHrefCandidate = Pick<
+  ReelItem,
+  "id" | "source" | "type" | "title" | "anilistId" | "tmdbId" | "mangadexId" | "malId"
+>;
+
 function numericId(value: number | null | undefined, fallback: string, prefix: string) {
   if (value !== null && value !== undefined && Number.isFinite(value)) return String(value);
   const match = fallback.match(new RegExp(`^${prefix}-(\\d+)$`, "i"));
   return match?.[1] ?? null;
 }
 
-export function libraryItemHref(item: ReelItem): string {
+export function mediaItemHref(item: MediaHrefCandidate): string {
   if (item.type === "comic") {
     const id = numericId(null, item.id, "comicvine");
     return id ? `/comic/${id}` : `/search?q=${encodeURIComponent(item.title)}`;
@@ -30,4 +35,8 @@ export function libraryItemHref(item: ReelItem): string {
   }
 
   return `/search?q=${encodeURIComponent(item.title)}`;
+}
+
+export function libraryItemHref(item: ReelItem): string {
+  return mediaItemHref(item);
 }

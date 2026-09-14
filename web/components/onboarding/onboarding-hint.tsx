@@ -19,7 +19,7 @@ export function OnboardingHint() {
   useEffect(() => {
     try {
       if (!window.localStorage.getItem(STORAGE_KEY)) {
-        setVisible(true);
+        queueMicrotask(() => setVisible(true));
       }
     } catch {
       // localStorage unavailable (private mode etc.) — just skip the hint

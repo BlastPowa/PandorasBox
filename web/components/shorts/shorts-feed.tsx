@@ -11,7 +11,10 @@ import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 
 /** Sends a command to a YouTube iframe via its postMessage JS API. */
 function ytCommand(iframe: HTMLIFrameElement | null, func: "playVideo" | "pauseVideo") {
-  iframe?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args: [] }), "*");
+  iframe?.contentWindow?.postMessage(
+    JSON.stringify({ event: "command", func, args: [] }),
+    "https://www.youtube-nocookie.com"
+  );
 }
 
 /**
@@ -90,7 +93,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
   return (
     <div
       ref={containerRef}
-      className="relative h-[calc(100dvh-2px)] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-black [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="relative h-[calc(100dvh-2px)] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-[var(--bg-base)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {items.map((s, i) => {
         const isActive = i === active;
@@ -105,20 +108,18 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
             }}
             className="relative flex h-full w-full snap-start snap-always items-center justify-center gap-4 px-3 sm:gap-8"
           >
-            {/* Whole-slide blurred backdrop of the poster (lordflix look) — the
-                page behind the card is a soft, dark-tinted blow-up of the art,
-                never a flat black rectangle. */}
+            {/* Keep the cinematic artwork atmosphere around the trailer card. */}
             {s.posterUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-125 object-cover opacity-40 blur-3xl" />
+              <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-125 object-cover opacity-35 blur-3xl" />
             )}
-            <div className="pointer-events-none absolute inset-0 bg-black/55" />
+            <div className="pointer-events-none absolute inset-0 bg-[var(--cinematic-scrim)] opacity-80" />
 
             {/* Portrait player card — the trailer is letterboxed inside a tall
                 rounded card, title/meta pinned to its bottom, rail outside it.
                 Sized responsively: near-square-tall on desktop, full-width on
                 phones so the player fills the screen like a real short. */}
-            <div className="relative z-10 h-full max-h-[94dvh] w-full max-w-[min(94vw,460px)] overflow-hidden rounded-[var(--radius-xl)] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-sm">
+            <div className="relative z-10 h-full max-h-[94dvh] w-full max-w-[min(94vw,460px)] overflow-hidden rounded-[var(--radius-xl)] border border-white/10 bg-black/45 shadow-2xl backdrop-blur-sm">
               {/* Blurred poster fills the card's letterbox area */}
               {s.posterUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -188,15 +189,15 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
                 )}
               </Link>
 
-              <Link href={href} className="flex flex-col items-center gap-1.5 text-white" aria-label={`View details for ${s.title}`}>
-                <span className="grid size-14 place-items-center rounded-full bg-white/15 backdrop-blur transition hover:bg-white/25">
+              <Link href={href} className="flex flex-col items-center gap-1.5 text-[var(--text)]" aria-label={`View details for ${s.title}`}>
+                <span className="grid size-14 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)]">
                   <Info className="size-6" />
                 </span>
                 <span className="text-xs font-semibold">Details</span>
               </Link>
 
-              <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="flex flex-col items-center gap-1.5 text-white">
-                <span className="grid size-14 place-items-center rounded-full bg-white/15 backdrop-blur transition hover:bg-white/25">
+              <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="flex flex-col items-center gap-1.5 text-[var(--text)]">
+                <span className="grid size-14 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)]">
                   {muted ? <VolumeX className="size-6" /> : <Volume2 className="size-6" />}
                 </span>
                 <span className="text-xs font-semibold">Audio</span>
@@ -213,7 +214,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
           disabled={active === 0}
           aria-label="Previous"
           className={cn(
-            "grid size-10 place-items-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur transition hover:bg-black/60",
+            "grid size-10 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] text-[var(--text)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)]",
             active === 0 && "opacity-30"
           )}
         >
@@ -224,7 +225,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
           disabled={active === items.length - 1}
           aria-label="Next"
           className={cn(
-            "grid size-10 place-items-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur transition hover:bg-black/60",
+            "grid size-10 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] text-[var(--text)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)]",
             active === items.length - 1 && "opacity-30"
           )}
         >

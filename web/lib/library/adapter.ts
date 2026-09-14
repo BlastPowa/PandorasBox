@@ -12,6 +12,7 @@ export class SupabaseLibraryAdapter implements StorageAdapter {
   ) {}
 
   async getItem(_key: string): Promise<string | null> {
+    void _key;
     const { data, error } = await this.supabase
       .from("library")
       .select("data")
@@ -35,6 +36,7 @@ export class SupabaseLibraryAdapter implements StorageAdapter {
   }
 
   async removeItem(_key: string): Promise<void> {
+    void _key;
     const { error } = await this.supabase
       .from("library")
       .update({ data: [], updated_at: new Date().toISOString() })

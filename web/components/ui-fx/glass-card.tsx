@@ -7,15 +7,15 @@ interface GlassCardProps extends HTMLAttributes<HTMLDivElement> {
   strong?: boolean;
 }
 
-/** Halo-style frosted panel with optional macOS traffic-light header. */
+/** Light surface card. macDots is kept for backwards compatibility. */
 export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
   ({ className, macDots, title, strong, children, ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn(
-          strong ? "glass-strong" : "glass",
-          "rounded-[var(--radius-lg)] overflow-hidden",
+          strong ? "border-[var(--border-strong)] shadow-md" : "border-[var(--border)] shadow-sm",
+          "overflow-hidden rounded-[var(--radius-lg)] border bg-[var(--bg-surface)]",
           className
         )}
         {...props}

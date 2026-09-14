@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Check, ListChecks, Play, Undo2 } from "lucide-react";
+import { X, Check, ListChecks, Undo2 } from "lucide-react";
 import type { JikanEpisode } from "@core/api/jikan";
 import { formatAirDate } from "@core/utils/formatters";
 import { Spinner } from "@/components/ui-fx/feedback";
@@ -15,14 +14,10 @@ import { episodeMediaKey } from "@/lib/reviews/reviews";
 
 export function AnimeEpisodesSection({
   itemId,
-  source,
-  sourceId,
   malId,
   initialEpisodes,
 }: {
   itemId: string;
-  source: string;
-  sourceId: string;
   malId: number;
   initialEpisodes: JikanEpisode[];
 }) {
@@ -88,9 +83,6 @@ export function AnimeEpisodesSection({
 
   if (episodes.length === 0) return null;
 
-  const watchHref = (episode: number) =>
-    `/watch/anime/${encodeURIComponent(source)}/${encodeURIComponent(sourceId)}?episode=${episode}`;
-
   return (
     <section id="pbox-episodes" className="mt-10 scroll-mt-24 border-t border-[var(--border)] pt-8">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -148,17 +140,6 @@ export function AnimeEpisodesSection({
                   {ep.aired && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(ep.aired)}</span>}
                 </div>
               </button>
-              {!selectMode && (
-                <Link
-                  href={watchHref(ep.mal_id)}
-                  onClick={(event) => event.stopPropagation()}
-                  aria-label={`Watch episode ${ep.mal_id}`}
-                  title={`Watch episode ${ep.mal_id}`}
-                  className="absolute right-2.5 top-2.5 grid size-8 place-items-center rounded-full border border-white/15 bg-black/70 text-white shadow-lg backdrop-blur-md transition hover:scale-105 hover:bg-[var(--accent)] hover:text-black"
-                >
-                  <Play className="size-3.5 fill-current" />
-                </Link>
-              )}
               {!selectMode && watched && (
                 <button
                   onClick={() => void unmark(ep)}
@@ -176,8 +157,8 @@ export function AnimeEpisodesSection({
 
       <Dialog.Root open={selected !== null} onOpenChange={(o) => !o && setSelected(null)}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] p-5 shadow-2xl">
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-md" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-5 text-[var(--text)] shadow-[0_28px_90px_rgba(0,0,0,0.28)]">
             {selected && (
               <>
                 <div className="mb-1 flex items-center justify-between">
@@ -198,16 +179,9 @@ export function AnimeEpisodesSection({
                   </div>
                 </Dialog.Description>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <Link
-                    href={watchHref(selected.mal_id)}
-                    className="inline-flex h-9 items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 text-sm font-bold text-[#08090d] transition hover:brightness-110"
-                  >
-                    <Play className="size-4 fill-current" /> Watch episode
-                  </Link>
                 {item && (
                   <Button
                     size="sm"
-                    variant="glass"
                     disabled={isWatched(selected)}
                     onClick={() => {
                       void markEpisode(itemId, selected.mal_id).then(() =>
@@ -230,6 +204,9 @@ export function AnimeEpisodesSection({
                   >
                     <Undo2 className="size-4" /> Unmark
                   </Button>
+                )}
+                {!item && (
+                  <p className="text-xs text-[var(--text-muted)]">Add this title to your library to check in and track episode progress.</p>
                 )}
                 </div>
 

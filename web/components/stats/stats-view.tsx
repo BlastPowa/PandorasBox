@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { ReelItem, ReelItemType } from "@core/storage/schema";
 import { getStatusColor, getStatusLabel } from "@core/utils/formatters";
 import { useLibrary } from "@/lib/library/use-library";
+import { libraryItemHref } from "@/lib/library/item-href";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { Button } from "@/components/ui-fx/button";
@@ -84,7 +85,7 @@ export function StatsView({ username, avatarUrl }: { username: string | null; av
             {recent.map((item) => (
               <Link
                 key={item.id}
-                href={`/title/${item.type}/${item.source}/${item.anilistId ?? item.tmdbId ?? item.mangadexId}`}
+                href={libraryItemHref(item)}
                 className="flex items-center gap-3 p-3 transition-colors hover:bg-[var(--glass)]"
               >
                 <div className="relative h-12 w-8 shrink-0 overflow-hidden rounded-[4px] bg-[var(--bg-elevated)]">
@@ -135,7 +136,7 @@ function RankCard({
   const progress = next ? Math.min(100, ((total - current.min) / (next.min - current.min)) * 100) : 100;
 
   return (
-    <div className="fx-rank-card glass-strong flex flex-col gap-4 rounded-[var(--radius-xl)] p-5 sm:flex-row sm:items-center">
+    <div className="fx-rank-card pb-uiverse-card pb-uiverse-card--hero flex flex-col gap-4 rounded-[var(--radius-xl)] p-5 sm:flex-row sm:items-center">
       {avatarUrl ? (
         <div className="size-16 shrink-0 overflow-hidden rounded-full border border-[var(--border)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}

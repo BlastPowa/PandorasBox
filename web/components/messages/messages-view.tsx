@@ -16,12 +16,12 @@ import type { Conversation, ConversationDetail, Message, MessageMedia } from "@/
 import { cn } from "@/lib/utils";
 
 const CHAT_ATMOSPHERES = {
-  midnight: { label: "Midnight", background: "radial-gradient(circle at 15% 10%, #27324a 0%, transparent 42%), linear-gradient(145deg, #06070d, #111827)" },
-  crimson: { label: "Black / Red", background: "radial-gradient(circle at 85% 15%, #7f1d1d 0%, transparent 45%), linear-gradient(145deg, #050505, #21070a)" },
-  aurora: { label: "Aurora", background: "radial-gradient(circle at 20% 10%, #0f766e 0%, transparent 42%), radial-gradient(circle at 85% 70%, #6b21a8 0%, transparent 45%), #070812" },
-  ocean: { label: "Ocean", background: "radial-gradient(circle at 80% 10%, #0e7490 0%, transparent 45%), linear-gradient(145deg, #020617, #082f49)" },
-  sunset: { label: "Sunset", background: "radial-gradient(circle at 80% 15%, #ea580c 0%, transparent 42%), radial-gradient(circle at 15% 80%, #9d174d 0%, transparent 45%), #12070b" },
-  royal: { label: "Royal", background: "radial-gradient(circle at 20% 10%, #6d28d9 0%, transparent 42%), radial-gradient(circle at 85% 75%, #a16207 0%, transparent 42%), #080611" },
+  midnight: { label: "Slate Mist", background: "radial-gradient(circle at 15% 10%, #dbe7f7 0%, transparent 42%), linear-gradient(145deg, #f8fafc, #eef2f7)" },
+  crimson: { label: "Rose Paper", background: "radial-gradient(circle at 85% 15%, #fecdd3 0%, transparent 45%), linear-gradient(145deg, #fffafb, #fff1f2)" },
+  aurora: { label: "Mint Glow", background: "radial-gradient(circle at 20% 10%, #ccfbf1 0%, transparent 42%), radial-gradient(circle at 85% 70%, #ede9fe 0%, transparent 45%), #f8fffd" },
+  ocean: { label: "Sky Wash", background: "radial-gradient(circle at 80% 10%, #bae6fd 0%, transparent 45%), linear-gradient(145deg, #f8fcff, #eaf6ff)" },
+  sunset: { label: "Peach Bloom", background: "radial-gradient(circle at 80% 15%, #fed7aa 0%, transparent 42%), radial-gradient(circle at 15% 80%, #fce7f3 0%, transparent 45%), #fffaf7" },
+  royal: { label: "Lavender Haze", background: "radial-gradient(circle at 20% 10%, #ddd6fe 0%, transparent 42%), radial-gradient(circle at 85% 75%, #fef3c7 0%, transparent 42%), #fbfaff" },
 } as const;
 
 function useMobileChatViewport(active: boolean, containerRef: React.RefObject<HTMLDivElement | null>) {
@@ -173,7 +173,7 @@ function ConversationRow({ conversation, myId, active, onClick }: { conversation
         </span>
         <span className="mt-1 flex items-center justify-between gap-2">
           <span className="line-clamp-1 text-xs text-[var(--text-muted)]">{mine?.status === "invited" ? "Group invitation" : conversation.latestMessage?.deleted_at ? "Message removed" : (conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? (conversation.latestMessage?.media_attachment?.kind === "sticker" ? "Sticker" : conversation.latestMessage?.media_attachment?.kind === "gif" ? "GIF" : conversation.latestMessage?.media_attachment ? "Image" : "Start the conversation"))}</span>
-          {conversation.unreadCount > 0 && <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[var(--accent)] px-1 font-mono text-[10px] font-bold text-black">{conversation.unreadCount}</span>}
+          {conversation.unreadCount > 0 && <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[var(--accent)] px-1 font-mono text-[10px] font-bold text-white">{conversation.unreadCount}</span>}
         </span>
         {conversation.deliveryStatus && (
           <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)]">
@@ -489,7 +489,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   return (
     <div className="relative flex size-full min-h-0 flex-col overflow-hidden">
       <div className="pointer-events-none absolute inset-0" style={{ background: CHAT_ATMOSPHERES[detail.chatAtmosphere].background }} aria-hidden="true" />
-      {detail.chatBackgroundUrl && <><div className="pointer-events-none absolute inset-0 bg-cover opacity-65" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: detail.chatBackgroundPosition }} aria-hidden="true" /><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.62),rgba(7,8,14,.74)_45%,rgba(7,8,14,.88))]" aria-hidden="true" /></>}
+      {detail.chatBackgroundUrl && <><div className="pointer-events-none absolute inset-0 bg-cover opacity-35" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: detail.chatBackgroundPosition }} aria-hidden="true" /><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,.72),rgba(248,250,252,.8)_45%,rgba(247,248,250,.92))]" aria-hidden="true" /></>}
       <header className="relative z-[1] flex min-h-[calc(4rem+var(--safe-top))] items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-surface)] px-3 pt-[var(--safe-top)] sm:min-h-16 sm:px-4 sm:pt-0">
         <button type="button" onClick={onBack} className="grid size-11 place-items-center rounded-full hover:bg-[var(--glass)] md:hidden" aria-label="Back to conversations">
           <ChevronLeft />
@@ -542,7 +542,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
               >
                 {!message.deleted_at && !message.id.startsWith("optimistic-") && <button type="button" aria-label="Reply to message" onClick={() => startReply(message)} className={cn("absolute -top-5 z-[2] hidden size-9 place-items-center rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] opacity-0 shadow-lg transition md:grid md:group-hover:opacity-100 md:focus-visible:opacity-100", own ? "right-12" : "left-12")}><Reply className="size-4" /></button>}
                 {!own && (sender?.username ? <Link href={`/profile/${encodeURIComponent(sender.username)}`} aria-label={`View ${sender.username}'s profile`}><Avatar small url={sender.avatar_url ?? null} label={sender.username} /></Link> : <Avatar small url={sender?.avatar_url ?? null} label="Member" />)}
-                <div className={cn("min-w-0 max-w-[calc(100%-2.75rem)] rounded-2xl px-3 py-2 sm:max-w-[68%]", own ? "rounded-br-md bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] text-black" : "rounded-bl-md bg-[var(--bg-elevated)]", detail.chatBackgroundUrl && !own && "bg-[rgba(18,19,29,.9)] shadow-lg backdrop-blur-md")}>
+                <div className={cn("min-w-0 max-w-[calc(100%-2.75rem)] rounded-2xl border px-3 py-2 shadow-sm sm:max-w-[68%]", own ? "rounded-br-md border-[var(--accent)] bg-[var(--accent)] text-white" : "rounded-bl-md border-[var(--border)] bg-white/92 text-[var(--text-primary)]", detail.chatBackgroundUrl && !own && "bg-white/88 shadow-md backdrop-blur-md")}>
                   {!own && detail.type === "group" && <p className="mb-1 text-[10px] font-bold text-[var(--accent)]">{sender?.username ?? "Member"}</p>}
                   {message.reply_to_id && (
                     <ReplyPreview
@@ -554,7 +554,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
                   )}
                   {editingId === message.id ? (
                     <div className="flex gap-2">
-                      <input value={editText} onChange={(event) => setEditText(event.target.value)} className="min-w-0 flex-1 rounded-lg bg-black/20 px-2 py-1 text-sm outline-none" autoFocus />
+                      <input value={editText} onChange={(event) => setEditText(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-white/45 bg-white/20 px-2 py-1 text-sm text-white outline-none placeholder:text-white/70" autoFocus />
                       <button onClick={() => void saveEdit(message)} aria-label="Save edit">
                         <Check className="size-4" />
                       </button>
@@ -671,7 +671,7 @@ function MessageBody({ body, own }: { body: string; own: boolean }) {
     <p className="whitespace-pre-wrap break-words text-sm leading-relaxed [overflow-wrap:anywhere]">
       {parts.map((part, index) =>
         /^https?:\/\//i.test(part) ? (
-          <a key={index} href={part} target="_blank" rel="noopener noreferrer nofollow" className={cn("underline underline-offset-2", own ? "text-black" : "text-[var(--accent)]")}>
+          <a key={index} href={part} target="_blank" rel="noopener noreferrer nofollow" className={cn("underline underline-offset-2", own ? "text-white" : "text-[var(--accent)]")}>
             {part}
           </a>
         ) : (
@@ -704,11 +704,11 @@ function messagePreview(message: Message | NonNullable<Message["reply"]>): strin
 }
 
 function ReplyPreview({ message, members, own, onOpen }: { message: Message["reply"]; members: ConversationDetail["members"]; own: boolean; onOpen: () => void }) {
-  if (!message) return <div className={cn("mb-2 rounded-lg border-l-2 px-2.5 py-2 text-xs", own ? "border-black/50 bg-black/10" : "border-[var(--accent)] bg-black/15")}><span className="opacity-65">Original message unavailable</span></div>;
+  if (!message) return <div className={cn("mb-2 rounded-lg border-l-2 px-2.5 py-2 text-xs", own ? "border-white/70 bg-white/16" : "border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.08)]")}><span className="opacity-70">Original message unavailable</span></div>;
   const sender = members.find((member) => member.user_id === message.sender_id)?.profile?.username ?? "PBox member";
   return (
-    <button type="button" onClick={onOpen} className={cn("mb-2 block w-full rounded-lg border-l-2 px-2.5 py-2 text-left", own ? "border-black/50 bg-black/10" : "border-[var(--accent)] bg-black/15")}>
-      <span className={cn("block truncate text-[10px] font-bold", own ? "text-black/75" : "text-[var(--accent)]")}>{sender}</span>
+    <button type="button" onClick={onOpen} className={cn("mb-2 block w-full rounded-lg border-l-2 px-2.5 py-2 text-left", own ? "border-white/70 bg-white/16" : "border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.08)]")}>
+      <span className={cn("block truncate text-[10px] font-bold", own ? "text-white/85" : "text-[var(--accent)]")}>{sender}</span>
       <span className="mt-0.5 block truncate text-xs opacity-75">{messagePreview(message)}</span>
     </button>
   );
@@ -716,7 +716,7 @@ function ReplyPreview({ message, members, own, onOpen }: { message: Message["rep
 
 function SharedMessageCard({ card, own }: { card: NonNullable<Message["shared_entity"]>; own: boolean }) {
   return (
-    <Link href={card.href} className={cn("mt-2 block overflow-hidden rounded-xl border text-left", own ? "border-black/20 bg-black/10" : "border-[var(--border)] bg-[var(--bg-base)]")}>
+    <Link href={card.href} className={cn("mt-2 block overflow-hidden rounded-xl border text-left", own ? "border-white/35 bg-white/14" : "border-[var(--border)] bg-[var(--bg-base)]")}>
       {card.posterUrl && (
         <span className="relative block aspect-[16/6] max-h-24 overflow-hidden">
           <Image src={card.posterUrl} alt="" fill sizes="(max-width: 640px) 65vw, 320px" className="object-cover" />
@@ -733,8 +733,8 @@ function SharedMessageCard({ card, own }: { card: NonNullable<Message["shared_en
 
 function MessageMediaView({ media }: { media: MessageMedia }) {
   if (media.provider === "builtin") return <div className="py-1 text-center text-6xl leading-none" role="img" aria-label={media.alt ?? "Sticker"}>{media.sticker}</div>;
-  if (!media.url) return <div className="rounded-xl bg-black/10 px-3 py-6 text-center text-xs opacity-60">Attachment unavailable</div>;
-  return <a href={media.url} target="_blank" rel="noopener noreferrer" className="mt-1 block overflow-hidden rounded-xl bg-black/20" aria-label={`Open ${media.kind}`}>
+  if (!media.url) return <div className="rounded-xl border border-[var(--border)] bg-[var(--glass)] px-3 py-6 text-center text-xs opacity-70">Attachment unavailable</div>;
+  return <a href={media.url} target="_blank" rel="noopener noreferrer" className="mt-1 block overflow-hidden rounded-xl border border-[var(--border)] bg-white/80" aria-label={`Open ${media.kind}`}>
     {/* eslint-disable-next-line @next/next/no-img-element */}
     <img src={media.url} alt={media.alt ?? "Shared media"} className={cn("w-full object-contain", media.kind === "sticker" ? "max-h-40 max-w-[180px]" : "max-h-64 max-w-[260px]")} loading="lazy" />
   </a>;
@@ -779,10 +779,10 @@ function MediaPicker({ busy, onClose, onUpload, onSend }: { busy: boolean; onClo
   }
 
   return <section className="max-h-[42dvh] shrink-0 overflow-y-auto border-t border-[var(--border)] bg-[var(--bg-elevated)] p-3" aria-label="Add media">
-    <div className="flex items-center justify-between gap-2"><div className="flex gap-1">{(["sticker", "gif", "image"] as const).map((value) => <button key={value} type="button" onClick={() => { setTab(value); setResults([]); }} className={cn("min-h-11 rounded-full px-4 text-sm font-bold capitalize", tab === value ? "bg-[var(--accent)] text-black" : "bg-[var(--glass)]")}>{value === "image" ? "Photos" : `${value}s`}</button>)}</div><button type="button" onClick={onClose} className="grid size-11 shrink-0 place-items-center rounded-full" aria-label="Close media picker"><X className="size-5" /></button></div>
+    <div className="flex items-center justify-between gap-2"><div className="flex gap-1">{(["sticker", "gif", "image"] as const).map((value) => <button key={value} type="button" onClick={() => { setTab(value); setResults([]); }} className={cn("min-h-11 rounded-full px-4 text-sm font-bold capitalize", tab === value ? "bg-[var(--accent)] text-white" : "bg-[var(--glass)]")}>{value === "image" ? "Photos" : `${value}s`}</button>)}</div><button type="button" onClick={onClose} className="grid size-11 shrink-0 place-items-center rounded-full" aria-label="Close media picker"><X className="size-5" /></button></div>
     {tab === "sticker" && <><div className="mt-3 grid grid-cols-6 gap-2">{BUILTIN_STICKERS.map((sticker) => <button key={sticker} type="button" disabled={busy} onClick={() => void onSend({ kind: "sticker", provider: "builtin", sticker, alt: "Sticker" })} className="grid aspect-square min-h-11 place-items-center rounded-xl bg-[var(--glass)] text-3xl transition hover:bg-[var(--glass-strong)]">{sticker}</button>)}</div><label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--glass)] px-3 text-sm font-bold"><ImagePlus className="size-4 text-[var(--accent)]" /> Upload custom sticker<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file, "sticker"); event.currentTarget.value = ""; }} /></label></>}
     {tab === "image" && <label className="mt-3 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--glass)] text-center"><ImagePlus className="mb-2 size-6 text-[var(--accent)]" /><strong className="text-sm">Choose or paste an image or GIF</strong><span className="mt-1 text-xs text-[var(--text-muted)]">JPG, PNG, WebP, or GIF up to 10 MB</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file); event.currentTarget.value = ""; }} /></label>}
-    {tab === "gif" && <>{giphyKey ? <><form onSubmit={(event) => void searchGiphy(event)} className="mt-3 flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search GIFs" className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3 text-base outline-none" /><Button type="submit" size="icon" disabled={!query.trim() || searching} aria-label="Search GIFs">{searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}</Button></form><div className="mt-3 columns-2 gap-2 sm:columns-3">{results.map((gif) => <button key={gif.id} type="button" disabled={busy} onClick={() => void onSend({ kind: "gif", provider: "giphy", url: gif.url, alt: gif.title.slice(0, 200) })} className="mb-2 block w-full overflow-hidden rounded-xl bg-black/20"><Image src={gif.preview} alt={gif.title} width={240} height={180} unoptimized className="h-auto w-full" /></button>)}</div><p className="mt-2 text-center text-[10px] font-bold tracking-wide text-[var(--text-muted)]">Powered by GIPHY</p></> : <div className="mt-3 rounded-xl bg-[var(--glass)] p-4 text-center"><Laugh className="mx-auto size-6 text-[var(--accent)]" /><p className="mt-2 text-sm font-bold">GIF search needs a GIPHY API key</p><p className="mt-1 text-xs text-[var(--text-muted)]">You can still upload a GIF from the Photos tab.</p></div>}</>}
+    {tab === "gif" && <>{giphyKey ? <><form onSubmit={(event) => void searchGiphy(event)} className="mt-3 flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search GIFs" className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3 text-base outline-none" /><Button type="submit" size="icon" disabled={!query.trim() || searching} aria-label="Search GIFs">{searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}</Button></form><div className="mt-3 columns-2 gap-2 sm:columns-3">{results.map((gif) => <button key={gif.id} type="button" disabled={busy} onClick={() => void onSend({ kind: "gif", provider: "giphy", url: gif.url, alt: gif.title.slice(0, 200) })} className="mb-2 block w-full overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm"><Image src={gif.preview} alt={gif.title} width={240} height={180} unoptimized className="h-auto w-full" /></button>)}</div><p className="mt-2 text-center text-[10px] font-bold tracking-wide text-[var(--text-muted)]">Powered by GIPHY</p></> : <div className="mt-3 rounded-xl bg-[var(--glass)] p-4 text-center"><Laugh className="mx-auto size-6 text-[var(--accent)]" /><p className="mt-2 text-sm font-bold">GIF search needs a GIPHY API key</p><p className="mt-1 text-xs text-[var(--text-muted)]">You can still upload a GIF from the Photos tab.</p></div>}</>}
   </section>;
 }
 
@@ -835,8 +835,8 @@ function NewConversationDialog({ open, onOpenChange, onCreated }: { open: boolea
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/75 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-[81] max-h-[90dvh] overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-elevated)] p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[min(92vw,520px)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)]">
+        <Dialog.Overlay className="fixed inset-0 z-[80] bg-slate-900/20 backdrop-blur-sm" />
+        <Dialog.Content className="fixed inset-x-0 bottom-0 z-[81] max-h-[90dvh] overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--border)] bg-white p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[min(92vw,520px)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)]">
           <div className="flex items-center justify-between">
             <Dialog.Title className="font-display text-xl font-bold">New conversation</Dialog.Title>
             <Dialog.Close className="grid size-11 place-items-center rounded-full" aria-label="Close">
@@ -850,11 +850,11 @@ function NewConversationDialog({ open, onOpenChange, onCreated }: { open: boolea
                 setGroup(false);
                 setSelected((current) => current.slice(0, 1));
               }}
-              className={cn("min-h-11 flex-1 rounded-xl font-semibold", !group ? "bg-[var(--accent)] text-black" : "glass")}
+              className={cn("min-h-11 flex-1 rounded-xl font-semibold", !group ? "bg-[var(--accent)] text-white" : "glass")}
             >
               Direct
             </button>
-            <button onClick={() => setGroup(true)} className={cn("min-h-11 flex-1 rounded-xl font-semibold", group ? "bg-[var(--accent)] text-black" : "glass")}>
+            <button onClick={() => setGroup(true)} className={cn("min-h-11 flex-1 rounded-xl font-semibold", group ? "bg-[var(--accent)] text-white" : "glass")}>
               Group
             </button>
           </div>
@@ -1043,15 +1043,15 @@ function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }
             <div className="rounded-xl border border-[var(--border)] p-3">
               <div className="relative aspect-[16/6] overflow-hidden rounded-lg bg-[var(--bg-base)]" style={{ background: CHAT_ATMOSPHERES[atmosphere].background }}>
                 {detail.chatBackgroundUrl && <div className="absolute inset-0 bg-cover opacity-70" style={{ backgroundImage: `url(${detail.chatBackgroundUrl})`, backgroundPosition: currentBackgroundPosition }} />}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
-                <p className="absolute bottom-2 left-2 text-xs font-bold text-white">{CHAT_ATMOSPHERES[atmosphere].label} atmosphere</p>
+                {detail.chatBackgroundUrl && <div className="absolute inset-0 bg-gradient-to-t from-white/70 via-white/20 to-transparent" />}
+                <p className="absolute bottom-2 left-2 text-xs font-bold text-slate-800">{CHAT_ATMOSPHERES[atmosphere].label} atmosphere</p>
               </div>
               <p className="mt-2 text-xs text-[var(--text-muted)]">{detail.type === "group" ? "This decoration is shared with every group member." : "Only you see this decoration in this conversation."}</p>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Chat atmosphere">
-                {(Object.entries(CHAT_ATMOSPHERES) as [keyof typeof CHAT_ATMOSPHERES, (typeof CHAT_ATMOSPHERES)[keyof typeof CHAT_ATMOSPHERES]][]).map(([key, preset]) => <button type="button" key={key} disabled={backgroundBusy || !canEditAppearance} onClick={() => void updateAtmosphere(key)} className={cn("relative min-h-14 overflow-hidden rounded-xl border p-2 text-left text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60", atmosphere === key ? "border-[var(--accent)] ring-2 ring-[rgb(var(--accent-rgb)/0.25)]" : "border-[var(--border)]")} style={{ background: preset.background }}><span className="relative z-[1] drop-shadow">{preset.label}</span></button>)}
+                {(Object.entries(CHAT_ATMOSPHERES) as [keyof typeof CHAT_ATMOSPHERES, (typeof CHAT_ATMOSPHERES)[keyof typeof CHAT_ATMOSPHERES]][]).map(([key, preset]) => <button type="button" key={key} disabled={backgroundBusy || !canEditAppearance} onClick={() => void updateAtmosphere(key)} className={cn("relative min-h-14 overflow-hidden rounded-xl border p-2 text-left text-xs font-bold text-slate-800 shadow-sm disabled:cursor-not-allowed disabled:opacity-60", atmosphere === key ? "border-[var(--accent)] ring-2 ring-[rgb(var(--accent-rgb)/0.25)]" : "border-[var(--border)]")} style={{ background: preset.background }}><span className="relative z-[1]">{preset.label}</span></button>)}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <label className={cn("flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-bold text-black", canEditAppearance ? "cursor-pointer" : "cursor-not-allowed opacity-60")}><ImagePlus className="size-4" />{backgroundBusy ? "Updating…" : detail.chatBackgroundUrl ? "Replace" : "Upload"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={backgroundBusy || !canEditAppearance} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void updateBackground(file); event.currentTarget.value = ""; }} /></label>
+                <label className={cn("flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-bold text-white", canEditAppearance ? "cursor-pointer" : "cursor-not-allowed opacity-60")}><ImagePlus className="size-4" />{backgroundBusy ? "Updating…" : detail.chatBackgroundUrl ? "Replace" : "Upload"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={backgroundBusy || !canEditAppearance} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void updateBackground(file); event.currentTarget.value = ""; }} /></label>
                 <Button variant="outline" disabled={!detail.chatBackgroundUrl || backgroundBusy || !canEditAppearance} onClick={() => void updateBackground(null)}>Remove</Button>
               </div>
               <div className="mt-2 grid grid-cols-3 gap-2" aria-label="Chat background position">
@@ -1068,7 +1068,7 @@ function ConversationSettingsPanel({ detail, myId, isOwner, onChanged, onLeave }
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-bold text-black">
+                  <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-bold text-white">
                     <Camera className="size-4" />
                     {avatarBusy ? "Updating…" : detail.avatar_url ? "Replace" : "Upload"}
                     <input

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { CheckCircle2, PlayCircle, ChevronRight } from "lucide-react";
 import { formatProgress, getStatusColor, getStatusLabel } from "@core/utils/formatters";
 import { useLibrary, type ReelItem } from "@/lib/library/use-library";
+import { libraryItemHref } from "@/lib/library/item-href";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 
 function clampDisplayPercent(value: number | null | undefined): number {
@@ -134,7 +135,7 @@ export function MyPanel() {
               {inProgress.map((i) => (
                 <Link
                   key={i.id}
-                  href={`/title/${i.type}/${i.source}/${i.anilistId ?? i.tmdbId ?? i.mangadexId}`}
+                  href={libraryItemHref(i)}
                   className="group"
                 >
                   <div className="relative aspect-[2/3] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-elevated)]">
@@ -146,7 +147,7 @@ export function MyPanel() {
                     <div className="absolute inset-x-0 bottom-0 grid place-items-center bg-gradient-to-t from-black/70 to-transparent pb-1 pt-6 opacity-0 transition-opacity group-hover:opacity-100">
                       <PlayCircle className="size-6 text-white" />
                     </div>
-                    <div className="absolute inset-x-0 bottom-0 h-1 bg-black/40">
+                    <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-200/90">
                       <div className="h-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))]" style={{ width: `${playbackPercent(i)}%` }} />
                     </div>
                   </div>
@@ -193,7 +194,7 @@ export function MyPanel() {
               return (
                 <Link
                   key={i.id}
-                  href={`/title/${i.type}/${i.source}/${i.anilistId ?? i.tmdbId ?? i.mangadexId}`}
+                  href={libraryItemHref(i)}
                   className="flex items-center gap-2.5 p-2.5 transition-colors hover:bg-[var(--glass)]"
                 >
                   <div className="relative h-10 w-7 shrink-0 overflow-hidden rounded-[4px] bg-[var(--bg-elevated)]">
@@ -203,7 +204,7 @@ export function MyPanel() {
                     <p className="truncate text-xs font-semibold">{i.title}</p>
                     <p className="text-[10px]" style={{ color: percent >= 100 ? "#34d399" : getStatusColor(i.status) }}>{playbackLabel(i)}</p>
                     {showMeter && (
-                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-black/35">
+                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-200">
                         <div className="h-full rounded-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))]" style={{ width: `${percent}%` }} />
                       </div>
                     )}

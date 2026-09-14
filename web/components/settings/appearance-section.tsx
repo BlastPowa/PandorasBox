@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Check } from "lucide-react";
-import { THEMES, THEME_CHANGE_EVENT, THEME_STORAGE_KEY } from "@/lib/theme";
+import { useEffect, useState } from "react";
+import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { APPEARANCE_MODE_KEY, THEMES, THEME_CHANGE_EVENT, THEME_STORAGE_KEY } from "@/lib/theme";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Switch } from "@/components/ui-fx/switch";
 
@@ -28,6 +28,15 @@ function writeBool(key: string, value: boolean) {
 }
 
 export function AppearanceSection() {
+  const [appearanceMode, setAppearanceMode] = useState<"light" | "dark" | "system">(() => {
+    if (typeof window === "undefined") return "system";
+    try {
+      const saved = window.localStorage.getItem(APPEARANCE_MODE_KEY);
+      return saved === "light" || saved === "dark" ? saved : "system";
+    } catch {
+      return "system";
+    }
+  });
   const [theme, setTheme] = useState(() => {
     if (typeof window === "undefined") return "default";
     try { return window.localStorage.getItem(THEME_STORAGE_KEY) ?? "default"; } catch { return "default"; }
@@ -35,6 +44,31 @@ export function AppearanceSection() {
   const [compact, setCompact] = useState(() => readBool(DENSITY_KEY));
   const [reduceMotion, setReduceMotion] = useState(() => readBool(REDUCE_MOTION_KEY));
   const [libraryListView, setLibraryListView] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(LIBRARY_VIEW_KEY) === "list");
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const syncSystemMode = () => {
+      if (appearanceMode === "system") {
+        document.documentElement.setAttribute("data-mode", media.matches ? "dark" : "light");
+      }
+    };
+    syncSystemMode();
+    media.addEventListener("change", syncSystemMode);
+    return () => media.removeEventListener("change", syncSystemMode);
+  }, [appearanceMode]);
+
+  function applyAppearanceMode(mode: "light" | "dark" | "system") {
+    setAppearanceMode(mode);
+    try {
+      window.localStorage.setItem(APPEARANCE_MODE_KEY, mode);
+    } catch {
+      // ignore
+    }
+    const resolved = mode === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : mode;
+    document.documentElement.setAttribute("data-mode", resolved);
+  }
 
   function applyTheme(id: string) {
     setTheme(id);
@@ -76,8 +110,30 @@ export function AppearanceSection() {
     <GlassCard macDots title="Appearance">
       <div className="space-y-6 p-5">
         <div>
-          <p className="mb-1 text-sm font-semibold text-[var(--text-secondary)]">Theme</p>
-          <p className="mb-3 text-xs text-[var(--text-muted)]">Pick an accent palette for the whole app.</p>
+          <p className="mb-1 text-sm font-semibold text-[var(--text-secondary)]">Light or dark</p>
+          <p className="mb-3 text-xs text-[var(--text-muted)]">Use the look that feels best, or follow your device.</p>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { id: "light", label: "Light", icon: Sun },
+              { id: "dark", label: "Dark", icon: Moon },
+              { id: "system", label: "Auto", icon: Monitor },
+            ] as const).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => applyAppearanceMode(id)}
+                className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-sm font-semibold transition ${appearanceMode === id ? "border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.10)] text-[var(--text)]" : "border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"}`}
+              >
+                <Icon className="size-5" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-1 text-sm font-semibold text-[var(--text-secondary)]">Accent colour</p>
+          <p className="mb-3 text-xs text-[var(--text-muted)]">Make Pandora’s Box feel more like yours.</p>
           <div className="flex flex-wrap gap-2">
             {THEMES.map((t) => (
               <button

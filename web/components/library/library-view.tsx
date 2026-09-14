@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X } from "lucide-react";
+import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X, Search, Sparkles } from "lucide-react";
 import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";
 import { formatProgress } from "@core/utils/formatters";
 import { useLibrary, useLibraryStats } from "@/lib/library/use-library";
@@ -38,6 +38,14 @@ const TYPE_TABS: { key: ReelItemType | "all"; label: string }[] = [
 ];
 
 type SortKey = "title" | "score" | "progress" | "updated";
+type SmartView = "all" | "in_progress" | "untouched" | "nearly_done";
+
+const SMART_VIEWS: { key: SmartView; label: string }[] = [
+  { key: "all", label: "Everything" },
+  { key: "in_progress", label: "In progress" },
+  { key: "untouched", label: "Untouched" },
+  { key: "nearly_done", label: "Nearly done" },
+];
 
 export function LibraryView() {
   const { items, loading, signedIn, remove, markEpisode, markChapter, markComplete, setRating } = useLibrary();
@@ -45,6 +53,8 @@ export function LibraryView() {
   const [status, setStatus] = useState<ReelItemStatus | "all">("all");
   const [type, setType] = useState<ReelItemType | "all">("all");
   const [sort, setSort] = useState<SortKey>("updated");
+  const [smartView, setSmartView] = useState<SmartView>("all");
+  const [query, setQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -82,8 +92,13 @@ export function LibraryView() {
 
   const filtered = useMemo(() => {
     let list = items.slice();
+    const normalisedQuery = query.trim().toLowerCase();
+    if (normalisedQuery) list = list.filter((i) => i.title.toLowerCase().includes(normalisedQuery));
     if (status !== "all") list = list.filter((i) => i.status === status);
     if (type !== "all") list = list.filter((i) => i.type === type);
+    if (smartView === "in_progress") list = list.filter((i) => i.progress.percentComplete > 0 && i.progress.percentComplete < 100);
+    if (smartView === "untouched") list = list.filter((i) => i.progress.percentComplete <= 0 && i.status !== "completed");
+    if (smartView === "nearly_done") list = list.filter((i) => i.progress.percentComplete >= 75 && i.progress.percentComplete < 100);
     list.sort((a, b) => {
       switch (sort) {
         case "title":
@@ -97,7 +112,7 @@ export function LibraryView() {
       }
     });
     return list;
-  }, [items, status, type, sort]);
+  }, [items, query, status, type, smartView, sort]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: items.length };
@@ -130,6 +145,52 @@ export function LibraryView() {
         <StatCard label="Hours" value={Math.round(stats.totalWatchTimeMinutes / 60)} />
       </div>
 
+      <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <label className="relative block min-w-0 flex-1 lg:max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search your library"
+              className="h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-base)] pl-9 pr-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.12)]"
+            />
+          </label>
+          <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Link href="/stats" className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-white px-3 text-xs font-semibold text-[var(--text-secondary)] transition hover:border-[var(--border-strong)] hover:text-[var(--text)]">
+              <BarChart3 className="size-4" /> Stats
+            </Link>
+          <button
+            onClick={() => { setSelectMode((v) => !v); setSelected(new Set()); }}
+              className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-[var(--radius-md)] border px-3 text-xs font-semibold transition ${selectMode ? "border-[var(--accent)] bg-[var(--accent)] text-white" : "border-[var(--border)] bg-white text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text)]"}`}
+          >
+            <CheckSquare className="size-4" /> {selectMode ? "Done" : "Select"}
+          </button>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+              className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-[var(--radius-md)] border px-3 text-xs font-semibold transition ${showFilters ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.08)] text-[var(--accent)]" : "border-[var(--border)] bg-white text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text)]"}`}
+          >
+            <SlidersHorizontal className="size-4" /> Filters
+          </button>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 overflow-x-auto border-t border-[var(--border)] pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <span className="inline-flex shrink-0 items-center gap-1.5 pr-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            <Sparkles className="size-3.5" /> Smart views
+          </span>
+          {SMART_VIEWS.map((view) => (
+            <button
+              key={view.key}
+              onClick={() => setSmartView(view.key)}
+              className={`h-8 shrink-0 rounded-full px-3 text-xs font-semibold transition ${smartView === view.key ? "bg-[rgb(var(--accent-rgb)/0.10)] text-[var(--accent)] ring-1 ring-[rgb(var(--accent-rgb)/0.20)]" : "bg-[var(--bg-base)] text-[var(--text-secondary)] hover:text-[var(--text)]"}`}
+            >
+              {view.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Status tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {STATUS_TABS.map((t) => (
@@ -138,27 +199,6 @@ export function LibraryView() {
             {counts[t.key] ? <span className="ml-1.5 opacity-60">{counts[t.key]}</span> : null}
           </Pill>
         ))}
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2">
-        <Link href="/stats" className="glass inline-flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]">
-          <BarChart3 className="size-4" /> Stats
-        </Link>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setSelectMode((v) => !v); setSelected(new Set()); }}
-            className={`inline-flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold ${selectMode ? "bg-[var(--accent)] text-[#0a0a0f]" : "glass text-[var(--text-secondary)] hover:text-[var(--text)]"}`}
-          >
-            <CheckSquare className="size-4" /> {selectMode ? "Done" : "Select"}
-          </button>
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            className="glass inline-flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]"
-          >
-            <SlidersHorizontal className="size-4" /> Filters
-          </button>
-        </div>
       </div>
 
       {selectMode && (
@@ -216,7 +256,7 @@ export function LibraryView() {
         <EmptyState
           icon={<Plus className="size-10" />}
           title="Nothing here yet"
-          description="Browse or search, then add titles to this list."
+          description={query || status !== "all" || type !== "all" || smartView !== "all" ? "No titles match these library filters." : "Browse or search, then add titles to this list."}
           action={<Button asChild variant="glass"><Link href="/browse">Browse</Link></Button>}
         />
       ) : (
@@ -332,7 +372,9 @@ function LibraryRow({ item, index, selectMode, selected, removing, onToggleSelec
       </td>
       <td className="px-2 py-2"><RatingStars value={item.rating} onChange={onRate} size={14} /></td>
       <td className="px-2 py-2"><TypeBadge type={item.type} /></td>
-      <td className="px-2 py-2 font-mono text-xs text-[var(--text-secondary)]">{formatProgress(item.progress, item.type)}</td>
+      <td className="px-2 py-2">
+        <ProgressMeter item={item} />
+      </td>
       <td className="px-2 py-2">
         <div className="flex items-center justify-end gap-1">
           {item.type === "comic" ? <Link href={href} title="Open issue tracker" className="rounded-md p-1.5 text-[var(--accent)] hover:bg-[var(--glass)]"><ListChecks className="size-4" /></Link> : <button onClick={onNext} title="Mark next" className="rounded-md p-1.5 text-[var(--accent)] hover:bg-[var(--glass)]"><Plus className="size-4" /></button>}
@@ -362,7 +404,7 @@ function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onR
       <div className="min-w-0 flex-1">
         <Link href={href} className="line-clamp-1 font-semibold">{item.title}</Link>
         <div className="mt-1 flex items-center gap-2"><TypeBadge type={item.type} /><StatusBadge status={item.status} /></div>
-        <div className="mt-1 text-xs text-[var(--text-secondary)]">{formatProgress(item.progress, item.type)}</div>
+        <div className="mt-2"><ProgressMeter item={item} compact /></div>
         <div className="mt-1.5 flex items-center justify-between">
           <RatingStars value={item.rating} onChange={onRate} size={14} />
           <div className="flex gap-1">
@@ -370,6 +412,21 @@ function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onR
             <button onClick={onRemove} disabled={removing} aria-label={`Remove ${item.title} from library`} className="rounded-md p-1.5 text-[var(--dropped)] disabled:cursor-wait disabled:opacity-40"><Trash2 className="size-4" /></button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ProgressMeter({ item, compact = false }: { item: ReelItem; compact?: boolean }) {
+  const percent = Math.max(0, Math.min(100, Math.round(item.progress.percentComplete || 0)));
+  return (
+    <div className={compact ? "space-y-1" : "min-w-[132px] space-y-1.5"}>
+      <div className="flex items-center justify-between gap-2 text-[11px] text-[var(--text-secondary)]">
+        <span className="truncate">{formatProgress(item.progress, item.type)}</span>
+        <span className="shrink-0 font-mono font-semibold text-[var(--text)]">{percent}%</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-elevated)]" aria-label={`${item.title} ${percent}% complete`}>
+        <div className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );

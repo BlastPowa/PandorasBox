@@ -21,10 +21,37 @@ export const HERO_SLIDE_EVENT = "pb:hero-slide";
  * whose `background-image` transitions — see .pb-ambient__layer in globals.css
  * for why that distinction matters.
  */
-export function AmbientBackground({ imageUrl }: { imageUrl: string | null }) {
+export function AmbientBackground({
+  imageUrl,
+  imageUrls = [],
+  intervalMs = 6500,
+}: {
+  imageUrl: string | null;
+  imageUrls?: string[];
+  intervalMs?: number;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [image, setImage] = useState(imageUrl);
   const [layers, setLayers] = useState<string[]>(imageUrl ? [imageUrl] : []);
+  const slideshowKey = Array.from(new Set([imageUrl, ...imageUrls].filter((url): url is string => Boolean(url)))).slice(0, 6).join("\u0000");
+
+  // The homepage can hand us a small set of wide artwork and let this fixed
+  // layer rotate independently. Detail pages still pass just one image.
+  useEffect(() => {
+    const slides = slideshowKey ? slideshowKey.split("\u0000") : [];
+    if (slides.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.classList.contains("pb-reduce-motion")) return;
+
+    let index = 0;
+    const timer = window.setInterval(() => {
+      index = (index + 1) % slides.length;
+      const next = slides[index];
+      setImage(next);
+      setLayers((prev) => [next, ...prev.filter((item) => item !== next)].slice(0, 2));
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [intervalMs, slideshowKey]);
 
   // The Hero owns the slideshow timer; it announces each slide so we track it
   // without lifting state (and without re-rendering the Hero on our account).

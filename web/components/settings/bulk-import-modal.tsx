@@ -44,8 +44,8 @@ export function BulkImportModal({
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !o && onCancel()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-4">
             <div>
               <Dialog.Title className="font-display text-lg font-bold">
@@ -75,7 +75,7 @@ export function BulkImportModal({
 
           <div className="max-h-[45vh] space-y-2 overflow-y-auto p-4">
             {items.map((item) => (
-              <div key={item.id} className="glass flex items-center gap-3 rounded-[var(--radius-md)] p-2">
+              <div key={item.id} className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-2 shadow-sm">
                 <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-[6px] bg-[var(--bg-surface)]">
                   {item.posterUrl && <Image src={item.posterUrl} alt="" fill sizes="40px" className="object-cover" />}
                 </div>

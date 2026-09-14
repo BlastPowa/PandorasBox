@@ -25,7 +25,6 @@ import { BackButton } from "@/components/shell/back-button";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import { ShareDialog } from "@/components/social/share-dialog";
 import { FriendsWithTitle } from "@/components/social/friends-with-title";
-import { WatchOnPBoxButton } from "@/components/player/watch-on-pbox-button";
 
 const VALID_TYPES: ReelItemType[] = ["movie", "series", "anime", "manga", "manhwa"];
 
@@ -87,7 +86,7 @@ export default async function TitlePage({
   return (
     <div>
       {/* Hero backdrop */}
-      <div className="relative h-[590px] w-full overflow-hidden sm:h-[580px] lg:h-[640px]">
+      <div className="relative h-[500px] w-full overflow-hidden sm:h-[560px] lg:h-[620px]">
         {detail.backdropUrl || detail.posterUrl ? (
           <Image
             src={detail.backdropUrl ?? detail.posterUrl!}
@@ -95,22 +94,23 @@ export default async function TitlePage({
             fill
             priority
             sizes="100vw"
-            className={detail.backdropUrl ? "object-cover object-top" : "scale-110 object-cover opacity-45 blur-xl"}
+            className={detail.backdropUrl ? "object-cover object-center saturate-[0.96]" : "scale-110 object-cover opacity-55 blur-2xl"}
           />
         ) : (
-          <div className="size-full bg-[linear-gradient(160deg,#16121f,#1c1230)]" />
+          <div className="size-full bg-[radial-gradient(circle_at_22%_18%,rgb(var(--accent-rgb)/0.24),transparent_42%),linear-gradient(145deg,var(--bg-elevated),var(--bg-base)_68%)]" />
         )}
-        <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,rgba(8,8,13,0.82)_28%,rgba(8,8,13,0.28)_68%,rgba(8,8,13,0.5)_100%),linear-gradient(90deg,rgba(6,6,10,0.78)_0%,rgba(6,6,10,0.28)_58%,transparent_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_75%,transparent)_26%,rgba(7,7,12,0.18)_66%,rgba(7,7,12,0.34)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,7,12,0.42)_0%,rgba(7,7,12,0.14)_52%,transparent_78%)]" />
         <div className="absolute left-4 top-4 md:left-8">
-          <BackButton className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-white backdrop-blur" />
+          <BackButton className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/25 px-3 py-1.5 text-sm font-semibold text-white shadow-sm backdrop-blur-md transition hover:bg-black/40" />
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto -mt-[370px] max-w-[1200px] px-4 sm:-mt-[330px] md:px-8 lg:-mt-[350px]">
-        <div className="flex items-end gap-4 sm:gap-6">
+      <div className="relative z-10 mx-auto -mt-[190px] max-w-[1200px] px-4 md:px-8 lg:-mt-[220px]">
+        <div className="pb-uiverse-card pb-uiverse-card--hero pb-aura flex items-end gap-4 rounded-[28px] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.16)] sm:gap-6 sm:p-6">
           {/* Poster */}
           <div className="relative hidden w-36 shrink-0 sm:block lg:w-44">
-            <div className="relative aspect-[2/3] overflow-hidden rounded-[var(--radius-lg)] border border-white/15 shadow-2xl">
+            <div className="relative aspect-[2/3] overflow-hidden rounded-[20px] border border-white/15 shadow-[0_22px_55px_rgba(0,0,0,.24)]">
               {detail.posterUrl ? (
                 <Image src={detail.posterUrl} alt={detail.title} fill sizes="208px" className="object-cover" />
               ) : (
@@ -144,7 +144,7 @@ export default async function TitlePage({
                 </span>
               ))}
             </div>
-            <h1 className="max-w-4xl font-display text-3xl font-extrabold leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.8)] sm:text-5xl lg:text-6xl">{detail.title}</h1>
+            <h1 className="max-w-4xl font-display text-3xl font-extrabold leading-[0.96] tracking-tight text-[var(--text)] sm:text-5xl lg:text-6xl">{detail.title}</h1>
 
             {/* Availability badges (live) */}
             {availability && (
@@ -167,7 +167,7 @@ export default async function TitlePage({
               </div>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-white/75">
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-[var(--text-secondary)]">
               {detail.runtime !== null && (
                 <span className="flex items-center gap-1.5"><Clock className="size-4" /> {formatRuntime(detail.runtime)}</span>
               )}
@@ -189,13 +189,12 @@ export default async function TitlePage({
             )}
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <WatchOnPBoxButton
-                title={detail.title}
-                type={detail.type}
-                year={detail.year}
-                source={detail.source}
-                sourceId={decodeURIComponent(id)}
-              />
+              <Link
+                href="#where-to-watch"
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--accent)] px-5 text-sm font-bold text-white shadow-sm transition hover:scale-[1.02] hover:bg-[var(--accent-hover)]"
+              >
+                <Globe className="size-4" /> {isReading ? "Open reading options" : "Open providers"}
+              </Link>
               <AddToLibrary seed={seed} />
               <TrailerButton
                 type={detail.type}
@@ -233,11 +232,12 @@ export default async function TitlePage({
         </div>
 
         {/* Body */}
-        <div className="mt-8 grid gap-6 sm:mt-12 lg:grid-cols-[1fr_360px]">
+        <div className="mt-8 grid gap-7 sm:mt-12 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 space-y-8">
             {(detail.cast ?? []).length > 0 && (
-              <section>
-                <h2 className="mb-3 font-display text-xl font-bold">Cast</h2>
+              <section className="pb-uiverse-card pb-uiverse-card--feature rounded-[var(--radius-xl)] p-5 sm:p-6">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Faces you&apos;ll recognise</p>
+                <h2 className="mb-4 mt-1 font-display text-2xl font-bold">Cast</h2>
                 <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
                   {(detail.cast ?? []).map((c, i) => {
                     const avatar = (
@@ -277,9 +277,10 @@ export default async function TitlePage({
             )}
 
             {detail.synopsis && (
-              <section>
-                <h2 className="mb-2 font-display text-xl font-bold">Story</h2>
-                <ExpandableText text={detail.synopsis} />
+              <section className="pb-uiverse-card pb-uiverse-card--feature rounded-[var(--radius-xl)] p-5 sm:p-6">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent)]">About this story</p>
+                <h2 className="mb-2 mt-1 font-display text-2xl font-bold">Story</h2>
+                <div className="text-[15px] leading-7 text-[var(--text-secondary)]"><ExpandableText text={detail.synopsis} /></div>
               </section>
             )}
 
@@ -297,7 +298,7 @@ export default async function TitlePage({
                       href={`https://mangadex.org/chapter/${c.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="glass glow-ring flex items-center justify-between rounded-[var(--radius-md)] px-3 py-2 text-sm"
+                      className="pb-uiverse-row flex items-center justify-between rounded-[var(--radius-md)] px-3 py-2 text-sm"
                     >
                       <span className="truncate">Ch. {c.number}{c.title ? ` — ${c.title}` : ""}</span>
                       <span className="shrink-0 text-xs text-[var(--text-muted)]">{formatAirDate(c.publishAt)}</span>
@@ -338,9 +339,6 @@ export default async function TitlePage({
         {(detail.type === "series" || detail.type === "anime") && detail.tmdbId !== null && (detail.episodes.length > 0 || (detail.totalSeasons ?? 0) > 0) && (
           <EpisodesSection
             itemId={detail.id}
-            mediaType={detail.type}
-            source={detail.source}
-            sourceId={decodeURIComponent(id)}
             tmdbId={detail.tmdbId}
             totalSeasons={detail.totalSeasons ?? 1}
             initialEpisodes={detail.episodes}
@@ -350,8 +348,6 @@ export default async function TitlePage({
         {detail.type === "anime" && detail.tmdbId === null && detail.malId !== null && (detail.animeEpisodes ?? []).length > 0 && (
           <AnimeEpisodesSection
             itemId={detail.id}
-            source={detail.source}
-            sourceId={decodeURIComponent(id)}
             malId={detail.malId}
             initialEpisodes={detail.animeEpisodes ?? []}
           />
@@ -394,7 +390,7 @@ function AboutCard({ detail }: { detail: DetailData }) {
         {(detail.score !== null || (detail.ratings ?? []).length > 0) && (
           <div className="mb-4 grid grid-cols-2 gap-2 border-b border-[var(--border)] pb-4">
             {detail.score !== null && (
-              <div className="rounded-[var(--radius-md)] bg-[var(--glass)] px-3 py-2.5">
+              <div className="pb-uiverse-mini-card rounded-[var(--radius-md)] px-3 py-2.5">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">TMDB</div>
                 <div className="mt-1 flex items-center gap-1 font-mono text-sm font-bold text-[var(--gold)]">
                   <Star className="size-3.5 fill-current" /> {detail.score.toFixed(1)}/10
@@ -402,7 +398,7 @@ function AboutCard({ detail }: { detail: DetailData }) {
               </div>
             )}
             {(detail.ratings ?? []).map((rating) => (
-              <div key={rating.source} className="rounded-[var(--radius-md)] bg-[var(--glass)] px-3 py-2.5">
+              <div key={rating.source} className="pb-uiverse-mini-card rounded-[var(--radius-md)] px-3 py-2.5">
                 <div className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                   {ratingLabel(rating.source)}
                 </div>
@@ -463,8 +459,8 @@ function Badge({
 }) {
   const tones: Record<string, string> = {
     accent: "bg-[rgb(var(--accent-rgb)/0.16)] text-[var(--accent)]",
-    gold: "bg-[rgb(var(--gold-rgb)/0.16)] text-[var(--gold)]",
-    green: "bg-[rgba(34,197,94,0.16)] text-[#4ade80]",
+    gold: "bg-[rgb(var(--gold-rgb)/0.12)] text-[#9a3412]",
+    green: "bg-[#ecfdf3] text-[#16803c]",
     muted: "bg-[var(--glass)] text-[var(--text-secondary)]",
   };
   return (

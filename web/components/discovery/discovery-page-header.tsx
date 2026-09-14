@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 
-export function DiscoveryPageHeader({ eyebrow = "PBox Discovery", title, description, actions }: { eyebrow?: string; title: string; description: string; actions?: ReactNode }) {
+export function DiscoveryPageHeader({ eyebrow = "Discover", title, description, actions }: { eyebrow?: string; title: string; description: string; actions?: ReactNode }) {
   return (
-    <header className="relative overflow-visible rounded-[var(--radius-xl)] border border-[var(--media-border)] bg-[linear-gradient(120deg,rgb(var(--accent-rgb)/0.13),rgb(var(--accent-2-rgb)/0.06)_45%,var(--glass))] px-5 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.28)] sm:px-7 sm:py-8">
-      <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-[rgb(var(--accent-rgb)/0.13)] blur-3xl" aria-hidden="true" />
+    <header className="relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-surface)] px-5 py-6 shadow-[0_16px_50px_rgba(15,23,42,.06)] sm:px-7 sm:py-8">
+      <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-[rgb(var(--accent-rgb)/0.10)] blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-24 left-[35%] size-52 rounded-full bg-[rgb(var(--accent-2-rgb)/0.07)] blur-3xl" aria-hidden="true" />
       <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--accent)]">{eyebrow}</p>

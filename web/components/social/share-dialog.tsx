@@ -155,8 +155,8 @@ export function ShareDialog({ entity, className, allowDirect = true }: { entity:
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-0 z-[71] flex flex-col overflow-hidden bg-[var(--bg-elevated)] outline-none sm:left-1/2 sm:top-1/2 sm:inset-auto sm:max-h-[88dvh] sm:w-[min(92vw,620px)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)] sm:border sm:border-[var(--border)] sm:shadow-2xl">
+        <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-md" />
+        <Dialog.Content className="fixed inset-0 z-[71] flex flex-col overflow-hidden bg-[var(--bg-surface)] text-[var(--text)] outline-none sm:left-1/2 sm:top-1/2 sm:inset-auto sm:max-h-[88dvh] sm:w-[min(92vw,620px)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)] sm:border sm:border-[var(--border)] sm:shadow-[0_28px_90px_rgba(0,0,0,0.28)]">
           <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] pb-5 pl-[max(1.25rem,var(--safe-left))] pr-[max(1.25rem,var(--safe-right))] pt-[calc(var(--safe-top)+1.25rem)] sm:p-5">
             <div className="min-w-0">
               <Dialog.Title className="font-display text-xl font-bold">Share {entity.title}</Dialog.Title>
@@ -179,7 +179,7 @@ export function ShareDialog({ entity, className, allowDirect = true }: { entity:
                       setTarget("friends");
                       setQuery("");
                     }}
-                    className={cn("min-h-11 rounded-lg text-sm font-bold", target === "friends" ? "bg-[var(--accent)] text-black" : "text-[var(--text-secondary)]")}
+                    className={cn("min-h-11 rounded-lg text-sm font-bold transition", target === "friends" ? "bg-[var(--accent)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]")}
                   >
                     <Users className="mr-2 inline size-4" />
                     Friends
@@ -191,7 +191,7 @@ export function ShareDialog({ entity, className, allowDirect = true }: { entity:
                       setTarget("messages");
                       setQuery("");
                     }}
-                    className={cn("min-h-11 rounded-lg text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40", target === "messages" ? "bg-[var(--accent)] text-black" : "text-[var(--text-secondary)]")}
+                    className={cn("min-h-11 rounded-lg text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-40", target === "messages" ? "bg-[var(--accent)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]")}
                   >
                     <MessageCircle className="mr-2 inline size-4" />
                     Messages

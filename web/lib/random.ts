@@ -6,7 +6,6 @@ import {
   tvGenreIds,
   anilistGenres,
   type RandomFilters,
-  type RandomType,
   type GenreMode,
 } from "./random-shared";
 

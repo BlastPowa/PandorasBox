@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { User, Palette, Plug, UploadCloud, Database, PlaySquare } from "lucide-react";
+import { User, Palette, Plug, UploadCloud, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type SettingsTabKey = "account" | "appearance" | "player" | "integrations" | "import" | "backup";
+export type SettingsTabKey = "account" | "appearance" | "integrations" | "import" | "backup";
 
 const TABS: { key: SettingsTabKey; label: string; description: string; icon: typeof User }[] = [
   { key: "account", label: "Account", description: "Profile & sign-in", icon: User },
   { key: "appearance", label: "Appearance", description: "Theme & display", icon: Palette },
-  { key: "player", label: "Player", description: "Streaming & playback", icon: PlaySquare },
   { key: "integrations", label: "Integrations", description: "Sync services", icon: Plug },
   { key: "import", label: "Import", description: "Bring your lists", icon: UploadCloud },
   { key: "backup", label: "Backup", description: "Export & restore", icon: Database },

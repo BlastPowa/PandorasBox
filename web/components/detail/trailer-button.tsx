@@ -50,8 +50,8 @@ export function TrailerButton({ type, source, id, initialKey, totalSeasons, titl
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] p-3 shadow-2xl">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-md data-[state=open]:animate-in data-[state=open]:fade-in" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 text-[var(--text)] shadow-[0_32px_100px_rgba(0,0,0,0.34)]">
           <div className="mb-2 flex items-center justify-between gap-3 px-1">
             <Dialog.Title className="truncate font-display text-sm font-bold">{title} — Trailer</Dialog.Title>
             <div className="flex items-center gap-2">
@@ -71,7 +71,7 @@ export function TrailerButton({ type, source, id, initialKey, totalSeasons, titl
               </Dialog.Close>
             </div>
           </div>
-          <div className="relative aspect-video w-full overflow-hidden rounded-[var(--radius-md)] bg-black">
+          <div className="relative aspect-video w-full overflow-hidden rounded-[var(--radius-md)] bg-black/90">
             {loading ? (
               <div className="grid size-full place-items-center text-sm text-[var(--text-muted)]">Loading…</div>
             ) : key ? (

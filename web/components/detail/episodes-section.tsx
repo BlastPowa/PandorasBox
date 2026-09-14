@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Check, ListChecks, Play, Undo2 } from "lucide-react";
+import { X, Check, ListChecks, Undo2 } from "lucide-react";
 import type { TMDBEpisode } from "@core/api/tmdb";
 import { formatAirDate, formatRuntime } from "@core/utils/formatters";
 import { Spinner } from "@/components/ui-fx/feedback";
@@ -15,17 +14,11 @@ import { episodeMediaKey } from "@/lib/reviews/reviews";
 
 export function EpisodesSection({
   itemId,
-  mediaType = "series",
-  source,
-  sourceId,
   tmdbId,
   totalSeasons,
   initialEpisodes,
 }: {
   itemId: string;
-  mediaType?: "series" | "anime";
-  source: string;
-  sourceId: string;
   tmdbId: number;
   totalSeasons: number;
   initialEpisodes: TMDBEpisode[];
@@ -99,9 +92,6 @@ export function EpisodesSection({
   }
 
   const seasons = Array.from({ length: Math.max(1, totalSeasons) }, (_, i) => i + 1);
-  const watchHref = (episode: number) =>
-    `/watch/${mediaType}/${encodeURIComponent(source)}/${encodeURIComponent(sourceId)}?season=${season}&episode=${episode}`;
-
   return (
     <section id="pbox-episodes" className="mt-10 scroll-mt-24 border-t border-[var(--border)] pt-8">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -173,17 +163,6 @@ export function EpisodesSection({
                     {ep.overview && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-secondary)]">{ep.overview}</p>}
                   </div>
                 </button>
-                {!selectMode && (
-                  <Link
-                    href={watchHref(ep.episode_number)}
-                    onClick={(event) => event.stopPropagation()}
-                    aria-label={`Watch episode ${ep.episode_number}`}
-                    title={`Watch episode ${ep.episode_number}`}
-                    className="absolute right-2.5 top-2.5 grid size-9 place-items-center rounded-full border border-white/15 bg-black/70 text-white shadow-lg backdrop-blur-md transition hover:scale-105 hover:bg-[var(--accent)] hover:text-black"
-                  >
-                    <Play className="size-4 fill-current" />
-                  </Link>
-                )}
                 {!selectMode && watched && (
                   <button
                     onClick={() => void unmark(ep)}
@@ -203,8 +182,8 @@ export function EpisodesSection({
       {/* Read-more modal (mobile-friendly) */}
       <Dialog.Root open={selected !== null} onOpenChange={(o) => !o && setSelected(null)}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl">
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-md" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text)] shadow-[0_28px_90px_rgba(0,0,0,0.28)]">
             {selected && (
               <>
                 <div className="relative aspect-video w-full bg-[var(--bg-surface)]">
@@ -216,7 +195,7 @@ export function EpisodesSection({
                       E{selected.episode_number}
                     </div>
                   )}
-                  <Dialog.Close className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80">
+                  <Dialog.Close className="absolute right-2 top-2 grid size-8 place-items-center rounded-full border border-white/20 bg-black/45 text-white shadow-sm backdrop-blur-md transition hover:bg-black/60">
                     <X className="size-4" />
                   </Dialog.Close>
                 </div>
@@ -233,16 +212,9 @@ export function EpisodesSection({
                     </p>
                   </Dialog.Description>
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <Link
-                      href={watchHref(selected.episode_number)}
-                      className="inline-flex h-9 items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 text-sm font-bold text-[#08090d] transition hover:brightness-110"
-                    >
-                      <Play className="size-4 fill-current" /> Watch episode
-                    </Link>
                   {item && (
                     <Button
                       size="sm"
-                      variant="glass"
                       disabled={isWatched(selected)}
                       onClick={() => {
                         void markEpisode(itemId, selected.episode_number, season).then(() =>
@@ -253,6 +225,9 @@ export function EpisodesSection({
                       <Check className="size-4 text-[var(--completed)]" />
                       {isWatched(selected) ? "Watched" : "Mark as watched"}
                     </Button>
+                  )}
+                  {!item && (
+                    <p className="text-xs text-[var(--text-muted)]">Add this title to your library to check in and track episode progress.</p>
                   )}
                   {item && isWatched(selected) && (
                     <Button

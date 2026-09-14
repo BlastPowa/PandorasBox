@@ -16,7 +16,7 @@ export function AdminPanel() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap gap-2">
-        <Pill active={section === "links"} onClick={() => setSection("links")}>Watch Links</Pill>
+        <Pill active={section === "links"} onClick={() => setSection("links")}>Provider Links</Pill>
         <Pill active={section === "sites"} onClick={() => setSection("sites")}>Sites Directory</Pill>
         <Pill active={section === "announcements"} onClick={() => setSection("announcements")}>Announcements</Pill>
         <Pill active={section === "issues"} onClick={() => setSection("issues")}>User Issues</Pill>
@@ -33,7 +33,7 @@ export function AdminPanel() {
 interface Issue { id: string; username: string; message: string; status: string; created_at: string }
 
 function Issues() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [rows, setRows] = useState<Issue[]>([]);
 
   async function load() {
@@ -44,7 +44,18 @@ function Issues() {
       .limit(100);
     setRows((data as Issue[] | null) ?? []);
   }
-  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void supabase
+      .from("user_issues")
+      .select("id, username, message, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .then(({ data }) => {
+        if (!cancelled) setRows((data as Issue[] | null) ?? []);
+      });
+    return () => { cancelled = true; };
+  }, [supabase]);
 
   async function resolve(id: string) {
     await supabase.from("user_issues").update({ status: "resolved" }).eq("id", id);
@@ -56,11 +67,11 @@ function Issues() {
   }
 
   return (
-    <GlassCard macDots title="User Issues">
+    <GlassCard macDots title="User Issues" className="pb-aura">
       <div className="space-y-2 p-4">
         {rows.length === 0 && <p className="text-sm text-[var(--text-muted)]">No issues submitted yet.</p>}
         {rows.map((r) => (
-          <div key={r.id} className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm">
+          <div key={r.id} className="pb-uiverse-row rounded-[var(--radius-md)] p-3 text-sm">
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="font-mono text-xs text-[var(--accent)]">#{r.id.slice(0, 8).toUpperCase()}</span>
               <span className={`text-xs font-semibold ${r.status === "resolved" ? "text-[var(--completed)]" : "text-[var(--gold)]"}`}>
@@ -116,7 +127,7 @@ function RefreshButton() {
 interface WatchLink { id: string; media_key: string; site_name: string; url: string; category: string; quality: string | null }
 
 function WatchLinks() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [rows, setRows] = useState<WatchLink[]>([]);
   const [form, setForm] = useState({ media_key: "", media_type: "movie", site_name: "", url: "", category: "free", quality: "" });
 
@@ -124,7 +135,18 @@ function WatchLinks() {
     const { data } = await supabase.from("watch_links").select("id, media_key, site_name, url, category, quality").order("created_at", { ascending: false }).limit(100);
     setRows((data as WatchLink[] | null) ?? []);
   }
-  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void supabase
+      .from("watch_links")
+      .select("id, media_key, site_name, url, category, quality")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .then(({ data }) => {
+        if (!cancelled) setRows((data as WatchLink[] | null) ?? []);
+      });
+    return () => { cancelled = true; };
+  }, [supabase]);
 
   async function addRow() {
     if (!form.media_key || !form.url || !form.site_name) { toast.error("media key, site name and URL are required"); return; }
@@ -143,7 +165,7 @@ function WatchLinks() {
   }
 
   return (
-    <GlassCard macDots title="Watch / Read Links">
+    <GlassCard macDots title="External Provider Links" className="pb-aura">
       <div className="space-y-4 p-4">
         <p className="text-xs text-[var(--text-muted)]">
           media_key ties a link to a title: <code className="font-mono">tmdb-603</code>, <code className="font-mono">anilist-16498</code>, <code className="font-mono">mangadex-&lt;uuid&gt;</code>, or <code className="font-mono">global</code> for site-wide.
@@ -174,7 +196,7 @@ function WatchLinks() {
 interface Site { id: string; name: string; url: string; category: string; is_free: boolean }
 
 function Sites() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [rows, setRows] = useState<Site[]>([]);
   const [form, setForm] = useState({ name: "", url: "", category: "mixed", is_free: true });
 
@@ -182,7 +204,17 @@ function Sites() {
     const { data } = await supabase.from("site_directory").select("id, name, url, category, is_free").order("sort");
     setRows((data as Site[] | null) ?? []);
   }
-  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void supabase
+      .from("site_directory")
+      .select("id, name, url, category, is_free")
+      .order("sort")
+      .then(({ data }) => {
+        if (!cancelled) setRows((data as Site[] | null) ?? []);
+      });
+    return () => { cancelled = true; };
+  }, [supabase]);
 
   async function addRow() {
     if (!form.name || !form.url) { toast.error("Name and URL required"); return; }
@@ -193,7 +225,7 @@ function Sites() {
   async function del(id: string) { await supabase.from("site_directory").delete().eq("id", id); void load(); }
 
   return (
-    <GlassCard macDots title="Sites Directory">
+    <GlassCard macDots title="Sites Directory" className="pb-aura">
       <div className="space-y-4 p-4">
         <div className="grid gap-2 sm:grid-cols-2">
           <Input placeholder="Site name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -220,7 +252,7 @@ function Sites() {
 interface Ann { id: string; title: string; body: string | null; variant: string; active: boolean }
 
 function Announcements() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [rows, setRows] = useState<Ann[]>([]);
   const [form, setForm] = useState({ title: "", body: "", variant: "info" });
 
@@ -228,7 +260,17 @@ function Announcements() {
     const { data } = await supabase.from("announcements").select("id, title, body, variant, active").order("created_at", { ascending: false });
     setRows((data as Ann[] | null) ?? []);
   }
-  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void supabase
+      .from("announcements")
+      .select("id, title, body, variant, active")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (!cancelled) setRows((data as Ann[] | null) ?? []);
+      });
+    return () => { cancelled = true; };
+  }, [supabase]);
 
   async function addRow() {
     if (!form.title) { toast.error("Title required"); return; }
@@ -239,7 +281,7 @@ function Announcements() {
   async function del(id: string) { await supabase.from("announcements").delete().eq("id", id); void load(); }
 
   return (
-    <GlassCard macDots title="Announcements">
+    <GlassCard macDots title="Announcements" className="pb-aura">
       <div className="space-y-4 p-4">
         <Input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         <Input placeholder="Body (optional)" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />

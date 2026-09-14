@@ -19,9 +19,7 @@ const csp = [
   // not proxied through /_next/image, so every host must be listed here.
   "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://comicvine.gamespot.com https://static.comicvine.com https://images.igdb.com https://img.youtube.com https://*.supabase.co https://*.giphy.com",
   "media-src 'self' https:",
-  // Authorised HLS/DASH sources are user-configurable at runtime. hls.js and
-  // dash.js fetch manifests and segments through connect-src, so HTTPS must be
-  // allowed here as well as in media-src.
+  // Browser-side services such as GIPHY and Supabase require HTTPS connections.
   "connect-src 'self' https: wss://*.supabase.co",
   "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
   "upgrade-insecure-requests",
@@ -73,15 +71,6 @@ const nextConfig: NextConfig = {
   // the icons/primitives they actually use instead of the whole library.
   experimental: {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
-  },
-  async redirects() {
-    return [
-      {
-        source: "/downloads/pbox-watch-sync.zip",
-        destination: "https://github.com/BlastPowa/PandorasBox-Cinejoy-Extension/releases/latest/download/pbox-watch-sync.zip",
-        permanent: false,
-      },
-    ];
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

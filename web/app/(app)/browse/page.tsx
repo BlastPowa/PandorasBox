@@ -23,6 +23,7 @@ import { FRANCHISES } from "@/lib/franchises";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
 import { ProviderSwitcher } from "@/components/discovery/provider-switcher";
 import { FranchiseExplorer } from "@/components/discovery/franchise-explorer";
+import { AmbientBackground } from "@/components/home/ambient-background";
 
 export const revalidate = 3600;
 
@@ -69,17 +70,20 @@ async function BrowseContent() {
   const marvel = [...marvelMovies, ...marvelTv];
   const dc = [...dcMovies, ...dcTv];
   const spotlight = movies.find((item) => item.backdropUrl) ?? series.find((item) => item.backdropUrl) ?? anime.find((item) => item.backdropUrl);
+  const backdropSlides = Array.from(new Set([...movies, ...series, ...anime, ...topMovies].map((item) => item.backdropUrl).filter((url): url is string => Boolean(url)))).slice(0, 6);
 
   return (
     <div className="space-y-8">
-      <section className="relative -mx-4 -mt-6 min-h-[320px] overflow-hidden border-b border-[var(--border)] md:-mx-8 md:min-h-[390px]">
-        {spotlight?.backdropUrl && <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${JSON.stringify(spotlight.backdropUrl)})` }} />}
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--cinematic-scrim)_0%,rgb(7_7_12/0.72)_42%,transparent_78%),linear-gradient(to_top,var(--bg-base),transparent_65%)]" />
+      <AmbientBackground imageUrl={backdropSlides[0] ?? spotlight?.backdropUrl ?? null} imageUrls={backdropSlides} intervalMs={7000} />
+      <section className="relative -mx-4 -mt-6 min-h-[320px] overflow-hidden border-b border-[var(--border)] bg-[var(--bg-surface)] md:-mx-8 md:min-h-[390px]">
+        {spotlight?.backdropUrl && <div className="absolute inset-y-0 right-0 w-full bg-cover bg-center opacity-55 md:w-[72%]" style={{ backgroundImage: `url(${JSON.stringify(spotlight.backdropUrl)})` }} />}
+        <div className="absolute inset-0 bg-[var(--cinematic-scrim)] opacity-75" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--bg-surface)_0%,transparent_88%),linear-gradient(to_top,var(--bg-surface)_0%,transparent_62%)] opacity-90" />
         <div className="relative flex min-h-[320px] max-w-2xl flex-col justify-end px-4 pb-12 pt-20 md:min-h-[390px] md:px-10 md:pb-16">
-          <span className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-[var(--media-border)] bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white/75 backdrop-blur"><Compass className="size-3.5 text-[var(--accent)]" /> Explore PBox</span>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-6xl">Find your next world</h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65 sm:text-base">Movies, series, anime, manga, comics, and games—curated across every corner of your entertainment library.</p>
-          <div className="mt-5 flex flex-wrap gap-3"><Link href="/movies" className="inline-flex h-11 items-center gap-2 rounded-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-6 text-sm font-bold text-[#0a0a0f]">Browse movies <ArrowRight className="size-4" /></Link><Link href="/anime" className="glass inline-flex h-11 items-center rounded-full px-6 text-sm font-semibold">Explore anime</Link></div>
+          <span className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-[rgb(var(--accent-rgb)/0.30)] bg-[rgb(var(--accent-rgb)/0.12)] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent)] backdrop-blur-md"><Compass className="size-3.5" /> Explore PBox</span>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight text-[var(--text)] sm:text-6xl">Find your next world</h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">Movies, series, anime, manga, comics, and games—curated across every corner of your entertainment library.</p>
+          <div className="mt-5 flex flex-wrap gap-3"><Link href="/movies" className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--accent-hover)]">Browse movies <ArrowRight className="size-4" /></Link><Link href="/anime" className="inline-flex h-11 items-center rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] px-6 text-sm font-semibold text-[var(--text)] shadow-sm backdrop-blur-md transition hover:border-[var(--border-strong)]">Explore anime</Link></div>
         </div>
       </section>
       {!hasTmdb && (

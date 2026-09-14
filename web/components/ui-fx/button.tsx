@@ -7,22 +7,22 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const button = cva(
-  "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-md)] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] select-none",
+  "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-md)] font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] disabled:pointer-events-none disabled:opacity-50 active:translate-y-px select-none",
   {
     variants: {
       variant: {
         primary:
-          "text-[#0a0a0f] font-semibold bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] shadow-[0_8px_30px_rgb(var(--accent-rgb)/0.25)] hover:shadow-[0_10px_40px_rgb(var(--accent-rgb)/0.4)] hover:brightness-110",
+          "bg-[var(--accent)] text-white font-semibold shadow-sm hover:bg-[var(--accent-hover)] hover:shadow-md",
         gold:
-          "text-[#0a0a0f] font-semibold bg-[linear-gradient(120deg,var(--gold),#ffcf6b)] shadow-[0_8px_30px_rgb(var(--gold-rgb)/0.25)] hover:brightness-110",
+          "bg-[#fff7ed] text-[#9a3412] font-semibold border border-[#fed7aa] hover:bg-[#ffedd5]",
         glass:
-          "glass text-[var(--text)] glow-ring hover:bg-[var(--glass-strong)]",
+          "border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text)] shadow-sm hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]",
         ghost:
           "text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--glass)]",
         outline:
           "border border-[var(--border-strong)] text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--glass)]",
         danger:
-          "bg-[rgba(239,68,68,0.14)] border border-[rgba(239,68,68,0.4)] text-[#fca5a5] hover:bg-[rgba(239,68,68,0.22)]",
+          "bg-[#fff1f0] border border-[#fecaca] text-[#c4320a] hover:bg-[#fee2e2]",
       },
       size: {
         sm: "h-9 px-3 text-sm",

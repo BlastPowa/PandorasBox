@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     "A universal tracker and discovery hub for movies, series, anime, manga and manhwa. Rank your library, find where to watch, and never miss a new episode.",
   manifest: "/manifest.webmanifest",
   applicationName: "PBox",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "PBox" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "PBox" },
   icons: {
     icon: "/icons/icon-192.png",
     apple: "/icons/icon-192.png",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0f",
+  themeColor: "#f7f8fa",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

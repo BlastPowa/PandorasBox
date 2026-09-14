@@ -33,6 +33,7 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
   const [submitting, setSubmitting] = useState(false);
 
   async function load() {
+    await Promise.resolve();
     setLoading(true);
     try {
       const [list, uid] = await Promise.all([listReviews(mediaKey), getCurrentUserId()]);
@@ -51,7 +52,7 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
   }
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => void load());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mediaKey]);
 

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { EmptyState } from "@/components/ui-fx/feedback";
+import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -45,43 +46,43 @@ export default async function SitesPage() {
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-6 md:px-8">
-      <div className="mb-2 flex items-center gap-2">
-        <Globe className="size-6 text-[var(--accent)]" />
-        <h1 className="font-display text-2xl font-bold">Streaming, Reading &amp; Game Sites</h1>
-      </div>
-      <p className="mb-6 text-sm text-[var(--text-secondary)]">
-        A curated directory of places to watch, read, and find games. Managed by admins.
-      </p>
-
-      {sites.length === 0 ? (
-        <EmptyState
-          icon={<Globe className="size-10" />}
-          title="No sites yet"
-          description="An admin can add streaming and reading sites from the Admin panel. They'll show up here and as where-to-watch links."
+      <div className="space-y-6">
+        <DiscoveryPageHeader
+          eyebrow="Open elsewhere"
+          title="Watch, Read &amp; Play"
+          description="A curated directory of external places to continue with the films, shows, anime, comics, manga and games you track in Pandora's Box."
         />
-      ) : (
-        <div className="space-y-5">
-          {Array.from(byCat.entries()).map(([cat, list]) => (
-            <GlassCard key={cat} macDots title={CATEGORY_LABELS[cat] ?? cat}>
-              <div className="grid gap-2 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                {list.map((s) => (
-                  <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer"
-                    className="glass glow-ring flex items-center justify-between gap-2 rounded-[var(--radius-md)] px-4 py-3">
-                    <span className="flex items-center gap-2">
-                      <span className="grid size-8 place-items-center rounded-full bg-[var(--glass-strong)] font-bold">{s.name.charAt(0)}</span>
-                      <span>
-                        <span className="block text-sm font-semibold">{s.name}</span>
-                        <span className="text-[10px] uppercase text-[var(--text-muted)]">{s.is_free ? "Free" : "Paid"}</span>
+
+        {sites.length === 0 ? (
+          <EmptyState
+            icon={<Globe className="size-10" />}
+            title="No sites yet"
+            description="An admin can add provider links from the Admin panel. They'll appear here and alongside supported title pages."
+          />
+        ) : (
+          <div className="space-y-5">
+            {Array.from(byCat.entries()).map(([cat, list]) => (
+              <GlassCard key={cat} macDots title={CATEGORY_LABELS[cat] ?? cat} className="pb-aura">
+                <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {list.map((s) => (
+                    <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer"
+                      className="pb-uiverse-row flex items-center justify-between gap-2 rounded-[var(--radius-md)] px-4 py-3">
+                      <span className="flex items-center gap-2">
+                        <span className="pb-uiverse-icon grid size-9 place-items-center rounded-full font-bold">{s.name.charAt(0)}</span>
+                        <span>
+                          <span className="block text-sm font-semibold">{s.name}</span>
+                          <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{s.is_free ? "Free" : "Paid"}</span>
+                        </span>
                       </span>
-                    </span>
-                    <ExternalLink className="size-4 opacity-50" />
-                  </a>
-                ))}
-              </div>
-            </GlassCard>
-          ))}
-        </div>
-      )}
+                      <ExternalLink className="size-4 opacity-60" />
+                    </a>
+                  ))}
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

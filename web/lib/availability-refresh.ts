@@ -2,7 +2,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import type { ReelItem } from "@core/storage/schema";
 import { getAiringSchedule } from "@core/api/anilist";
-import { getSeriesDetails, getMovieDetails } from "@core/api/tmdb";
+import { getSeriesDetails } from "@core/api/tmdb";
 import { getLatestChapter } from "@core/api/mangadex";
 
 interface AvailabilityRow {

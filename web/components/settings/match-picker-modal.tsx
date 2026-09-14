@@ -52,8 +52,8 @@ export function MatchPickerModal({
   return (
     <Dialog.Root open={Boolean(entry)} onOpenChange={(o) => !o && onResolve({ action: "skip" })}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
           <div className="border-b border-[var(--border)] p-4">
             <Dialog.Title className="font-display text-lg font-bold">Multiple matches for &ldquo;{entry?.query}&rdquo;</Dialog.Title>
             <Dialog.Description className="text-xs text-[var(--text-muted)]">
@@ -81,7 +81,7 @@ export function MatchPickerModal({
               <button
                 key={c.id}
                 onClick={() => { onResolve({ action: "choose", result: c }); reset(); }}
-                className="glass flex w-full items-center gap-3 rounded-[var(--radius-md)] p-2 text-left hover:border-[var(--accent)]"
+                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-2 text-left shadow-sm transition hover:border-[var(--accent)] hover:bg-[var(--bg-elevated)]"
               >
                 <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-[6px] bg-[var(--bg-surface)]">
                   {c.posterUrl && <Image src={c.posterUrl} alt="" fill sizes="44px" className="object-cover" />}

@@ -6,6 +6,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Search, CornerDownLeft } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { NAV_ITEMS } from "@/lib/nav";
+import { mediaItemHref } from "@/lib/library/item-href";
 import { TypeBadge } from "@/components/ui-fx/badge";
 import { Spinner } from "@/components/ui-fx/feedback";
 
@@ -22,31 +23,29 @@ export function CommandPalette() {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => !v);
+        if (open) {
+          setOpen(false);
+          setQ("");
+          setResults([]);
+          setLoading(false);
+          setActive(0);
+        } else {
+          setOpen(true);
+        }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  useEffect(() => {
-    if (!open) {
-      setQ("");
-      setResults([]);
-      setActive(0);
-    }
   }, [open]);
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     const query = q.trim();
     if (query.length < 2) {
-      setResults([]);
-      setLoading(false);
       return;
     }
-    setLoading(true);
     timer.current = setTimeout(async () => {
+      setLoading(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         const json = (await res.json()) as { results: UnifiedSearchResult[] };
@@ -71,7 +70,7 @@ export function CommandPalette() {
     ...navMatches.map((n) => ({ kind: "nav" as const, href: n.href, label: n.label })),
     ...results.map((r) => ({
       kind: "result" as const,
-      href: `/title/${r.type}/${r.source}/${r.anilistId ?? r.tmdbId ?? r.mangadexId ?? r.id}`,
+      href: mediaItemHref(r),
       label: r.title,
       item: r,
     })),
@@ -97,11 +96,22 @@ export function CommandPalette() {
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setQ("");
+          setResults([]);
+          setLoading(false);
+          setActive(0);
+        }
+      }}
+    >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-[2px]" />
         <Dialog.Content
-          className="fixed left-1/2 top-[12vh] z-50 w-[92vw] max-w-xl -translate-x-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl"
+          className="fixed left-1/2 top-[12vh] z-50 w-[92vw] max-w-xl -translate-x-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
           aria-describedby={undefined}
         >
           <Dialog.Title className="sr-only">Command palette</Dialog.Title>
@@ -110,7 +120,15 @@ export function CommandPalette() {
             <input
               autoFocus
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                const nextQuery = e.target.value;
+                setQ(nextQuery);
+                if (nextQuery.trim().length < 2) {
+                  setResults([]);
+                  setLoading(false);
+                  setActive(0);
+                }
+              }}
               onKeyDown={onInputKey}
               placeholder="Search titles or jump to a page…"
               className="h-14 flex-1 bg-transparent text-base outline-none placeholder:text-[var(--text-muted)]"
@@ -134,7 +152,7 @@ export function CommandPalette() {
                       key={n.href}
                       onMouseEnter={() => setActive(idx)}
                       onClick={() => go(n.href)}
-                      className={`flex w-full items-center gap-3 rounded-[8px] px-3 py-2 text-left text-sm ${active === idx ? "bg-[var(--glass)]" : ""}`}
+                      className={`flex w-full items-center gap-3 rounded-[8px] px-3 py-2 text-left text-sm transition ${active === idx ? "bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]" : "hover:bg-[var(--bg-elevated)]"}`}
                     >
                       <Icon className="size-4 text-[var(--text-secondary)]" /> {n.label}
                     </button>
@@ -146,14 +164,14 @@ export function CommandPalette() {
               <div>
                 <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Titles</p>
                 {results.map((r) => {
-                  const href = `/title/${r.type}/${r.source}/${r.anilistId ?? r.tmdbId ?? r.mangadexId ?? r.id}`;
+                  const href = mediaItemHref(r);
                   const idx = flat.findIndex((f) => f.kind === "result" && f.href === href && f.label === r.title);
                   return (
                     <button
                       key={r.id}
                       onMouseEnter={() => setActive(idx)}
                       onClick={() => go(href)}
-                      className={`flex w-full items-center gap-3 rounded-[8px] px-3 py-2 text-left ${active === idx ? "bg-[var(--glass)]" : ""}`}
+                      className={`flex w-full items-center gap-3 rounded-[8px] px-3 py-2 text-left transition ${active === idx ? "bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]" : "hover:bg-[var(--bg-elevated)]"}`}
                     >
                       <div className="relative h-12 w-8 shrink-0 overflow-hidden rounded-[4px] bg-[var(--bg-surface)]">
                         {r.posterUrl && (

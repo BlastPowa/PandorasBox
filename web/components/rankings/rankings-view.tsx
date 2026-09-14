@@ -56,9 +56,19 @@ export function RankingsView() {
   }
 
   useEffect(() => {
-    if (signedIn) void load();
-    else setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!signedIn) return;
+    let cancelled = false;
+    void listRankings(category)
+      .then((nextRankings) => {
+        if (!cancelled) setRankings(nextRankings);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : "Failed to load rankings");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [category, signedIn]);
 
   const rankedIds = useMemo(() => new Set(rankings.map((r) => r.item_id)), [rankings]);
@@ -133,7 +143,7 @@ export function RankingsView() {
       </div>
 
       {pickerOpen && (
-        <div className="glass max-h-72 space-y-1 overflow-y-auto rounded-[var(--radius-md)] p-3">
+        <div className="pb-uiverse-card pb-uiverse-card--compact max-h-72 space-y-1 overflow-y-auto rounded-[var(--radius-md)] p-3">
           {candidates.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)]">
               Nothing to add — every {CATEGORIES.find((c) => c.key === category)?.label.toLowerCase()} title in your
@@ -167,7 +177,7 @@ export function RankingsView() {
       ) : (
         <div className="space-y-2">
           {rankings.map((r, i) => (
-            <div key={r.id} className="glass flex items-center gap-3 rounded-[var(--radius-md)] p-2.5">
+            <div key={r.id} className="pb-uiverse-row flex items-center gap-3 rounded-[var(--radius-md)] p-2.5">
               <span className="w-7 shrink-0 text-center font-display text-lg font-bold text-[var(--accent)]">{i + 1}</span>
               <Link href={detailHref(r.category, r.item_id)} className="relative h-14 w-10 shrink-0 overflow-hidden rounded-[6px] bg-[var(--bg-elevated)]">
                 {r.poster_url && <Image src={r.poster_url} alt="" fill sizes="40px" className="object-cover" />}

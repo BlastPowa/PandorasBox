@@ -8,6 +8,7 @@ import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schem
 import { createDefaultProgress } from "@core/storage/schema";
 import { getStatusLabel } from "@core/utils/formatters";
 import { useLibrary } from "@/lib/library/use-library";
+import { mediaItemHref } from "@/lib/library/item-href";
 import { RatingStars } from "@/components/ui-fx/rating-stars";
 import { StatusBadge } from "@/components/ui-fx/badge";
 import { cn } from "@/lib/utils";
@@ -123,10 +124,7 @@ export function AddToLibrary({ seed, compact = false }: { seed: LibrarySeed; com
   }
 
   if (!signedIn) {
-    const nextPath =
-      seed.type === "comic"
-        ? `/comic/${seed.id.replace("comicvine-", "")}`
-        : `/title/${seed.type}/${seed.source}/${seed.anilistId ?? seed.tmdbId ?? seed.mangadexId}`;
+    const nextPath = mediaItemHref(seed);
     return (
       <a
         href={`/login?next=${nextPath}`}
