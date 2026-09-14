@@ -8,12 +8,23 @@ import { useLibrary } from "@/lib/library/use-library";
 type RecommendationProfile = {
   genres: Record<string, number>;
   types: Record<string, number>;
+  typeGenres: Record<string, Record<string, number>>;
   seenIds: string[];
 };
+
+type RecommendationGroups = {
+  movies: UnifiedSearchResult[];
+  series: UnifiedSearchResult[];
+  anime: UnifiedSearchResult[];
+  manga: UnifiedSearchResult[];
+};
+
+const EMPTY_GROUPS: RecommendationGroups = { movies: [], series: [], anime: [], manga: [] };
 
 function buildProfile(items: ReturnType<typeof useLibrary>["items"]): RecommendationProfile {
   const genres: Record<string, number> = {};
   const types: Record<string, number> = {};
+  const typeGenres: Record<string, Record<string, number>> = {};
 
   for (const item of items) {
     const statusWeight =
@@ -27,30 +38,43 @@ function buildProfile(items: ReturnType<typeof useLibrary>["items"]): Recommenda
     const weight = statusWeight * ratingWeight * recencyWeight;
 
     types[item.type] = (types[item.type] ?? 0) + weight;
+    const bucket = typeGenres[item.type] ?? (typeGenres[item.type] = {});
     for (const genre of item.genres) {
       const name = genre.trim();
-      if (name) genres[name] = (genres[name] ?? 0) + weight;
+      if (name) {
+        genres[name] = (genres[name] ?? 0) + weight;
+        bucket[name] = (bucket[name] ?? 0) + weight;
+      }
     }
   }
 
   return {
     genres,
     types,
+    typeGenres,
     seenIds: items.map((item) => item.id),
   };
 }
 
+function topGenres(profile: RecommendationProfile, type: string) {
+  const specific = profile.typeGenres[type] ?? {};
+  const entries = Object.entries(specific).length > 0 ? Object.entries(specific) : Object.entries(profile.genres);
+  return entries.sort((a, b) => b[1] - a[1]).slice(0, 3).map(([genre]) => genre);
+}
+
 export function ForYouRow() {
   const { items, signedIn, loading } = useLibrary();
-  const [result, setResult] = useState<{ key: string; items: UnifiedSearchResult[] }>({ key: "", items: [] });
+  const [result, setResult] = useState<{ key: string; groups: RecommendationGroups }>({ key: "", groups: EMPTY_GROUPS });
   const profile = useMemo(() => buildProfile(items), [items]);
   const profileKey = useMemo(() => JSON.stringify(profile), [profile]);
-  const recommendations = result.key === profileKey ? result.items : [];
+  const groups = result.key === profileKey ? result.groups : EMPTY_GROUPS;
   const fetching = signedIn && !loading && items.length > 0 && result.key !== profileKey;
-  const topGenres = useMemo(
-    () => Object.entries(profile.genres).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([genre]) => genre),
-    [profile.genres]
-  );
+  const labels = useMemo(() => ({
+    movies: topGenres(profile, "movie"),
+    series: topGenres(profile, "series"),
+    anime: topGenres(profile, "anime"),
+    manga: topGenres(profile, "manga"),
+  }), [profile]);
 
   useEffect(() => {
     if (!signedIn || loading || items.length === 0) return;
@@ -64,26 +88,41 @@ export function ForYouRow() {
     })
       .then(async (response) => {
         if (!response.ok) throw new Error("Recommendation request failed");
-        const data = await response.json() as { items?: UnifiedSearchResult[] };
-        setResult({ key: profileKey, items: data.items ?? [] });
+        const data = await response.json() as { groups?: Partial<RecommendationGroups> };
+        setResult({
+          key: profileKey,
+          groups: {
+            movies: data.groups?.movies ?? [],
+            series: data.groups?.series ?? [],
+            anime: data.groups?.anime ?? [],
+            manga: data.groups?.manga ?? [],
+          },
+        });
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setResult({ key: profileKey, items: [] });
+        setResult({ key: profileKey, groups: EMPTY_GROUPS });
       });
 
     return () => controller.abort();
   }, [items.length, loading, profileKey, signedIn]);
 
   if (!signedIn || loading || items.length === 0) return null;
-  if (fetching && recommendations.length === 0) return <PosterRowSkeleton title="For You" />;
-  if (recommendations.length === 0) return null;
+  if (fetching && Object.values(groups).every((group) => group.length === 0)) {
+    return <div className="space-y-8"><PosterRowSkeleton title="Movies for you" /><PosterRowSkeleton title="TV shows for you" /></div>;
+  }
+  if (Object.values(groups).every((group) => group.length === 0)) return null;
 
   return (
-    <PosterRow
-      title="For You"
-      subtitle={topGenres.length > 0 ? `Based on your ratings, history and ${topGenres.join(", ")}` : "Based on your library history and ratings"}
-      items={recommendations}
-    />
+    <section className="space-y-8" aria-label="Recommendations based on your library history">
+      <div className="px-1">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Picked from your history</p>
+        <h2 className="mt-1 font-display text-xl font-bold tracking-[-0.02em] text-[var(--text)] sm:text-2xl">More stories that match your taste</h2>
+      </div>
+      <PosterRow title="Movies for you" subtitle={labels.movies.length ? `Because you’ve been into ${labels.movies.join(", ")}` : "Based on your recently watched and saved movies"} items={groups.movies} viewAllHref="/browse?kind=movie" />
+      <PosterRow title="TV shows for you" subtitle={labels.series.length ? `More ${labels.series.join(", ")} from your TV history` : "Based on the series you watch and save"} items={groups.series} viewAllHref="/browse?kind=tv" />
+      <PosterRow title="Anime for you" subtitle={labels.anime.length ? `Matched to ${labels.anime.join(", ")} in your anime list` : "Based on your anime history"} items={groups.anime} viewAllHref="/anime" />
+      <PosterRow title="Manga for you" subtitle={labels.manga.length ? `Matched to ${labels.manga.join(", ")} in your reading history` : "Based on your manga and reading history"} items={groups.manga} viewAllHref="/manga" />
+    </section>
   );
 }

@@ -4,12 +4,13 @@ import type { UnifiedSearchResult } from "@core/utils/search";
 import { getAniListMedia } from "@core/api/anilist";
 import { discoverTitles } from "@/lib/discover";
 import { genresFor } from "@/lib/browse-filters";
-import { getPopularAnime, getTrendingAnime } from "@/lib/discovery";
+import { getPopularAnime, getTrendingAnime, getTrendingManga } from "@/lib/discovery";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 type Profile = {
   genres?: Record<string, number>;
   types?: Record<string, number>;
+  typeGenres?: Record<string, Record<string, number>>;
   seenIds?: string[];
 };
 
@@ -27,6 +28,20 @@ function mediaTypeWeight(types: Record<string, number>, type: ReelItemType): num
   return finiteWeight(types[type]);
 }
 
+function rankedGenreWeights(weights: Record<string, number> | undefined, fallback: Record<string, number>) {
+  const source = weights && Object.keys(weights).length > 0 ? weights : fallback;
+  return Object.entries(source)
+    .map(([genre, weight]) => [genre, finiteWeight(weight)] as const)
+    .filter(([, weight]) => weight > 0)
+    .sort((a, b) => b[1] - a[1]);
+}
+
+function scoreCandidate(candidate: Candidate, genreWeights: Record<string, number>, typeWeight: number) {
+  const genreScore = [...candidate.genres].reduce((sum, genre) => sum + finiteWeight(genreWeights[genre]), 0);
+  const qualityScore = (candidate.item.score ?? 0) * 0.35;
+  return genreScore * 1.7 + typeWeight + qualityScore;
+}
+
 export async function POST(request: NextRequest) {
   const limit = rateLimit(request, "home-recommendations", 20, 60_000);
   if (!limit.ok) return tooManyRequests(limit);
@@ -40,17 +55,17 @@ export async function POST(request: NextRequest) {
 
   const genreWeights = body.genres ?? {};
   const typeWeights = body.types ?? {};
+  const typeGenres = body.typeGenres ?? {};
   const seen = new Set((body.seenIds ?? []).slice(0, 1000));
-  const rankedGenres = Object.entries(genreWeights)
-    .map(([genre, weight]) => [genre, finiteWeight(weight)] as const)
-    .filter(([, weight]) => weight > 0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
 
   const movieGenres = new Set(genresFor("movie"));
   const tvGenres = new Set(genresFor("tv"));
-  const movieSeeds = rankedGenres.filter(([genre]) => movieGenres.has(genre)).slice(0, 2);
-  const tvSeeds = rankedGenres.filter(([genre]) => tvGenres.has(genre)).slice(0, 2);
+  const movieGenreWeights = typeGenres.movie ?? genreWeights;
+  const seriesGenreWeights = typeGenres.series ?? genreWeights;
+  const animeGenreWeights = typeGenres.anime ?? genreWeights;
+  const mangaGenreWeights = typeGenres.manga ?? typeGenres.manhwa ?? genreWeights;
+  const movieSeeds = rankedGenreWeights(movieGenreWeights, genreWeights).filter(([genre]) => movieGenres.has(genre)).slice(0, 3);
+  const tvSeeds = rankedGenreWeights(seriesGenreWeights, genreWeights).filter(([genre]) => tvGenres.has(genre)).slice(0, 3);
 
   const discoveryRequests = [
     ...movieSeeds.map(async ([genre]) => ({
@@ -63,20 +78,23 @@ export async function POST(request: NextRequest) {
     })),
   ];
 
-  const [discovered, trendingAnime, popularAnime] = await Promise.all([
+  const [discovered, trendingAnime, popularAnime, trendingManga] = await Promise.all([
     Promise.allSettled(discoveryRequests),
     getTrendingAnime(14),
     getPopularAnime(14),
+    getTrendingManga(18),
   ]);
 
-  const candidates = new Map<string, Candidate>();
+  const movieCandidates = new Map<string, Candidate>();
+  const seriesCandidates = new Map<string, Candidate>();
   for (const result of discovered) {
     if (result.status !== "fulfilled") continue;
     for (const item of result.value.result.results) {
       if (seen.has(item.id)) continue;
-      const existing = candidates.get(item.id);
+      const bucket = item.type === "movie" ? movieCandidates : seriesCandidates;
+      const existing = bucket.get(item.id);
       if (existing) existing.genres.add(result.value.genre);
-      else candidates.set(item.id, { item, genres: new Set([result.value.genre]) });
+      else bucket.set(item.id, { item, genres: new Set([result.value.genre]) });
     }
   }
 
@@ -89,21 +107,30 @@ export async function POST(request: NextRequest) {
       return { item, genres: new Set(media?.genres ?? []) } satisfies Candidate;
     })
   );
-  for (const detail of animeDetails) {
-    if (detail.status === "fulfilled") candidates.set(detail.value.item.id, detail.value);
-  }
+  const animeCandidates = animeDetails.flatMap((detail) => detail.status === "fulfilled" ? [detail.value] : []);
 
-  const items = [...candidates.values()]
-    .map(({ item, genres }) => {
-      const genreScore = [...genres].reduce((sum, genre) => sum + finiteWeight(genreWeights[genre]), 0);
-      const typeScore = mediaTypeWeight(typeWeights, item.type);
-      const qualityScore = (item.score ?? 0) * 0.35;
-      return { item, score: genreScore * 1.6 + typeScore + qualityScore };
+  const mangaPool = trendingManga.filter((item) => !seen.has(item.id)).slice(0, 18);
+  const mangaDetails = await Promise.allSettled(
+    mangaPool.map(async (item) => {
+      const media = item.anilistId ? await getAniListMedia(item.anilistId) : null;
+      return { item, genres: new Set(media?.genres ?? []) } satisfies Candidate;
     })
+  );
+  const mangaCandidates = mangaDetails.flatMap((detail) => detail.status === "fulfilled" ? [detail.value] : []);
+
+  const rank = (candidates: Candidate[], weights: Record<string, number>, type: ReelItemType) => candidates
+    .map((candidate) => ({ item: candidate.item, score: scoreCandidate(candidate, weights, mediaTypeWeight(typeWeights, type)) }))
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 18)
     .map(({ item }) => item);
 
-  return NextResponse.json({ items });
+  return NextResponse.json({
+    groups: {
+      movies: rank([...movieCandidates.values()], movieGenreWeights, "movie"),
+      series: rank([...seriesCandidates.values()], seriesGenreWeights, "series"),
+      anime: rank(animeCandidates, animeGenreWeights, "anime"),
+      manga: rank(mangaCandidates, mangaGenreWeights, "manga"),
+    },
+  });
 }

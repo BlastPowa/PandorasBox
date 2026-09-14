@@ -11,6 +11,7 @@ import { Brand } from "./brand";
 import type { Profile } from "@/lib/auth";
 import { NotificationBell } from "@/components/social/notification-bell";
 import { BackButton } from "@/components/shell/back-button";
+import { ThemeModeToggle } from "@/components/shell/theme-mode-toggle";
 
 function fallbackForPath(pathname: string) {
   if (pathname.startsWith("/messages/")) return "/messages";
@@ -93,6 +94,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
       {profile ? (
         <>
           <NotificationBell />
+          <ThemeModeToggle />
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-1 text-sm font-bold text-[var(--text)] shadow-sm transition-colors hover:bg-[var(--bg-elevated)] sm:pr-2" aria-label="Profile menu" title={profile.username ?? "Profile"}>
@@ -117,9 +119,12 @@ export function Topbar({ profile }: { profile: Profile | null }) {
           </DropdownMenu.Root>
         </>
       ) : (
-        <Link href="/login" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 sm:px-4">
-          <LogIn className="size-4" /><span className="hidden sm:inline">Sign in</span>
-        </Link>
+        <>
+          <ThemeModeToggle />
+          <Link href="/login" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 sm:px-4">
+            <LogIn className="size-4" /><span className="hidden sm:inline">Sign in</span>
+          </Link>
+        </>
       )}
     </header>
   );

@@ -22,6 +22,7 @@ import type { UnifiedSearchResult } from "@core/utils/search";
 import { libraryItemHref } from "@/lib/library/item-href";
 import { useLibrary, useLibraryStats } from "@/lib/library/use-library";
 import { AmbientBackground, HERO_SLIDE_EVENT } from "@/components/home/ambient-background";
+import { ForYouRow } from "@/components/home/for-you-row";
 
 type DashboardProps = {
   trending: UnifiedSearchResult[];
@@ -312,6 +313,8 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
           </div>
         )}
       </section>
+
+      <ForYouRow />
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
         <section className="pb-uiverse-card pb-uiverse-card--feature pb-aura rounded-[24px] p-5 sm:p-6">
