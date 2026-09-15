@@ -47,7 +47,7 @@ const RELEASES = [
       "Hero backgrounds, feature previews and the active game slide now stay visually in sync.",
       "Game detail pages give screenshots, trailers, studio details and tracking controls more room.",
       "Comics now has featured shelves, grid/list views, Continue Reading and clearer issue progress.",
-      "Comic detail pages have stronger artwork hierarchy and easier resume controls.",
+      "Comic detail pages have stronger artwork hierarchy, easier resume controls and theme-aware series info cards.",
     ],
   },
   {

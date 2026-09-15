@@ -150,28 +150,28 @@ export default async function ComicDetailPage({ params }: { params: Promise<{ id
               </div>
             </div>
 
-            <aside className="pb-uiverse-card pb-uiverse-card--compact hidden rounded-[22px] border border-white/10 bg-black/20 p-4 text-white backdrop-blur-xl lg:block">
+            <aside className="pb-uiverse-card pb-uiverse-card--compact hidden rounded-[22px] border border-[var(--border)] bg-[var(--glass)] p-4 text-[var(--text)] backdrop-blur-xl lg:block">
               <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--accent)]">Series snapshot</p>
               <div className="mt-3 space-y-2">
                 <div className="pb-uiverse-row flex items-center gap-3 rounded-xl px-3 py-3">
                   <LibraryBig className="size-4 text-[var(--accent)]" />
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Publisher</p>
-                    <p className="truncate text-sm font-bold text-white">{publisherLabel ?? "Independent"}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">Publisher</p>
+                    <p className="truncate text-sm font-bold text-[var(--text)]">{publisherLabel ?? "Independent"}</p>
                   </div>
                 </div>
                 <div className="pb-uiverse-row flex items-center gap-3 rounded-xl px-3 py-3">
                   <CalendarDays className="size-4 text-[var(--accent)]" />
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">First released</p>
-                    <p className="text-sm font-bold text-white">{comic.startYear ?? "Unknown"}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">First released</p>
+                    <p className="text-sm font-bold text-[var(--text)]">{comic.startYear ?? "Unknown"}</p>
                   </div>
                 </div>
                 <div className="pb-uiverse-row flex items-center gap-3 rounded-xl px-3 py-3">
                   <PanelsTopLeft className="size-4 text-[var(--accent)]" />
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Issues</p>
-                    <p className="text-sm font-bold text-white">{comic.issueCount > 0 ? comic.issueCount : issues.length || "Unknown"}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">Issues</p>
+                    <p className="text-sm font-bold text-[var(--text)]">{comic.issueCount > 0 ? comic.issueCount : issues.length || "Unknown"}</p>
                   </div>
                 </div>
               </div>
