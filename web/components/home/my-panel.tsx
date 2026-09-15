@@ -124,7 +124,7 @@ export function MyPanel() {
   return (
     <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
       {/* Continue */}
-      <GlassCard macDots title="Continue">
+      <GlassCard macDots title="Continue" className="pb-aura">
         <div className="p-4">
           {inProgress.length === 0 ? (
             <p className="py-6 text-center text-sm text-[var(--text-muted)]">
@@ -147,7 +147,7 @@ export function MyPanel() {
                     <div className="absolute inset-x-0 bottom-0 grid place-items-center bg-gradient-to-t from-black/70 to-transparent pb-1 pt-6 opacity-0 transition-opacity group-hover:opacity-100">
                       <PlayCircle className="size-6 text-white" />
                     </div>
-                    <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-200/90">
+                    <div className="absolute inset-x-0 bottom-0 h-1 bg-[color-mix(in_srgb,var(--bg-elevated)_82%,transparent)] backdrop-blur-sm">
                       <div className="h-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))]" style={{ width: `${playbackPercent(i)}%` }} />
                     </div>
                   </div>
@@ -162,7 +162,7 @@ export function MyPanel() {
 
       {/* Stats + recent (MAL "My Panel" sidebar) */}
       <div className="space-y-4">
-        <GlassCard macDots title="My Stats">
+        <GlassCard macDots title="My Stats" className="pb-aura">
           <div className="divide-y divide-[var(--border)] text-sm">
             <Row label="Screen Entries" value={counts.animeTv} href="/library" />
             <Row label="Reading Entries" value={counts.reading} href="/library" />
@@ -186,7 +186,7 @@ export function MyPanel() {
           </div>
         </GlassCard>
 
-        <GlassCard macDots title="Recent Updates">
+        <GlassCard macDots title="Recent Updates" className="pb-aura">
           <div className="divide-y divide-[var(--border)]">
             {recent.map((i) => {
               const percent = playbackPercent(i);
@@ -204,7 +204,7 @@ export function MyPanel() {
                     <p className="truncate text-xs font-semibold">{i.title}</p>
                     <p className="text-[10px]" style={{ color: percent >= 100 ? "#34d399" : getStatusColor(i.status) }}>{playbackLabel(i)}</p>
                     {showMeter && (
-                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-200">
+                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
                         <div className="h-full rounded-full bg-[linear-gradient(120deg,var(--accent),var(--accent-2))]" style={{ width: `${percent}%` }} />
                       </div>
                     )}
