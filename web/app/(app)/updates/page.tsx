@@ -77,6 +77,11 @@ const RELEASES = [
     text: "Progress updates now flow into profile and friends activity with exact episode, season, chapter or comic issue context, using the same privacy rules as the existing social feed.",
   },
   {
+    icon: Sparkles,
+    title: "Recommendations now follow connected stories too",
+    text: "Your recent library can now surface unseen adaptations, sequels, related AniList titles and entries from known franchises, alongside the separate movie, TV, anime and manga genre rails.",
+  },
+  {
     icon: Library,
     title: "A cleaner, artwork-led library",
     text: "Library cards surface progress, rating and status more clearly while filters and controls stay easy to scan in both Light and Dark mode.",
@@ -145,7 +150,6 @@ const RELEASES = [
 
 const NEXT_UP = [
   "Game-session activity history once game tracking joins the main library model",
-  "More cross-media recommendations that connect adaptations and franchises",
   "Additional privacy-safe history imports from user-provided service exports where supported",
 ];
 

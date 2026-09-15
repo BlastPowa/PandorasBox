@@ -5,19 +5,117 @@ import { getAniListMedia } from "@core/api/anilist";
 import { discoverTitles } from "@/lib/discover";
 import { genresFor } from "@/lib/browse-filters";
 import { getPopularAnime, getTrendingAnime, getTrendingManga } from "@/lib/discovery";
+import { getFranchiseItems, matchFranchiseQuery } from "@/lib/franchises";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
+
+type RecentSeed = {
+  title: string;
+  anilistId?: number | null;
+};
 
 type Profile = {
   genres?: Record<string, number>;
   types?: Record<string, number>;
   typeGenres?: Record<string, Record<string, number>>;
   seenIds?: string[];
+  recentSeeds?: RecentSeed[];
 };
 
 type Candidate = {
   item: UnifiedSearchResult;
   genres: Set<string>;
 };
+
+type ConnectionRow = {
+  title: string;
+  subtitle: string;
+  href?: string;
+  items: UnifiedSearchResult[];
+};
+
+type AniListRelationEdge = Awaited<ReturnType<typeof getAniListMedia>>["relations"]["edges"][number];
+
+function relationMediaType(format: string): ReelItemType | null {
+  if (["TV", "TV_SHORT", "ONA", "OVA", "MOVIE", "SPECIAL"].includes(format)) return "anime";
+  if (["MANGA", "ONE_SHOT"].includes(format)) return "manga";
+  return null;
+}
+
+function relationResult(edge: AniListRelationEdge): UnifiedSearchResult | null {
+  const type = relationMediaType(edge.node.format);
+  if (!type) return null;
+  return {
+    id: `anilist-${edge.node.id}`,
+    source: "anilist",
+    type,
+    title: edge.node.title.romaji,
+    posterUrl: edge.node.coverImage.large,
+    backdropUrl: null,
+    year: null,
+    synopsis: null,
+    score: null,
+    totalEpisodes: null,
+    totalChapters: null,
+    anilistId: edge.node.id,
+    tmdbId: null,
+    mangadexId: null,
+    malId: null,
+  };
+}
+
+async function connectionRows(seeds: RecentSeed[], seen: Set<string>): Promise<ConnectionRow[]> {
+  const rows: ConnectionRow[] = [];
+  const emitted = new Set<string>();
+  const relationTypes = new Set(["ADAPTATION", "SOURCE", "SEQUEL", "PREQUEL", "SIDE_STORY", "SPIN_OFF", "PARENT"]);
+
+  const aniSeeds = seeds.filter((seed) => typeof seed.anilistId === "number").slice(0, 4);
+  const related = await Promise.allSettled(
+    aniSeeds.map(async (seed) => ({ seed, media: await getAniListMedia(seed.anilistId as number) })),
+  );
+  for (const result of related) {
+    if (result.status !== "fulfilled") continue;
+    const items = result.value.media.relations.edges
+      .filter((edge) => relationTypes.has(edge.relationType))
+      .map(relationResult)
+      .filter((item): item is UnifiedSearchResult => Boolean(item))
+      .filter((item) => !seen.has(item.id) && !emitted.has(item.id))
+      .slice(0, 14);
+    if (items.length === 0) continue;
+    items.forEach((item) => emitted.add(item.id));
+    rows.push({
+      title: `Connected to ${result.value.seed.title}`,
+      subtitle: "Adaptations, sequels and related stories from the same world",
+      items,
+    });
+    if (rows.length >= 2) break;
+  }
+
+  const matchedFranchises = seeds
+    .map((seed) => matchFranchiseQuery(seed.title))
+    .filter((franchise): franchise is NonNullable<ReturnType<typeof matchFranchiseQuery>> => Boolean(franchise))
+    .filter((franchise, index, all) => all.findIndex((other) => other.slug === franchise.slug) === index)
+    .slice(0, 2);
+  const franchiseResults = await Promise.allSettled(
+    matchedFranchises.map(async (franchise) => ({ franchise, items: await getFranchiseItems(franchise.slug) })),
+  );
+  for (const result of franchiseResults) {
+    if (result.status !== "fulfilled") continue;
+    const items = result.value.items
+      .filter((item) => !seen.has(item.id) && !emitted.has(item.id))
+      .slice(0, 16);
+    if (items.length === 0) continue;
+    items.forEach((item) => emitted.add(item.id));
+    rows.push({
+      title: `Continue the ${result.value.franchise.name} world`,
+      subtitle: "More entries from a franchise already in your library",
+      href: `/browse/franchise/${result.value.franchise.slug}`,
+      items,
+    });
+    if (rows.length >= 3) break;
+  }
+
+  return rows.slice(0, 3);
+}
 
 function finiteWeight(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(value, 100)) : 0;
@@ -77,6 +175,7 @@ export async function POST(request: NextRequest) {
   const typeWeights = body.types ?? {};
   const typeGenres = body.typeGenres ?? {};
   const seen = new Set((body.seenIds ?? []).slice(0, 1000));
+  const recentSeeds = (body.recentSeeds ?? []).filter((seed) => typeof seed.title === "string" && seed.title.trim()).slice(0, 12);
 
   const movieGenres = new Set(genresFor("movie"));
   const tvGenres = new Set(genresFor("tv"));
@@ -98,11 +197,12 @@ export async function POST(request: NextRequest) {
     })),
   ];
 
-  const [discovered, trendingAnime, popularAnime, trendingManga] = await Promise.all([
+  const [discovered, trendingAnime, popularAnime, trendingManga, connections] = await Promise.all([
     Promise.allSettled(discoveryRequests),
     getTrendingAnime(14),
     getPopularAnime(14),
     getTrendingManga(18),
+    connectionRows(recentSeeds, seen),
   ]);
 
   const movieCandidates = new Map<string, Candidate>();
@@ -161,5 +261,6 @@ export async function POST(request: NextRequest) {
       anime: genreRecommendations(animeCandidates, animeGenreWeights, genreWeights, mediaTypeWeight(typeWeights, "anime")),
       manga: genreRecommendations(mangaCandidates, mangaGenreWeights, genreWeights, mediaTypeWeight(typeWeights, "manga")),
     },
+    connections,
   });
 }
