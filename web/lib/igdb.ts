@@ -77,8 +77,8 @@ interface RawCard {
 }
 
 function mapCard(g: RawCard, peakPlayers: number | null = null): GameCard {
-  const backdrop = g.artworks?.[0] ?? g.screenshots?.[0];
-  const previewImages = [...(g.artworks ?? []), ...(g.screenshots ?? [])]
+  const backdrop = g.screenshots?.[0] ?? g.artworks?.[0];
+  const previewImages = [...(g.screenshots ?? []), ...(g.artworks ?? [])]
     .map((image) => igdbImage(image.image_id, "1080p"))
     .filter((url, index, all) => all.indexOf(url) === index)
     .slice(0, 5);

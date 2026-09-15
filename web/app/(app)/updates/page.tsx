@@ -43,7 +43,8 @@ const RELEASES = [
     title: "Games & comics",
     text: "Both areas now feel like part of the same cinematic tracker instead of separate utility pages.",
     highlights: [
-      "Games use artwork-driven slideshows, glass feature cards and richer upcoming hover previews.",
+      "Games prioritise scenic screenshots for full-page slideshows while cover and key art stay inside cards.",
+      "Hero backgrounds, feature previews and the active game slide now stay visually in sync.",
       "Game detail pages give screenshots, trailers, studio details and tracking controls more room.",
       "Comics now has featured shelves, grid/list views, Continue Reading and clearer issue progress.",
       "Comic detail pages have stronger artwork hierarchy and easier resume controls.",
