@@ -1,6 +1,6 @@
-# Reel — Chrome Extension
+# Pandora's Box — Browser Companion
 
-Your universal entertainment tracker: movies, series, anime, manga and manhwa in one place. This extension is the browser shell around the shared `/core` library.
+Pandora's Box is a universal entertainment tracker for movies, series, anime, manga and manhwa. The browser companion adds local progress tracking, a quick popup, a side-panel library and optional sync without turning Pandora's Box into a streaming player.
 
 ## Build
 
@@ -10,35 +10,48 @@ npm install
 npm run build
 ```
 
-Output lands in `extension/dist/`. Icons are generated placeholders — regenerate any time with `node scripts/generate-icons.js`, or drop your own `icon16.png`, `icon32.png`, `icon48.png`, `icon128.png` into `extension/icons/` and rebuild.
+Production output lands in `extension/dist/`. Production source maps are disabled.
 
-## Load in Chrome
+## Install in Chrome / Chromium
 
-1. Open `chrome://extensions`
-2. Enable **Developer Mode** (top right)
-3. Click **Load Unpacked**
-4. Select the `extension/dist/` folder
+1. Build the extension, or download the current release ZIP from **Pandora's Box → Settings → Integrations**.
+2. Extract the ZIP if you downloaded it.
+3. Open `chrome://extensions`.
+4. Enable **Developer mode**.
+5. Click **Load unpacked** and select `extension/dist/` or the extracted release folder.
 
-## Set your TMDB API key
+## Tracking behaviour
 
-1. Get a free key at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
-2. Click the Reel toolbar icon → profile button (top right of the popup)
-3. Paste the key into **TMDB API Key** and hit **Save Settings**
+- Netflix, Disney+, CinemaOS and Crunchyroll use dedicated video tracking rules.
+- Netflix and Crunchyroll only track their watch routes.
+- Dedicated streaming integrations accept legitimate short episodes from 3 minutes upward.
+- The universal fallback requires a prominent long-form player and a minimum 5-minute duration.
+- YouTube, X/Twitter, TikTok, Instagram, Facebook, Reddit and Twitch are excluded from universal tracking.
+- Short-form, trailer, teaser, preview, advert and music-video hints are ignored by the universal tracker.
+- MangaDex and Webtoon use reading-progress tracking.
 
-Movie/series search and streaming-provider lookups need this key. Anime and manga search (AniList/MangaDex) work without it.
+Progress saves periodically while a supported video plays. Crossing the completion threshold marks watched progress automatically.
 
-## Test the tracker
+## TMDB API key
 
-1. Browse to Netflix or CinemaOS and play a video for ~15 seconds
-2. Open the Reel popup → **Home** tab
-3. The title appears under **Continue Watching** with live progress (the title must be in your list, or auto-track will match it by name)
+Movie/series search and provider lookups use a user-supplied TMDB API key. Open the Pandora's Box extension profile, add the key under settings and save. The production bundle does not contain a TMDB secret.
 
-Progress saves every 10 seconds while a video plays; crossing 92% marks the episode watched automatically. On MangaDex/Webtoon, scrolling to the bottom of a chapter marks it read.
+## Security notes
+
+- Manifest V3 service worker.
+- Production source maps disabled.
+- Runtime messages validated before handling.
+- Sync settings sanitized and Supabase connection values validated.
+- Per-install sync identity.
+- Remote list data validated before replacing local progress.
+- No Netflix, Disney+, Crunchyroll or CinemaOS password is requested or stored.
+
+Internal `reel_*` storage keys and shared `Reel*` TypeScript types are intentionally retained for backward compatibility with existing installs.
 
 ## Layout
 
-- `background/` — MV3 service worker: message router, hourly episode/chapter checks, 15-min Supabase sync
-- `content-scripts/` — per-site trackers (Netflix, Disney+, CinemaOS, Crunchyroll, MangaDex, Webtoon) plus a universal fallback (videos over 5 minutes only)
-- `popup/` — 420×580 dashboard: Home / Search / List
-- `sidepanel/` — full library manager with poster grid and where-to-watch
-- `pages/profile.html` — stats, ratings, settings, JSON import/export
+- `background/` — service worker, notifications and sync scheduling.
+- `content-scripts/` — dedicated streaming/reading trackers plus the universal long-form fallback.
+- `popup/` — quick dashboard.
+- `sidepanel/` — larger library manager.
+- `pages/profile.html` — stats, ratings, settings and import/export.

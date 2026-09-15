@@ -6,6 +6,7 @@ export interface VideoTrackerConfig {
   getEpisodeNumber: () => number | null;
   getSeasonNumber: () => number | null;
   minDurationSeconds?: number;
+  shouldTrack?: (video: HTMLVideoElement) => boolean;
 }
 
 const SAVE_INTERVAL_MS = 10000;
@@ -77,7 +78,10 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
   }
 
   function canTrack(video: HTMLVideoElement): boolean {
-    return Number.isFinite(video.duration) && video.duration >= minDuration && video.currentTime > 0;
+    return Number.isFinite(video.duration)
+      && video.duration >= minDuration
+      && video.currentTime > 0
+      && (config.shouldTrack?.(video) ?? true);
   }
 
   function emitProgress(video: HTMLVideoElement, force = false): void {

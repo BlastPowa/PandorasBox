@@ -29,4 +29,6 @@ setupVideoTracking({
   getTitle,
   getEpisodeNumber,
   getSeasonNumber,
+  minDurationSeconds: 180,
+  shouldTrack: () => window.location.pathname.includes("/watch/"),
 });

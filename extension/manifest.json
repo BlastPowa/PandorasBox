@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Reel",
-  "version": "1.2.0",
-  "description": "Your universal entertainment tracker — movies, series, anime, manga, manhwa all in one place.",
+  "name": "Pandora's Box",
+  "version": "1.3.0",
+  "description": "Track movies, series, anime, manga and more while you browse and watch.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -44,7 +44,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://cinemaos.live/*"],
+      "matches": ["https://*.cinemaos.live/*"],
       "js": ["content-scripts/cinemaos.js"],
       "run_at": "document_idle"
     },
@@ -68,10 +68,19 @@
       "exclude_matches": [
         "https://www.netflix.com/*",
         "https://www.disneyplus.com/*",
-        "https://cinemaos.live/*",
+        "https://*.cinemaos.live/*",
         "https://www.crunchyroll.com/*",
         "https://mangadex.org/*",
-        "https://www.webtoons.com/*"
+        "https://www.webtoons.com/*",
+        "https://*.youtube.com/*",
+        "https://youtu.be/*",
+        "https://*.twitter.com/*",
+        "https://*.x.com/*",
+        "https://*.tiktok.com/*",
+        "https://*.instagram.com/*",
+        "https://*.facebook.com/*",
+        "https://*.reddit.com/*",
+        "https://*.twitch.tv/*"
       ],
       "js": ["content-scripts/universal.js"],
       "run_at": "document_idle"

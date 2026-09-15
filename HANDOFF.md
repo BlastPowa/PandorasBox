@@ -2,11 +2,11 @@
 
 Universal entertainment tracker: movies, TV, K-drama, cartoons, anime, manga, manhwa, comics, and games in one place — track status/progress, discover new titles, and link out to legitimate streaming/reading platforms. This app does not host any content itself.
 
-**Stack:** Next.js 16 (App Router, Turbopack), TypeScript (strict), Tailwind CSS v4 (CSS-based `@theme inline` config, no `tailwind.config`), Supabase (Postgres + Auth + Storage + Realtime), a shared `core/` package (`@core/...` path alias) used by the web app and an archived browser extension.
+**Stack:** Next.js 16 (App Router, Turbopack), TypeScript (strict), Tailwind CSS v4 (CSS-based `@theme inline` config, no `tailwind.config`), Supabase (Postgres + Auth + Storage + Realtime), a shared `core/` package (`@core/...` path alias) used by the web app and the active Pandora's Box browser companion.
 
 **Production:** `pandoras-box-tau.vercel.app` (confirmed via the User-Agent string sent to Comic Vine in `web/lib/comics.ts`).
 
-**Repo root:** `C:\Users\Blast\Downloads\Reel` — web app in `web/`, shared logic in `core/`, an inactive/archived browser extension in `_archive_extension/` (kept for reference only, not built or shipped).
+**Repo root:** `C:\Users\Blast\Downloads\Reel` — web app in `web/`, shared logic in `core/`, active browser companion in `extension/`.
 
 ---
 
@@ -183,7 +183,7 @@ All routes are rate-limited where noted in source (typically 30–60 requests/mi
 
 ## 6. Completed work (condensed)
 
-- **Extension era** — an MV3 browser extension (content scripts, popup, side panel) was the original prototype; now archived/inactive in `_archive_extension/`, not built or shipped.
+- **Browser companion** — the MV3 extension is active again in `extension/`, branded Pandora's Box, built as v1.3.0, and surfaced from Settings → Integrations. It keeps the popup/side panel, supported-site progress tracking, reading tracking, notifications and optional sync, with stronger long-form filtering for the universal fallback.
 - **Core app build** — Next.js scaffold, design tokens, Supabase (auth/RLS/storage), app shell, Discovery (Home/Browse/Search/Detail), Library/Collections/Realtime, Rankings/Schedule/Stats/Settings, Admin panel, security hardening (CSP/HSTS/rate-limiting), trailers, command palette, MAL-style dashboard.
 - **12-feature expansion** — multi-genre filters + content-safety filtering, integrations architecture (MAL/AniList OAuth sync), import wizard (XML/TXT + smart matching), person pages, Memory Search (Gemini-assisted), friends system, collections sharing (visibility/covers/snapshots), streaming-provider rows, homepage polish.
 - **Comics** — expanded from 2 fixed publisher rails to a full Comics section: Marvel/DC/Image/Dark Horse/IDW tabs, free-text search, `/comic/[id]` detail pages (characters/creators/issues), and comics are now first-class trackable items (global search, Library, Collections, Rankings — migration `0012`).

@@ -34,4 +34,5 @@ setupVideoTracking({
   getTitle,
   getEpisodeNumber,
   getSeasonNumber,
+  minDurationSeconds: 180,
 });

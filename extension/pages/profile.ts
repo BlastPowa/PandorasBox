@@ -421,7 +421,7 @@ function setupDataActions(): void {
         const url = URL.createObjectURL(blob);
         const anchor = el("a") as HTMLAnchorElement;
         anchor.href = url;
-        anchor.download = `reel-list-${new Date().toISOString().slice(0, 10)}.json`;
+        anchor.download = `pandoras-box-list-${new Date().toISOString().slice(0, 10)}.json`;
         anchor.click();
         URL.revokeObjectURL(url);
         note(byId("dataNote"), `Exported ${list.length} items.`);
@@ -444,7 +444,7 @@ function setupDataActions(): void {
         const text = await file.text();
         const parsed = JSON.parse(text) as unknown;
         if (!validateDecodedList(parsed)) {
-          note(byId("dataNote"), "That file is not a valid Reel list export.", true);
+          note(byId("dataNote"), "That file is not a valid Pandora's Box list export.", true);
           return;
         }
         const existing = await sendMessage({ type: "getList" });
@@ -525,7 +525,7 @@ function setupDataActions(): void {
           : "";
         note(
           dataNote,
-          `Netflix import: ${imported} added, ${alreadyThere} already in Reel, ${unmatched} skipped because no exact match was safe.${capped}`
+          `Netflix import: ${imported} added, ${alreadyThere} already in Pandora's Box, ${unmatched} skipped because no exact match was safe.${capped}`
         );
         await loadOverview();
       } catch (error) {

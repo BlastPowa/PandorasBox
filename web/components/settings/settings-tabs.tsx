@@ -10,7 +10,7 @@ export type SettingsTabKey = "account" | "appearance" | "integrations" | "import
 const TABS: { key: SettingsTabKey; label: string; description: string; icon: typeof User }[] = [
   { key: "account", label: "Account", description: "Profile & sign-in", icon: User },
   { key: "appearance", label: "Appearance", description: "Theme & display", icon: Palette },
-  { key: "integrations", label: "Integrations", description: "Sync services", icon: Plug },
+  { key: "integrations", label: "Extension & Apps", description: "Browser companion & sync", icon: Plug },
   { key: "import", label: "Import", description: "Bring your lists", icon: UploadCloud },
   { key: "backup", label: "Backup", description: "Export & restore", icon: Database },
 ];

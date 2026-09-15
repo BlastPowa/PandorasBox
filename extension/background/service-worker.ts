@@ -35,19 +35,19 @@ chrome.runtime.onInstalled.addListener(() => {
       await ensureRuntimeInfrastructure();
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
     } catch (error) {
-      console.error("Reel onInstalled setup failed", error);
+      console.error("Pandora's Box onInstalled setup failed", error);
     }
   })();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   void ensureRuntimeInfrastructure().catch((error) => {
-    console.error("Reel startup setup failed", error);
+    console.error("Pandora's Box startup setup failed", error);
   });
 });
 
 void ensureRuntimeInfrastructure().catch((error) => {
-  console.error("Reel runtime setup failed", error);
+  console.error("Pandora's Box runtime setup failed", error);
 });
 
 function notify(id: string, title: string, message: string): void {
@@ -59,7 +59,7 @@ function notify(id: string, title: string, message: string): void {
       message,
     });
   } catch (error) {
-    console.error("Reel notification failed", error);
+    console.error("Pandora's Box notification failed", error);
   }
 }
 
@@ -73,7 +73,7 @@ async function runEpisodeCheck(): Promise<void> {
     notify(
       `reel-episode-${result.itemId}-${result.newEpisode}`,
       `New episode: ${result.title}`,
-      `Episode ${result.newEpisode} is out now. Open Reel to continue watching.`
+      `Episode ${result.newEpisode} is out now. Open Pandora's Box to continue watching.`
     );
   }
 }
@@ -86,7 +86,7 @@ async function runChapterCheck(): Promise<void> {
     notify(
       `reel-chapter-${result.itemId}-${result.newChapter}`,
       `New chapter: ${result.title}`,
-      `Chapter ${result.newChapter} is out now. Open Reel to keep reading.`
+      `Chapter ${result.newChapter} is out now. Open Pandora's Box to keep reading.`
     );
   }
 }
@@ -105,7 +105,7 @@ async function runSupabaseSync(): Promise<{ success: boolean; message: string }>
     return { success: true, message: `Synced ${merged.length} items` };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sync failed";
-    console.error("Reel sync failed", error);
+    console.error("Pandora's Box sync failed", error);
     return { success: false, message };
   }
 }
@@ -136,7 +136,7 @@ async function replaceList(list: ReelItem[]): Promise<void> {
 async function withApiKey<T>(fn: (key: string) => Promise<T>): Promise<T> {
   const settings = await getSettings();
   if (!settings.tmdbApiKey) {
-    throw new Error("TMDB API key is not set. Add it in the Reel profile page settings.");
+    throw new Error("TMDB API key is not set. Add it in the Pandora's Box profile settings.");
   }
   return fn(settings.tmdbApiKey);
 }
@@ -207,7 +207,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         await runSupabaseSync();
       }
     } catch (error) {
-      console.error(`Reel alarm "${alarm.name}" failed`, error);
+      console.error(`Pandora's Box alarm "${alarm.name}" failed`, error);
     }
   })();
 });
@@ -230,7 +230,7 @@ async function handleMessage(message: ReelMessage): Promise<unknown> {
       }
       await progressManager.handleProgressEvent(event);
       void scheduleProgressSyncSoon().catch((error) => {
-        console.error("Reel progress sync scheduling failed", error);
+        console.error("Pandora's Box progress sync scheduling failed", error);
       });
       return { success: true };
     }
@@ -273,7 +273,7 @@ async function handleMessage(message: ReelMessage): Promise<unknown> {
               ? await getMovieWatchProviders(message.tmdbId, settings.country, settings.tmdbApiKey)
               : await getSeriesWatchProviders(message.tmdbId, settings.country, settings.tmdbApiKey);
         } catch (error) {
-          console.error("Reel watch providers fetch failed", error);
+          console.error("Pandora's Box watch providers fetch failed", error);
         }
       }
       const params: Parameters<typeof getAllWatchOptions>[0] = {

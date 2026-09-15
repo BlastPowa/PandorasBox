@@ -17,6 +17,7 @@ import {
   Sparkles,
   Tv,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
 
@@ -100,13 +101,18 @@ const RELEASES = [
   },
   {
     icon: ListChecks,
-    title: "Extension v1.2.0 adds safer history import",
-    text: "Netflix viewing-history CSV files can now be imported locally into PBox. Exact-title matching avoids bad guesses, duplicate library entries are skipped, and no Netflix login or password is requested.",
+    title: "Browser companion v1.3.0 is back",
+    text: "The Pandora's Box Chrome companion is active again and can be downloaded directly from Settings → Integrations. It keeps the popup, side panel, local progress, notifications and optional sync flow in one installable package.",
   },
   {
     icon: ListChecks,
-    title: "Extension security is tighter",
-    text: "v1.2.0 removes unused permissions, disables production source maps, validates extension messages and sync settings, isolates sync identities per installation, and validates remote list data before it can replace local progress.",
+    title: "Smarter long-form tracking",
+    text: "v1.3.0 now filters social feeds, short-form clips, trailers and small autoplay videos before they can count as watch progress. Netflix and Crunchyroll are limited to watch pages, while Disney+, CinemaOS and other supported players keep dedicated rules.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Extension security stays hardened",
+    text: "The companion keeps production source maps off, validates extension messages and sync settings, isolates sync identities per installation, validates remote list data and does not request your Netflix or Disney account password.",
   },
   {
     icon: MoonStar,

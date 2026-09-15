@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Link2, Unlink, RefreshCw, AlertTriangle, CheckCircle2, Clock, History, GitMerge,
+  Download, Puzzle, ShieldCheck,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
@@ -70,8 +72,57 @@ function providerBadge(id: string): string {
   return id.slice(0, 5).toUpperCase();
 }
 
+function BrowserCompanionCard() {
+  return (
+    <GlassCard macDots title="Browser companion" strong>
+      <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1.15fr_.85fr] lg:items-center">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="grid size-11 place-items-center rounded-2xl bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--accent)]">
+              <Puzzle className="size-5" />
+            </span>
+            <div>
+              <p className="font-display text-lg font-bold">Pandora&apos;s Box for Chrome</p>
+              <p className="text-xs font-semibold text-[var(--accent)]">Version 1.3.0</p>
+            </div>
+          </div>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
+            Track movies, series, anime, manga and manhwa while you browse. The new long-form filter skips social feeds,
+            clips and small autoplay videos, while Netflix, Disney+, Crunchyroll and CinemaOS keep dedicated tracking.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--text-muted)]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1.5">
+              <ShieldCheck className="size-3.5 text-emerald-500" /> No Netflix or Disney password required
+            </span>
+            <span className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1.5">Chrome / Chromium</span>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button asChild>
+              <a href="/downloads/pandoras-box-extension-v1.3.0.zip" download>
+                <Download className="size-4" /> Download extension
+              </a>
+            </Button>
+            <Button asChild variant="glass">
+              <a href="/updates">See what changed</a>
+            </Button>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+          <p className="text-sm font-semibold">Install in Chrome</p>
+          <ol className="mt-3 space-y-2 text-xs leading-5 text-[var(--text-secondary)]">
+            <li><span className="mr-2 font-bold text-[var(--accent)]">1.</span>Download and extract the ZIP.</li>
+            <li><span className="mr-2 font-bold text-[var(--accent)]">2.</span>Open <code className="rounded bg-[var(--glass)] px-1.5 py-0.5">chrome://extensions</code> and enable Developer mode.</li>
+            <li><span className="mr-2 font-bold text-[var(--accent)]">3.</span>Choose <strong>Load unpacked</strong> and select the extracted folder.</li>
+          </ol>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 /** Settings → Integrations. Every connected external account lives here. */
 export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
+  const router = useRouter();
   const [providers, setProviders] = useState<ProviderState[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
@@ -158,14 +209,19 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
 
   if (!signedIn) {
     return (
-      <GlassCard macDots title="Integrations">
-        <p className="p-5 text-sm text-[var(--text-muted)]">Sign in to connect external accounts.</p>
-      </GlassCard>
+      <div className="space-y-5">
+        <BrowserCompanionCard />
+        <GlassCard macDots title="Integrations">
+          <p className="p-5 text-sm text-[var(--text-muted)]">Sign in to connect external accounts.</p>
+        </GlassCard>
+      </div>
     );
   }
 
   return (
-    <GlassCard macDots title="Integrations">
+    <div className="space-y-5">
+      <BrowserCompanionCard />
+      <GlassCard macDots title="Integrations">
       <div className="space-y-5 p-4 sm:p-5">
         <div>
           <p className="text-sm font-semibold">Connected services</p>
@@ -205,7 +261,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                   </Button>
                 </div>
               ) : (
-                <Button size="sm" disabled={!p.configured} onClick={() => { window.location.href = `/api/integrations/${p.id}/connect`; }}>
+                <Button size="sm" disabled={!p.configured} onClick={() => router.push(`/api/integrations/${p.id}/connect`)}>
                   <Link2 className="size-4" /> Connect
                 </Button>
               )}
@@ -236,7 +292,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                 {p.lastSyncOk === false && p.lastError && (
                   <p className="text-[#fca5a5]">
                     {p.lastError}{" "}
-                    <button className="underline" onClick={() => { window.location.href = `/api/integrations/${p.id}/connect`; }}>
+                    <button className="underline" onClick={() => router.push(`/api/integrations/${p.id}/connect`)}>
                       Reconnect
                     </button>
                   </p>
@@ -244,7 +300,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                 {expiringSoon(p.tokenExpiresAt) && p.lastSyncOk !== false && (
                   <p className="text-[var(--gold)]">
                     Connection expires {timeAgo(p.tokenExpiresAt)?.replace(" ago", "")} — it will auto-refresh, or{" "}
-                    <button className="underline" onClick={() => { window.location.href = `/api/integrations/${p.id}/connect`; }}>
+                    <button className="underline" onClick={() => router.push(`/api/integrations/${p.id}/connect`)}>
                       reconnect now
                     </button>.
                   </p>
@@ -310,6 +366,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
           </div>
         )}
       </div>
-    </GlassCard>
+      </GlassCard>
+    </div>
   );
 }
