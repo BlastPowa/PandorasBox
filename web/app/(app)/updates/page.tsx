@@ -5,6 +5,7 @@ import {
   BookOpen,
   CalendarDays,
   Clapperboard,
+  Clock3,
   Compass,
   Gamepad2,
   Images,
@@ -63,6 +64,11 @@ const RELEASES = [
     icon: Sparkles,
     title: "Recommendations that learn from your library",
     text: "For You now separates Movies, TV, Anime and Manga, then breaks your strongest tastes into genre-specific rails using recent history, ratings and favourite genres.",
+  },
+  {
+    icon: Clock3,
+    title: "Quiet titles are easier to return to",
+    text: "The home page now surfaces in-progress titles that have been untouched for three weeks or more, with a quick Resume action and an option to move them to Paused without digging through the full library.",
   },
   {
     icon: Library,
@@ -132,7 +138,6 @@ const RELEASES = [
 ];
 
 const NEXT_UP = [
-  "Optional progress reminders for titles that have gone quiet",
   "Richer activity history for episodes, chapters, issues and game sessions",
   "More cross-media recommendations that connect adaptations and franchises",
   "Additional privacy-safe history imports from user-provided service exports where supported",

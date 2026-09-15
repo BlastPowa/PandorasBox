@@ -124,7 +124,7 @@ function SectionHeading({
 }
 
 export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProps) {
-  const { items, loading, signedIn, markEpisode, markChapter, updateProgress } = useLibrary();
+  const { items, loading, signedIn, markEpisode, markChapter, updateProgress, setStatus } = useLibrary();
   const stats = useLibraryStats(items);
   const spotlightSlides = useMemo(
     () => trending.filter((item) => Boolean(item.backdropUrl ?? item.posterUrl)).slice(0, 6),
@@ -138,7 +138,10 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
   const planned = items
     .filter((item) => item.status === "planned")
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  const stale = active.filter((item) => generatedAt - new Date(item.updatedAt).getTime() > 21 * 86_400_000).length;
+  const staleItems = active
+    .filter((item) => generatedAt - new Date(item.updatedAt).getTime() > 21 * 86_400_000)
+    .sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+  const stale = staleItems.length;
   const safeSpotlightIndex = spotlightSlides.length > 0 ? spotlightIndex % spotlightSlides.length : 0;
   const spotlight = spotlightSlides[safeSpotlightIndex] ?? trending[0] ?? null;
   const heroArtwork = spotlight?.backdropUrl ?? spotlight?.posterUrl ?? null;
@@ -313,6 +316,50 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
           </div>
         )}
       </section>
+
+      {signedIn && staleItems.length > 0 && (
+        <section>
+          <SectionHeading eyebrow="A gentle reminder" title="Want to pick one of these back up?" action="Open library" href="/library" />
+          <div className="-mx-1 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex gap-3">
+              {staleItems.slice(0, 8).map((item) => (
+                <article key={item.id} className="pb-uiverse-media-card group relative w-[270px] shrink-0 overflow-hidden rounded-[22px] p-3 sm:w-[320px]">
+                  {item.backdropUrl && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-0 -z-20 bg-cover bg-center opacity-[0.16] transition duration-500 group-hover:scale-[1.03] group-hover:opacity-[0.22]"
+                      style={{ backgroundImage: `url(\"${item.backdropUrl}\")` }}
+                    />
+                  )}
+                  <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(110deg,var(--bg-surface)_18%,color-mix(in_srgb,var(--bg-surface)_88%,transparent)_68%,color-mix(in_srgb,var(--bg-surface)_68%,transparent))]" />
+                  <div className="flex gap-3">
+                    <Link href={libraryItemHref(item)} className="h-[118px] w-[78px] shrink-0 overflow-hidden rounded-[14px] bg-[var(--bg-elevated)]">
+                      <Poster title={item.title} posterUrl={item.posterUrl} />
+                    </Link>
+                    <div className="min-w-0 flex-1 py-1">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--accent)]">{mediaTypeLabel(item.type)} · {Math.round(progressPercent(item))}%</div>
+                      <Link href={libraryItemHref(item)} className="mt-1.5 line-clamp-2 block font-display text-base font-bold leading-5 text-[var(--text)] transition group-hover:text-[var(--accent)]">{item.title}</Link>
+                      <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{updatedTime(item.updatedAt, generatedAt)} · {progressLabel(item)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 border-t border-[var(--border)] pt-3">
+                    <Link href={libraryItemHref(item)} className="pb-uiverse-button pb-uiverse-button--accent inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-bold text-white">
+                      <CirclePlay className="size-3.5" /> Resume
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => void setStatus(item.id, "on_hold")}
+                      className="pb-uiverse-button pb-uiverse-button--glass inline-flex h-9 items-center justify-center rounded-xl px-3 text-xs font-bold text-[var(--text-secondary)]"
+                    >
+                      Pause for now
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <ForYouRow />
 
