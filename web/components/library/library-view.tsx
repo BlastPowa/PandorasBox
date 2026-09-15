@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X, Search, Sparkles } from "lucide-react";
+import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X, Search, Sparkles, Library, PlayCircle, CircleCheckBig, Clock3 } from "lucide-react";
 import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";
 import { formatProgress } from "@core/utils/formatters";
 import { useLibrary, useLibraryStats } from "@/lib/library/use-library";
@@ -139,10 +139,10 @@ export function LibraryView() {
     <div className="space-y-4">
       {/* Stats summary bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total" value={stats.totalItems} />
-        <StatCard label="Watching" value={stats.watching} />
-        <StatCard label="Completed" value={stats.completed} />
-        <StatCard label="Hours" value={Math.round(stats.totalWatchTimeMinutes / 60)} />
+        <StatCard label="Total" value={stats.totalItems} icon={<Library className="size-4" />} />
+        <StatCard label="Watching" value={stats.watching} icon={<PlayCircle className="size-4" />} />
+        <StatCard label="Completed" value={stats.completed} icon={<CircleCheckBig className="size-4" />} />
+        <StatCard label="Hours" value={Math.round(stats.totalWatchTimeMinutes / 60)} icon={<Clock3 className="size-4" />} />
       </div>
 
       <div className="pb-uiverse-card pb-uiverse-card--compact rounded-[22px] p-3 sm:p-4">
@@ -199,6 +199,19 @@ export function LibraryView() {
             {counts[t.key] ? <span className="ml-1.5 opacity-60">{counts[t.key]}</span> : null}
           </Pill>
         ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-[var(--text-muted)]">
+        <span><strong className="font-semibold text-[var(--text)]">{filtered.length}</strong> of {items.length} titles</span>
+        {(query || status !== "all" || type !== "all" || smartView !== "all") && (
+          <button
+            type="button"
+            onClick={() => { setQuery(""); setStatus("all"); setType("all"); setSmartView("all"); }}
+            className="font-semibold text-[var(--accent)] transition hover:opacity-75"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {selectMode && (
@@ -304,11 +317,14 @@ function advance(
   return markEpisode(item.id, (item.progress.currentEpisode ?? 0) + 1);
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="pb-uiverse-card pb-uiverse-card--compact rounded-[18px] px-4 py-3">
-      <div className="font-mono text-2xl font-bold text-gradient">{value}</div>
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</div>
+    <div className="pb-uiverse-card pb-uiverse-card--compact flex min-h-[82px] items-center justify-between gap-3 rounded-[18px] px-3.5 py-3 sm:px-4">
+      <div>
+        <div className="font-mono text-2xl font-bold text-gradient sm:text-[1.7rem]">{value}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</div>
+      </div>
+      <span className="pb-uiverse-icon grid size-9 shrink-0 place-items-center rounded-xl text-[var(--accent)]">{icon}</span>
     </div>
   );
 }
@@ -319,15 +335,15 @@ function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onR
 }) {
   const href = libraryItemHref(item);
   return (
-    <article className={`pb-uiverse-media-card group relative isolate flex min-h-[178px] gap-3 overflow-hidden rounded-[22px] p-3 ${selected ? "ring-2 ring-[var(--accent)]" : ""}`}>
-      {item.backdropUrl && <Image src={item.backdropUrl} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="-z-20 object-cover opacity-[0.10] transition duration-500 group-hover:scale-[1.03] group-hover:opacity-[0.16]" />}
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(100deg,var(--bg-surface)_8%,color-mix(in_srgb,var(--bg-surface)_86%,transparent)_62%,transparent)]" />
+    <article className={`pb-uiverse-media-card group relative isolate flex min-h-[166px] gap-3 overflow-hidden rounded-[22px] p-2.5 sm:min-h-[178px] sm:p-3 ${selected ? "ring-2 ring-[var(--accent)]" : ""}`}>
+      {item.backdropUrl && <Image src={item.backdropUrl} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="-z-20 object-cover opacity-[0.13] transition duration-500 group-hover:scale-[1.03] group-hover:opacity-[0.19]" />}
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(100deg,var(--bg-surface)_5%,color-mix(in_srgb,var(--bg-surface)_88%,transparent)_62%,color-mix(in_srgb,var(--bg-surface)_58%,transparent))]" />
       {selectMode && (
         <label className="absolute right-3 top-3 z-20 grid size-9 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass)] backdrop-blur-md">
           <input type="checkbox" checked={selected} onChange={onToggleSelect} className="size-5 accent-[var(--accent)]" />
         </label>
       )}
-      <Link href={href} className="relative h-[154px] w-[104px] shrink-0 overflow-hidden rounded-[14px] bg-[var(--bg-elevated)] shadow-lg">
+      <Link href={href} className="pb-uiverse-media-card__poster relative h-[146px] w-[98px] shrink-0 overflow-hidden rounded-[14px] bg-[var(--bg-elevated)] sm:h-[154px] sm:w-[104px]">
         {item.posterUrl && <Image src={item.posterUrl} alt="" fill sizes="104px" className="object-cover transition duration-500 group-hover:scale-105" />}
       </Link>
       <div className="flex min-w-0 flex-1 flex-col py-0.5">
@@ -340,8 +356,8 @@ function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onR
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2"><TypeBadge type={item.type} /><StatusBadge status={item.status} /></div>
         <div className="mt-3"><ProgressMeter item={item} compact /></div>
-        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-          <RatingStars value={item.rating} onChange={onRate} size={14} />
+        <div className="mt-auto flex flex-wrap items-end justify-between gap-1.5 pt-2">
+          <div className="max-w-full overflow-hidden"><RatingStars value={item.rating} onChange={onRate} size={14} /></div>
           <div className="flex gap-0.5 rounded-full border border-[var(--border)] bg-[var(--glass)] p-0.5 backdrop-blur-md">
             {item.type === "comic" ? <Link href={href} aria-label="Open issue tracker" title="Open issue tracker" className="rounded-full p-1.5 text-[var(--accent)] hover:bg-[var(--bg-elevated)]"><ListChecks className="size-4" /></Link> : <button onClick={onNext} aria-label="Mark next" title="Mark next" className="rounded-full p-1.5 text-[var(--accent)] hover:bg-[var(--bg-elevated)]"><Plus className="size-4" /></button>}
             <button onClick={onComplete} aria-label={`Mark ${item.title} complete`} title="Complete" className="rounded-full p-1.5 text-[var(--completed)] hover:bg-[var(--bg-elevated)]"><Check className="size-4" /></button>
@@ -361,8 +377,8 @@ function ProgressMeter({ item, compact = false }: { item: ReelItem; compact?: bo
         <span className="truncate">{formatProgress(item.progress, item.type)}</span>
         <span className="shrink-0 font-mono font-semibold text-[var(--text)]">{percent}%</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-elevated)]" aria-label={`${item.title} ${percent}% complete`}>
-        <div className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300" style={{ width: `${percent}%` }} />
+      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-elevated)] shadow-[inset_0_1px_2px_rgba(0,0,0,.08)]" aria-label={`${item.title} ${percent}% complete`}>
+        <div className="h-full rounded-full bg-[linear-gradient(90deg,var(--accent),var(--accent-2))] shadow-[0_0_12px_rgb(var(--accent-rgb)/0.26)] transition-[width] duration-500" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );

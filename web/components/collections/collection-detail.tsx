@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CopyPlus, FolderOpen, Globe, Lock, Users, EyeOff } from "lucide-react";
 import { BackButton } from "@/components/shell/back-button";
@@ -43,6 +44,7 @@ const VISIBILITY: { key: CollectionVisibility; label: string; icon: typeof Globe
 ];
 
 export function CollectionDetail({ id }: { id: string }) {
+  const router = useRouter();
   const { items: libraryItems, signedIn } = useLibrary();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [items, setItems] = useState<CollectionItem[]>([]);
@@ -132,7 +134,7 @@ export function CollectionDetail({ id }: { id: string }) {
       const response = await fetch(`/api/collections/${id}/copy`, { method: "POST" });
       const body = (await response.json()) as { id?: string; error?: string };
       if (!response.ok || !body.id) throw new Error(body.error ?? "Could not copy collection");
-      toast.success("Saved as a private collection", { action: { label: "Open", onClick: () => { window.location.href = `/collections/${body.id}`; } } });
+      toast.success("Saved as a private collection", { action: { label: "Open", onClick: () => router.push(`/collections/${body.id}`) } });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not copy collection");
     }
@@ -167,11 +169,11 @@ export function CollectionDetail({ id }: { id: string }) {
 
   return (
     <div className="space-y-7">
-      <section className="relative min-h-[300px] overflow-hidden rounded-[28px] border border-[var(--media-border)] bg-[var(--bg-surface)] shadow-[0_24px_70px_rgba(15,23,42,.1)] sm:min-h-[360px]">
+      <section className="pb-collection-hero relative min-h-[300px] overflow-hidden rounded-[28px] sm:min-h-[360px]">
         {heroImage ? (
           <>
-            <Image src={heroImage} alt="" fill priority sizes="(max-width: 1400px) 100vw, 1400px" className="scale-110 object-cover object-center opacity-55 blur-[2px]" />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,12,.78)_0%,rgba(8,8,12,.48)_50%,rgba(8,8,12,.2)_100%)]" />
+            <Image src={heroImage} alt="" fill priority sizes="(max-width: 1400px) 100vw, 1400px" className="scale-105 object-cover object-center opacity-70 transition duration-700 hover:scale-100" />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,12,.78)_0%,rgba(8,8,12,.44)_50%,rgba(8,8,12,.16)_100%)]" />
             <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,8,12,.88)_0%,rgba(8,8,12,.28)_60%,rgba(8,8,12,.12)_100%)]" />
           </>
         ) : (
@@ -186,7 +188,7 @@ export function CollectionDetail({ id }: { id: string }) {
           <div className="mt-auto flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-3xl">
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-white/65">Collection</p>
-              <h1 className="font-display text-4xl font-extrabold leading-[.96] tracking-tight sm:text-6xl">{collection.name}</h1>
+              <h1 className="pb-collection-title font-display text-4xl font-black leading-[.94] tracking-[-0.04em] sm:text-6xl">{collection.name}</h1>
               {collection.description && <p className="mt-3 max-w-2xl text-sm leading-6 text-white/78 sm:text-[15px]">{collection.description}</p>}
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-white/75">
                 <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1.5 backdrop-blur-md">{items.length} {items.length === 1 ? "title" : "titles"}</span>
@@ -214,7 +216,7 @@ export function CollectionDetail({ id }: { id: string }) {
       </section>
 
       {isOwner && (
-        <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 shadow-sm">
+        <div className="pb-uiverse-card pb-uiverse-card--compact flex flex-wrap items-center gap-2 rounded-[22px] p-3">
           <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Who can see this</span>
           {VISIBILITY.map((v) => (
             <Pill key={v.key} active={collection.visibility === v.key} onClick={() => void changeVisibility(v.key)}>
@@ -234,7 +236,7 @@ export function CollectionDetail({ id }: { id: string }) {
         />
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 shadow-sm">
+          <div className="pb-uiverse-card pb-uiverse-card--compact flex flex-wrap items-center justify-between gap-3 rounded-[22px] p-3">
             {types.length > 2 && (
               <div className="flex flex-wrap gap-2">
                 {types.map((t) => (
@@ -258,24 +260,24 @@ export function CollectionDetail({ id }: { id: string }) {
           <PosterGrid items={resolved} />
 
           {isOwner && (
-            <details className="glass rounded-[var(--radius-md)] p-3 text-sm">
+            <details className="pb-uiverse-card pb-uiverse-card--compact rounded-[22px] p-3 text-sm">
               <summary className="cursor-pointer font-semibold text-[var(--text-secondary)]">Manage items</summary>
-              <div className="mt-2 space-y-1">
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {resolved.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between gap-3 py-1">
-                    <span className="truncate">{r.title}</span>
-                    <div className="flex shrink-0 items-center gap-3">
+                  <div key={r.id} className="pb-uiverse-row flex items-center justify-between gap-3 rounded-2xl p-2.5">
+                    <span className="min-w-0 truncate font-medium">{r.title}</span>
+                    <div className="flex shrink-0 items-center gap-2">
                       {r.posterUrl && (
                         <button
                           onClick={() => void setCollectionCover(r)}
-                          className="text-xs font-semibold text-[var(--accent)]"
+                          className="rounded-full px-2 py-1 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-[rgb(var(--accent-rgb)/0.09)]"
                         >
                           {collection.cover_item_id === r.id ? "Cover set" : "Use as cover"}
                         </button>
                       )}
                       <button
                         onClick={() => void removeItemFromCollection(id, r.id).then(load)}
-                        className="text-xs font-semibold text-[var(--dropped)]"
+                        className="rounded-full px-2 py-1 text-[11px] font-semibold text-[var(--dropped)] transition hover:bg-[rgba(239,68,68,0.09)]"
                       >
                         Remove
                       </button>

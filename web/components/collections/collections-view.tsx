@@ -32,18 +32,27 @@ async function fetchCollectionShelfData() {
   const previewPairs = await Promise.all(collections.map(async (collection) => {
     try {
       const items = await getCollectionItems(collection.id);
-      return [collection.id, items.filter((item) => item.poster_url).slice(0, 4)] as const;
+      return [collection.id, {
+        preview: items.filter((item) => item.poster_url).slice(0, 4),
+        count: items.length,
+      }] as const;
     } catch {
-      return [collection.id, []] as const;
+      return [collection.id, { preview: [], count: 0 }] as const;
     }
   }));
-  return { collections, previews: Object.fromEntries(previewPairs) as Record<string, CollectionItem[]> };
+  const shelves = Object.fromEntries(previewPairs) as Record<string, { preview: CollectionItem[]; count: number }>;
+  return {
+    collections,
+    previews: Object.fromEntries(Object.entries(shelves).map(([id, shelf]) => [id, shelf.preview])) as Record<string, CollectionItem[]>,
+    counts: Object.fromEntries(Object.entries(shelves).map(([id, shelf]) => [id, shelf.count])) as Record<string, number>,
+  };
 }
 
 export function CollectionsView() {
   const { signedIn } = useLibrary();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [previews, setPreviews] = useState<Record<string, CollectionItem[]>>({});
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
@@ -55,6 +64,7 @@ export function CollectionsView() {
       const data = await fetchCollectionShelfData();
       setCollections(data.collections);
       setPreviews(data.previews);
+      setCounts(data.counts);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load collections");
     } finally {
@@ -70,6 +80,7 @@ export function CollectionsView() {
         if (!cancelled) {
           setCollections(data.collections);
           setPreviews(data.previews);
+          setCounts(data.counts);
         }
       })
       .catch((error: unknown) => {
@@ -142,12 +153,12 @@ export function CollectionsView() {
       ) : collections.length === 0 ? (
         <EmptyState icon={<FolderPlus className="size-10" />} title="No collections yet" description="Create your first collection above." />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {collections.map((c) => (
-            <div key={c.id} className="group relative overflow-hidden rounded-[24px] border border-[var(--media-border)] bg-[var(--bg-surface)] shadow-[0_16px_40px_rgb(15_23_42/.10)]">
-              <Link href={`/collections/${c.id}`} className="relative block aspect-[16/10] overflow-hidden">
+            <article key={c.id} className="pb-collection-card group relative overflow-hidden rounded-[26px]">
+              <Link href={`/collections/${c.id}`} className="relative block aspect-[16/11] overflow-hidden sm:aspect-[16/10]">
                 {c.cover_url ? (
-                  <Image src={c.cover_url} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition duration-700 group-hover:scale-105" />
+                  <Image src={c.cover_url} alt="" fill sizes="(max-width: 640px) 100vw, 50vw" className="object-cover transition duration-700 group-hover:scale-105" />
                 ) : previews[c.id]?.length ? (
                   <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
                     {previews[c.id].map((item, index) => (
@@ -160,15 +171,20 @@ export function CollectionsView() {
                 ) : (
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgb(var(--accent-rgb)/0.42),transparent_34%),radial-gradient(circle_at_82%_26%,rgb(var(--accent-2-rgb)/0.34),transparent_40%),linear-gradient(145deg,var(--bg-elevated),var(--bg-surface))]" />
                 )}
-                <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(7,7,12,.94)_0%,rgba(7,7,12,.46)_46%,rgba(7,7,12,.08)_100%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(7,7,12,.92)_0%,rgba(7,7,12,.44)_44%,rgba(7,7,12,.06)_100%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_86%_12%,rgba(255,255,255,.15),transparent_24%)] opacity-0 transition duration-500 group-hover:opacity-100" />
                 <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
                   <VisibilityIcon visibility={c.visibility} />
                   {c.visibility}
                 </div>
                 <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                  <h3 className="font-display text-2xl font-black leading-[.95] tracking-[-0.03em] [text-shadow:0_2px_16px_rgba(0,0,0,.75)]">{c.name}</h3>
-                  {c.description && <p className="mt-2 line-clamp-2 max-w-[90%] text-xs leading-5 text-white/72">{c.description}</p>}
-                  <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">{previews[c.id]?.length ? `${previews[c.id].length}${previews[c.id].length === 4 ? "+" : ""} visual preview` : "Open collection"}</p>
+                  <h3 className="pb-collection-title font-display text-[clamp(1.65rem,5vw,2.4rem)] font-black leading-[.92] tracking-[-0.04em]">{c.name}</h3>
+                  {c.description && <p className="mt-2 line-clamp-2 max-w-[92%] text-xs leading-5 text-white/78 sm:text-[13px]">{c.description}</p>}
+                  <div className="mt-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/62">
+                    <span>{counts[c.id] ?? 0} {(counts[c.id] ?? 0) === 1 ? "title" : "titles"}</span>
+                    <span aria-hidden="true">•</span>
+                    <span className="transition group-hover:text-white/90">Open shelf</span>
+                  </div>
                 </div>
               </Link>
               <button
@@ -182,7 +198,7 @@ export function CollectionsView() {
               >
                 <Trash2 className="size-4" />
               </button>
-            </div>
+            </article>
           ))}
         </div>
       )}
