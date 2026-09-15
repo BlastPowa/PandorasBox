@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka, Inter, JetBrains_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
@@ -54,9 +53,6 @@ export default function RootLayout({
       className={`${fredoka.variable} ${inter.variable} ${jetbrains.variable} h-full`}
       suppressHydrationWarning
     >
-      <head>
-        <Script src="/theme-init.js" strategy="beforeInteractive" />
-      </head>
       <body className="min-h-dvh">
         <Providers>{children}</Providers>
       </body>

@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui-fx/button";
 
 type Preferences = { messages: boolean; shares: boolean; friends: boolean; groups: boolean };
 const DEFAULTS: Preferences = { messages: true, shares: true, friends: true, groups: true };
+const subscribeToBrowserCapability = () => () => undefined;
+
+function browserSupportsPush() {
+  return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
 
 function applicationKey(value: string) {
   const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -19,7 +24,8 @@ async function ensureServiceWorker() {
 }
 
 export function PushNotificationControl() {
-  const [supported] = useState(() => typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window);
+  const hydrated = useSyncExternalStore(subscribeToBrowserCapability, () => true, () => false);
+  const supported = useSyncExternalStore(subscribeToBrowserCapability, browserSupportsPush, () => false);
   const [configured, setConfigured] = useState(false);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
@@ -67,7 +73,7 @@ export function PushNotificationControl() {
 
   return <section className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--glass)] p-4" aria-labelledby="push-title">
     <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--accent)]">{subscription ? <Bell className="size-5" /> : <BellOff className="size-5" />}</span><div><h3 id="push-title" className="font-bold">Device notifications</h3><p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Receive alerts on this phone or computer when PBox is installed or allowed to run in the background.</p></div></div>
-    {!supported ? <p className="mt-3 text-xs text-[var(--text-muted)]">This browser does not support web push notifications.</p> : !configured ? <p className="mt-3 text-xs text-[var(--gold)]">Push delivery needs the VAPID environment keys configured on the server.</p> : <>
+    {!hydrated ? <p className="mt-3 text-xs text-[var(--text-muted)]">Checking notification support…</p> : !supported ? <p className="mt-3 text-xs text-[var(--text-muted)]">This browser does not support web push notifications.</p> : !configured ? <p className="mt-3 text-xs text-[var(--gold)]">Push delivery needs the VAPID environment keys configured on the server.</p> : <>
       <Button type="button" variant={subscription ? "outline" : "primary"} className="mt-4 w-full sm:w-auto" loading={busy} onClick={() => void (subscription ? disable() : enable())}>{subscription ? <BellOff className="size-4" /> : <Bell className="size-4" />}{subscription ? "Turn off on this device" : "Allow notifications"}</Button>
       {subscription && <div className="mt-4 grid gap-2 sm:grid-cols-2">{([ ["messages", "Messages"], ["shares", "Shared cards"], ["friends", "Friend activity"], ["groups", "Group invitations"] ] as const).map(([key, label]) => <label key={key} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl bg-[var(--bg-surface)] px-3 text-sm"><input type="checkbox" checked={preferences[key]} onChange={() => void toggle(key)} className="size-4 accent-[var(--accent)]" /><span>{label}</span></label>)}</div>}
     </>}
