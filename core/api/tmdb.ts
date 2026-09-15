@@ -72,6 +72,8 @@ export interface TMDBImage {
   height: number;
   aspect_ratio: number;
   vote_average: number;
+  vote_count?: number;
+  iso_639_1?: string | null;
 }
 
 export interface TMDBImages {

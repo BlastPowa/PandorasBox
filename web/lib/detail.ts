@@ -139,18 +139,47 @@ function seriesCertification(
 }
 
 function galleryImages(
-  images: { backdrops?: { file_path: string; width: number; height: number; vote_average: number }[] } | undefined
+  images: { backdrops?: { file_path: string; width: number; height: number; vote_average: number; vote_count?: number; iso_639_1?: string | null }[] } | undefined
 ): DetailGalleryImage[] {
-  return (images?.backdrops ?? [])
+  const seen = new Set<string>();
+  const unique = (images?.backdrops ?? [])
     .filter((image) => image.file_path && image.width > image.height)
-    .sort((a, b) => b.vote_average - a.vote_average)
-    .filter((image, index, list) => list.findIndex((candidate) => candidate.file_path === image.file_path) === index)
-    .slice(0, 14)
-    .map((image) => ({
-      url: getBackdropUrl(image.file_path),
-      width: image.width,
-      height: image.height,
-    }));
+    .filter((image) => {
+      const key = image.file_path.trim().toLowerCase().replace(/^\/+/, "");
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => {
+      const aCleanArtwork = a.iso_639_1 == null ? 1 : 0;
+      const bCleanArtwork = b.iso_639_1 == null ? 1 : 0;
+      if (aCleanArtwork !== bCleanArtwork) return bCleanArtwork - aCleanArtwork;
+      const voteDelta = (b.vote_average ?? 0) - (a.vote_average ?? 0);
+      if (Math.abs(voteDelta) > 0.25) return voteDelta;
+      return (b.vote_count ?? 0) - (a.vote_count ?? 0);
+    });
+
+  // Keep the strongest artwork while avoiding a rail full of near-identical
+  // image dimensions/scores from the same upload batch.
+  const selected: typeof unique = [];
+  const visualBuckets = new Map<string, number>();
+  for (const image of unique) {
+    const ratio = image.width / image.height;
+    const ratioBucket = (Math.round(ratio * 20) / 20).toFixed(2);
+    const scoreBucket = (Math.round((image.vote_average ?? 0) * 2) / 2).toFixed(1);
+    const bucket = `${ratioBucket}:${scoreBucket}:${image.iso_639_1 ?? "clean"}`;
+    const count = visualBuckets.get(bucket) ?? 0;
+    if (count >= 3 && selected.length >= 8) continue;
+    visualBuckets.set(bucket, count + 1);
+    selected.push(image);
+    if (selected.length >= 14) break;
+  }
+
+  return selected.map((image) => ({
+    url: getBackdropUrl(image.file_path),
+    width: image.width,
+    height: image.height,
+  }));
 }
 
 async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promise<CastMember[]> {

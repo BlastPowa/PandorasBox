@@ -1,15 +1,18 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BarChart3,
   BookOpen,
   CalendarDays,
   Clapperboard,
   Compass,
   Gamepad2,
+  Images,
   Library,
   ListChecks,
   MoonStar,
   Palette,
+  Smartphone,
   Sparkles,
   Tv,
 } from "lucide-react";
@@ -18,6 +21,21 @@ import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-heade
 export const metadata = { title: "What's New · PBox" };
 
 const RELEASES = [
+  {
+    icon: BarChart3,
+    title: "Stats now feels like a real dashboard",
+    text: "Stats now includes animated completion, status and rating visuals, weekly activity, genre and media breakdowns, milestones, rank progress and richer recent activity using your existing library history.",
+  },
+  {
+    icon: Images,
+    title: "Movie and series galleries are cleaner",
+    text: "Artwork is ranked and deduplicated more carefully, repeated-looking backdrops are reduced, and the gallery now uses a larger cinematic viewer with a responsive thumbnail rail and clearer photo controls.",
+  },
+  {
+    icon: Smartphone,
+    title: "Redesigned pages work better on phones and tablets",
+    text: "Messages now use a true full-screen mobile conversation view, Settings imports reflow on narrow screens, collection actions stay tappable, and game screenshot rails no longer overflow small displays.",
+  },
   {
     icon: Clapperboard,
     title: "A more cinematic home",

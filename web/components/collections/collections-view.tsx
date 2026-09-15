@@ -177,7 +177,7 @@ export function CollectionsView() {
                     void deleteCollection(c.id).then(load).catch(() => toast.error("Delete failed"));
                   }
                 }}
-                className="absolute right-3 top-3 rounded-full border border-white/20 bg-black/35 p-2 text-white/75 opacity-0 backdrop-blur-md transition hover:bg-black/60 hover:text-white group-hover:opacity-100 focus-visible:opacity-100"
+                className="absolute right-3 top-3 rounded-full border border-white/20 bg-black/35 p-2 text-white/75 opacity-100 backdrop-blur-md transition hover:bg-black/60 hover:text-white focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 aria-label="Delete collection"
               >
                 <Trash2 className="size-4" />

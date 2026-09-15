@@ -97,7 +97,7 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
   return (
     <div
       ref={shellRef}
-      className={cn("overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl", embedded ? "min-h-[620px] rounded-[var(--radius-xl)]" : "h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height)-2rem)] min-h-[520px] rounded-[var(--radius-xl)] md:min-h-[620px]", selectedId && !embedded && "max-md:fixed max-md:inset-x-0 max-md:top-0 max-md:z-[60] max-md:min-h-0 max-md:rounded-none max-md:border-x-0")}
+      className={cn("overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl", embedded ? "min-h-[620px] rounded-[var(--radius-xl)]" : "h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height)-2rem)] min-h-[520px] rounded-[var(--radius-xl)] md:min-h-[620px]", selectedId && !embedded && "max-md:fixed max-md:inset-0 max-md:z-[60] max-md:h-dvh max-md:min-h-0 max-md:rounded-none max-md:border-0 max-md:pt-[var(--safe-top)]")}
     >
       <div className="grid size-full md:grid-cols-[320px_1fr] lg:grid-cols-[360px_1fr]">
         <aside className={cn("flex min-h-0 flex-col border-r border-[var(--border)]", selectedId && "hidden md:flex")}>
