@@ -350,6 +350,19 @@ export function SettingsView({
                 <p className="text-xs text-[var(--text-muted)]">
                   Country ({country}) affects where-to-watch results. Manage sign-in providers with your account.
                 </p>
+                <div className="pb-aura flex flex-col gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--glass)] p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">Browser extension</p>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                      Download Pandora&apos;s Box v1.3.0 here anytime. Full tracking and sync controls live under Extension &amp; Apps.
+                    </p>
+                  </div>
+                  <Button asChild className="w-full shrink-0 sm:w-auto">
+                    <a href="/downloads/pandoras-box-extension-v1.3.0.zip" download>
+                      <Download className="size-4" /> Download extension
+                    </a>
+                  </Button>
+                </div>
                 <InstallPBoxControl />
                 {signedIn && <PushNotificationControl />}
                 {signedIn && (
