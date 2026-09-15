@@ -58,6 +58,8 @@ export interface GameCard {
   year: number | null;
   releaseDate: string | null;
   platforms: string[];
+  developers: string[];
+  publishers: string[];
   peakPlayers: number | null;
 }
 
@@ -71,6 +73,7 @@ interface RawCard {
   rating?: number;
   first_release_date?: number;
   platforms?: { name: string }[];
+  involved_companies?: { company: { name: string }; developer: boolean; publisher: boolean }[];
 }
 
 function mapCard(g: RawCard, peakPlayers: number | null = null): GameCard {
@@ -80,6 +83,7 @@ function mapCard(g: RawCard, peakPlayers: number | null = null): GameCard {
     .filter((url, index, all) => all.indexOf(url) === index)
     .slice(0, 5);
   const releaseDate = g.first_release_date ? new Date(g.first_release_date * 1000) : null;
+  const companies = g.involved_companies ?? [];
   return {
     id: g.id,
     name: g.name,
@@ -91,6 +95,8 @@ function mapCard(g: RawCard, peakPlayers: number | null = null): GameCard {
     year: releaseDate ? releaseDate.getUTCFullYear() : null,
     releaseDate: releaseDate ? releaseDate.toISOString() : null,
     platforms: (g.platforms ?? []).map((platform) => platform.name),
+    developers: companies.filter((company) => company.developer).map((company) => company.company.name),
+    publishers: companies.filter((company) => company.publisher).map((company) => company.company.name),
     peakPlayers,
   };
 }
@@ -108,7 +114,7 @@ export interface GameFilters {
   ratingMin?: number | null;
 }
 
-const CARD_FIELDS = "name, cover.image_id, artworks.image_id, screenshots.image_id, summary, rating, first_release_date, platforms.name";
+const CARD_FIELDS = "name, cover.image_id, artworks.image_id, screenshots.image_id, summary, rating, first_release_date, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher";
 
 async function getSteamPlayerCounts(gameIds: number[]): Promise<Map<number, number>> {
   if (gameIds.length === 0) return new Map();

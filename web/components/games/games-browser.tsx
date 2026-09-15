@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowRight, CalendarDays, Gamepad2, Search, SlidersHorizontal, Star, Users, X } from "lucide-react";
+import { ArrowRight, Building2, CalendarDays, Gamepad2, Images, Search, SlidersHorizontal, Star, Users, X } from "lucide-react";
 import type { GameCard as GameCardData, GameSort } from "@/lib/igdb";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 import { GameCard } from "./game-card";
@@ -236,6 +237,10 @@ function GameRail({ title, eyebrow, description, games, upcoming = false, highli
 function UpcomingGameCard({ game }: { game: GameCardData }) {
   const [hovered, setHovered] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; right: number; bottom: number } | null>(null);
+  const closeTimer = useRef<number | null>(null);
+  const cardRef = useRef<HTMLElement | null>(null);
   const reducedMotion = useReducedMotion();
   const images = game.previewImages.length > 0 ? game.previewImages : [game.backdropUrl, game.coverUrl].filter((url): url is string => Boolean(url));
 
@@ -248,34 +253,107 @@ function UpcomingGameCard({ game }: { game: GameCardData }) {
   const releaseLabel = game.releaseDate
     ? new Intl.DateTimeFormat("en-IE", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(game.releaseDate))
     : game.year?.toString() ?? "Release date TBA";
+  const studioLabel = game.developers[0] ?? game.publishers[0] ?? "Studio TBA";
+  const popupPosition = hovered && anchorRect && typeof window !== "undefined"
+    ? {
+        top: Math.max(16, Math.min(anchorRect.top - 36, window.innerHeight - 470)),
+        left: Math.max(16, Math.min(anchorRect.right + 14, window.innerWidth - 386)),
+      }
+    : null;
+
+  function cancelClose() {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+
+  function openPreview() {
+    cancelClose();
+    if (cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      setAnchorRect({ top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
+    }
+    setHovered(true);
+  }
+
+  function scheduleClose() {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => {
+      setHovered(false);
+      setImageIndex(0);
+    }, 140);
+  }
+
+  const previewBody = (
+    <>
+      <div className="relative aspect-[16/9] overflow-hidden rounded-[18px] bg-[var(--bg-elevated)]">
+        {images[imageIndex] ? <Image key={`${game.id}-preview-${imageIndex}`} src={images[imageIndex]} alt="" fill sizes="380px" className="object-cover motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300" /> : <div className="size-full bg-[var(--bg-elevated)]" />}
+        <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(4,5,8,.82),transparent_56%)]" />
+        <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-3 text-white">
+          <div className="min-w-0"><p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">Releases {releaseLabel}</p><p className="truncate text-sm font-extrabold">{game.name}</p></div>
+          {game.rating !== null && <span className="shrink-0 rounded-full border border-white/15 bg-black/35 px-2 py-1 text-[10px] font-bold">★ {game.rating.toFixed(1)}</span>}
+        </div>
+      </div>
+      {images.length > 1 && (
+        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {images.slice(0, 5).map((source, index) => <button key={source} type="button" onClick={() => setImageIndex(index)} aria-label={`Show ${game.name} preview ${index + 1}`} className={cn("relative aspect-video w-14 shrink-0 overflow-hidden rounded-lg border", index === imageIndex ? "border-[var(--accent)]" : "border-[var(--border)] opacity-70")}><Image src={source} alt="" fill sizes="56px" className="object-cover" /></button>)}
+        </div>
+      )}
+      <div className="mt-3 space-y-3">
+        {game.summary && <p className="line-clamp-4 text-xs leading-5 text-[var(--text-secondary)]">{game.summary}</p>}
+        <div className="grid grid-cols-2 gap-2 text-[10px]">
+          <div className="pb-uiverse-row rounded-xl p-2.5"><span className="flex items-center gap-1.5 font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]"><CalendarDays className="size-3.5 text-[var(--accent)]" />Release</span><p className="mt-1 font-bold text-[var(--text)]">{releaseLabel}</p></div>
+          <div className="pb-uiverse-row rounded-xl p-2.5"><span className="flex items-center gap-1.5 font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]"><Building2 className="size-3.5 text-[var(--accent)]" />Studio</span><p className="mt-1 truncate font-bold text-[var(--text)]">{studioLabel}</p></div>
+        </div>
+        {game.platforms.length > 0 && <div className="flex flex-wrap gap-1.5">{game.platforms.slice(0, 5).map((platform) => <span key={platform} className="rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-[9px] font-bold text-[var(--text-muted)]">{platform}</span>)}</div>}
+        <Link href={`/game/${game.id}`} className="pb-uiverse-button pb-uiverse-button--accent inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl text-xs font-extrabold text-white">View full game page <ArrowRight className="size-3.5" /></Link>
+      </div>
+    </>
+  );
 
   return (
-    <Link
-      href={`/game/${game.id}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setImageIndex(0); }}
-      onFocus={() => setHovered(true)}
-      onBlur={() => { setHovered(false); setImageIndex(0); }}
-      className="group relative w-[68vw] max-w-[330px] shrink-0 snap-start overflow-hidden rounded-[24px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] shadow-[0_18px_45px_rgba(15,23,42,.10)] backdrop-blur-xl sm:w-[300px]"
+    <article
+      ref={cardRef}
+      onMouseEnter={openPreview}
+      onMouseLeave={scheduleClose}
+      onFocusCapture={openPreview}
+      onBlurCapture={scheduleClose}
+      className="group relative w-[68vw] max-w-[330px] shrink-0 snap-start sm:w-[300px]"
     >
-      <div className="relative aspect-[16/10] overflow-hidden">
-        {images[imageIndex] ? <Image key={`${game.id}-${imageIndex}`} src={images[imageIndex]} alt="" fill sizes="330px" className="object-cover transition duration-500 group-hover:scale-[1.03] motion-safe:animate-in motion-safe:fade-in" /> : <div className="size-full bg-[var(--bg-elevated)]" />}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-transparent" />
-        <div className="absolute inset-x-3 bottom-3 text-white">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/65">Coming soon · {releaseLabel}</p>
-          <h3 className="mt-1 line-clamp-2 text-base font-extrabold leading-tight">{game.name}</h3>
-        </div>
-      </div>
-      <div className={cn("grid transition-[grid-template-rows] duration-300", hovered ? "grid-rows-[1fr]" : "grid-rows-[0fr]") }>
-        <div className="overflow-hidden">
-          <div className="space-y-3 px-4 pb-4 pt-3">
-            {game.summary && <p className="line-clamp-3 text-xs leading-5 text-[var(--text-secondary)]">{game.summary}</p>}
-            {game.platforms.length > 0 && <div className="flex flex-wrap gap-1.5">{game.platforms.slice(0, 4).map((platform) => <span key={platform} className="rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-[9px] font-bold text-[var(--text-muted)]">{platform}</span>)}</div>}
-            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-[var(--accent)]">View more <ArrowRight className="size-3.5" /></span>
+      <Link href={`/game/${game.id}`} className="pb-uiverse-card pb-aura block overflow-hidden rounded-[24px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] shadow-[0_18px_45px_rgba(15,23,42,.10)] backdrop-blur-xl">
+        <div className="relative aspect-[16/10] overflow-hidden">
+          {images[0] ? <Image src={images[0]} alt="" fill sizes="330px" className="object-cover transition duration-500 group-hover:scale-[1.04]" /> : <div className="size-full bg-[var(--bg-elevated)]" />}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-transparent" />
+          <div className="absolute inset-x-3 bottom-3 text-white">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/65">Coming soon · {releaseLabel}</p>
+            <h3 className="mt-1 line-clamp-2 text-base font-extrabold leading-tight">{game.name}</h3>
           </div>
         </div>
-      </div>
-    </Link>
+        <div className="flex items-center justify-between gap-2 px-3.5 py-3">
+          <div className="min-w-0"><p className="truncate text-xs font-bold text-[var(--text)]">{studioLabel}</p><p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{game.platforms.slice(0, 2).join(" · ") || "Platforms TBA"}</p></div>
+          <span className="hidden items-center gap-1 text-[10px] font-extrabold text-[var(--accent)] md:inline-flex"><Images className="size-3.5" /> Hover preview</span>
+        </div>
+      </Link>
+
+      <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
+        <Dialog.Trigger asChild><button type="button" className="pb-uiverse-button pb-uiverse-button--glass mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl text-xs font-bold text-[var(--text-secondary)] md:hidden"><Images className="size-4" /> Quick look</button></Dialog.Trigger>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-x-3 bottom-3 z-50 max-h-[88dvh] overflow-y-auto rounded-[24px] border border-[var(--border)] bg-[var(--bg-surface)] p-3 shadow-[0_28px_90px_rgba(0,0,0,.26)] sm:left-1/2 sm:max-w-sm sm:-translate-x-1/2">
+            <div className="mb-2 flex items-center justify-between px-1"><Dialog.Title className="text-sm font-extrabold">Quick look</Dialog.Title><Dialog.Close className="grid size-9 place-items-center rounded-full hover:bg-[var(--bg-elevated)]" aria-label="Close preview"><X className="size-4" /></Dialog.Close></div>
+            {previewBody}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {hovered && popupPosition && typeof document !== "undefined" && createPortal(
+        <div onMouseEnter={cancelClose} onMouseLeave={scheduleClose} className="fixed z-[70] hidden w-[370px] rounded-[24px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_94%,transparent)] p-3 shadow-[0_30px_90px_rgba(0,0,0,.28)] backdrop-blur-2xl md:block motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-150" style={popupPosition}>
+          {previewBody}
+        </div>,
+        document.body,
+      )}
+    </article>
   );
 }
 
