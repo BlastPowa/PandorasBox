@@ -42,6 +42,26 @@ function scoreCandidate(candidate: Candidate, genreWeights: Record<string, numbe
   return genreScore * 1.7 + typeWeight + qualityScore;
 }
 
+function genreRecommendations(
+  candidates: Candidate[],
+  weights: Record<string, number>,
+  fallback: Record<string, number>,
+  typeWeight: number,
+) {
+  const preferredGenres = rankedGenreWeights(weights, fallback).slice(0, 3).map(([genre]) => genre);
+  return Object.fromEntries(
+    preferredGenres.flatMap((genre) => {
+      const items = candidates
+        .filter((candidate) => candidate.genres.has(genre))
+        .map((candidate) => ({ item: candidate.item, score: scoreCandidate(candidate, weights, typeWeight) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 16)
+        .map(({ item }) => item);
+      return items.length > 0 ? [[genre, items] as const] : [];
+    }),
+  );
+}
+
 export async function POST(request: NextRequest) {
   const limit = rateLimit(request, "home-recommendations", 20, 60_000);
   if (!limit.ok) return tooManyRequests(limit);
@@ -125,12 +145,21 @@ export async function POST(request: NextRequest) {
     .slice(0, 18)
     .map(({ item }) => item);
 
+  const movieList = [...movieCandidates.values()];
+  const seriesList = [...seriesCandidates.values()];
+
   return NextResponse.json({
     groups: {
-      movies: rank([...movieCandidates.values()], movieGenreWeights, "movie"),
-      series: rank([...seriesCandidates.values()], seriesGenreWeights, "series"),
+      movies: rank(movieList, movieGenreWeights, "movie"),
+      series: rank(seriesList, seriesGenreWeights, "series"),
       anime: rank(animeCandidates, animeGenreWeights, "anime"),
       manga: rank(mangaCandidates, mangaGenreWeights, "manga"),
+    },
+    genreGroups: {
+      movies: genreRecommendations(movieList, movieGenreWeights, genreWeights, mediaTypeWeight(typeWeights, "movie")),
+      series: genreRecommendations(seriesList, seriesGenreWeights, genreWeights, mediaTypeWeight(typeWeights, "series")),
+      anime: genreRecommendations(animeCandidates, animeGenreWeights, genreWeights, mediaTypeWeight(typeWeights, "anime")),
+      manga: genreRecommendations(mangaCandidates, mangaGenreWeights, genreWeights, mediaTypeWeight(typeWeights, "manga")),
     },
   });
 }

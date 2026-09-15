@@ -62,7 +62,7 @@ const RELEASES = [
   {
     icon: Sparkles,
     title: "Recommendations that learn from your library",
-    text: "For You now separates Movies, TV, Anime and Manga, then uses your recent history, ratings and favourite genres to shape each rail.",
+    text: "For You now separates Movies, TV, Anime and Manga, then breaks your strongest tastes into genre-specific rails using recent history, ratings and favourite genres.",
   },
   {
     icon: Library,

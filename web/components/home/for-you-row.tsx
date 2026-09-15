@@ -19,7 +19,15 @@ type RecommendationGroups = {
   manga: UnifiedSearchResult[];
 };
 
+type GenreRecommendationGroups = {
+  movies: Record<string, UnifiedSearchResult[]>;
+  series: Record<string, UnifiedSearchResult[]>;
+  anime: Record<string, UnifiedSearchResult[]>;
+  manga: Record<string, UnifiedSearchResult[]>;
+};
+
 const EMPTY_GROUPS: RecommendationGroups = { movies: [], series: [], anime: [], manga: [] };
+const EMPTY_GENRE_GROUPS: GenreRecommendationGroups = { movies: {}, series: {}, anime: {}, manga: {} };
 
 function buildProfile(items: ReturnType<typeof useLibrary>["items"]): RecommendationProfile {
   const genres: Record<string, number> = {};
@@ -64,10 +72,11 @@ function topGenres(profile: RecommendationProfile, type: string) {
 
 export function ForYouRow() {
   const { items, signedIn, loading } = useLibrary();
-  const [result, setResult] = useState<{ key: string; groups: RecommendationGroups }>({ key: "", groups: EMPTY_GROUPS });
+  const [result, setResult] = useState<{ key: string; groups: RecommendationGroups; genreGroups: GenreRecommendationGroups }>({ key: "", groups: EMPTY_GROUPS, genreGroups: EMPTY_GENRE_GROUPS });
   const profile = useMemo(() => buildProfile(items), [items]);
   const profileKey = useMemo(() => JSON.stringify(profile), [profile]);
   const groups = result.key === profileKey ? result.groups : EMPTY_GROUPS;
+  const genreGroups = result.key === profileKey ? result.genreGroups : EMPTY_GENRE_GROUPS;
   const fetching = signedIn && !loading && items.length > 0 && result.key !== profileKey;
   const labels = useMemo(() => ({
     movies: topGenres(profile, "movie"),
@@ -88,7 +97,7 @@ export function ForYouRow() {
     })
       .then(async (response) => {
         if (!response.ok) throw new Error("Recommendation request failed");
-        const data = await response.json() as { groups?: Partial<RecommendationGroups> };
+        const data = await response.json() as { groups?: Partial<RecommendationGroups>; genreGroups?: Partial<GenreRecommendationGroups> };
         setResult({
           key: profileKey,
           groups: {
@@ -97,11 +106,17 @@ export function ForYouRow() {
             anime: data.groups?.anime ?? [],
             manga: data.groups?.manga ?? [],
           },
+          genreGroups: {
+            movies: data.genreGroups?.movies ?? {},
+            series: data.genreGroups?.series ?? {},
+            anime: data.genreGroups?.anime ?? {},
+            manga: data.genreGroups?.manga ?? {},
+          },
         });
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setResult({ key: profileKey, groups: EMPTY_GROUPS });
+        setResult({ key: profileKey, groups: EMPTY_GROUPS, genreGroups: EMPTY_GENRE_GROUPS });
       });
 
     return () => controller.abort();
@@ -118,11 +133,47 @@ export function ForYouRow() {
       <div className="px-1">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Picked from your history</p>
         <h2 className="mt-1 font-display text-xl font-bold tracking-[-0.02em] text-[var(--text)] sm:text-2xl">More stories that match your taste</h2>
+        <p className="mt-1 max-w-2xl text-xs leading-5 text-[var(--text-muted)]">Your strongest genres are kept separate so movie, TV, anime and manga picks stay closer to what you have actually been watching or reading.</p>
       </div>
-      <PosterRow title="Movies for you" subtitle={labels.movies.length ? `Because you’ve been into ${labels.movies.join(", ")}` : "Based on your recently watched and saved movies"} items={groups.movies} viewAllHref="/browse?kind=movie" />
-      <PosterRow title="TV shows for you" subtitle={labels.series.length ? `More ${labels.series.join(", ")} from your TV history` : "Based on the series you watch and save"} items={groups.series} viewAllHref="/browse?kind=tv" />
-      <PosterRow title="Anime for you" subtitle={labels.anime.length ? `Matched to ${labels.anime.join(", ")} in your anime list` : "Based on your anime history"} items={groups.anime} viewAllHref="/anime" />
-      <PosterRow title="Manga for you" subtitle={labels.manga.length ? `Matched to ${labels.manga.join(", ")} in your reading history` : "Based on your manga and reading history"} items={groups.manga} viewAllHref="/manga" />
+      <RecommendationRows media="Movies" fallbackTitle="Movies for you" fallbackSubtitle={labels.movies.length ? `Because you’ve been into ${labels.movies.join(", ")}` : "Based on your recently watched and saved movies"} groups={genreGroups.movies} items={groups.movies} viewAllHref="/movies" />
+      <RecommendationRows media="TV" fallbackTitle="TV shows for you" fallbackSubtitle={labels.series.length ? `More ${labels.series.join(", ")} from your TV history` : "Based on the series you watch and save"} groups={genreGroups.series} items={groups.series} viewAllHref="/tv" />
+      <RecommendationRows media="Anime" fallbackTitle="Anime for you" fallbackSubtitle={labels.anime.length ? `Matched to ${labels.anime.join(", ")} in your anime list` : "Based on your anime history"} groups={genreGroups.anime} items={groups.anime} viewAllHref="/anime" />
+      <RecommendationRows media="Manga" fallbackTitle="Manga for you" fallbackSubtitle={labels.manga.length ? `Matched to ${labels.manga.join(", ")} in your reading history` : "Based on your manga and reading history"} groups={genreGroups.manga} items={groups.manga} viewAllHref="/browse/trending-manga" />
     </section>
+  );
+}
+
+function RecommendationRows({
+  media,
+  fallbackTitle,
+  fallbackSubtitle,
+  groups,
+  items,
+  viewAllHref,
+}: {
+  media: "Movies" | "TV" | "Anime" | "Manga";
+  fallbackTitle: string;
+  fallbackSubtitle: string;
+  groups: Record<string, UnifiedSearchResult[]>;
+  items: UnifiedSearchResult[];
+  viewAllHref: string;
+}) {
+  const genreRows = Object.entries(groups).filter(([, recommendations]) => recommendations.length > 0).slice(0, 2);
+  if (genreRows.length === 0) {
+    return <PosterRow title={fallbackTitle} subtitle={fallbackSubtitle} items={items} viewAllHref={viewAllHref} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      {genreRows.map(([genre, recommendations], index) => (
+        <PosterRow
+          key={`${media}-${genre}`}
+          title={`${genre} ${media === "TV" ? "shows" : media.toLowerCase()} for you`}
+          subtitle={index === 0 ? `Your recent ${media.toLowerCase()} history leans toward ${genre}` : `Another strong match from your ${genre} history`}
+          items={recommendations}
+          viewAllHref={media === "Movies" ? `/movies?genre=${encodeURIComponent(genre)}` : media === "TV" ? `/tv?genre=${encodeURIComponent(genre)}` : viewAllHref}
+        />
+      ))}
+    </div>
   );
 }
