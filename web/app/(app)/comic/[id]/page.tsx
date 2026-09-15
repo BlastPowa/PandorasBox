@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { BookOpen, ExternalLink } from "lucide-react";
+import { BookOpen, CalendarDays, ExternalLink, LibraryBig, PanelsTopLeft } from "lucide-react";
 import { getComicDetail, getComicIssues, READING_LINKS, PUBLISHER_LABEL } from "@/lib/comics";
 import { AmbientBackground } from "@/components/home/ambient-background";
 import { BackButton } from "@/components/shell/back-button";
@@ -78,14 +78,14 @@ export default async function ComicDetailPage({ params }: { params: Promise<{ id
         <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-8 pt-5 md:px-8 sm:pb-10 lg:pb-12">
           <BackButton fallbackHref="/comics" />
 
-          <div className="mt-7 flex flex-col gap-6 sm:flex-row sm:items-end sm:gap-8 lg:mt-12">
+          <div className="mt-7 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-end sm:gap-8 lg:mt-12 lg:grid-cols-[auto_minmax(0,1fr)_280px]">
             {comic.coverUrl && (
               <div className="relative aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-[22px] border border-white/20 shadow-[0_28px_70px_rgba(0,0,0,.28)] sm:w-52 lg:w-56">
                 <Image src={comic.coverUrl} alt={comic.name} fill sizes="224px" className="object-cover" priority />
               </div>
             )}
 
-            <div className="min-w-0 max-w-4xl flex-1 pb-1">
+            <div className="min-w-0 max-w-4xl pb-1">
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Comic series</p>
               <h1 className="font-display text-4xl font-extrabold leading-[0.96] tracking-tight sm:text-6xl lg:text-7xl">{comic.name}</h1>
 
@@ -149,6 +149,33 @@ export default async function ComicDetailPage({ params }: { params: Promise<{ id
                 </a>
               </div>
             </div>
+
+            <aside className="pb-uiverse-card pb-uiverse-card--compact hidden rounded-[22px] border border-white/10 bg-black/20 p-4 text-white backdrop-blur-xl lg:block">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--accent)]">Series snapshot</p>
+              <div className="mt-3 space-y-2">
+                <div className="pb-uiverse-row flex items-center gap-3 rounded-xl px-3 py-3">
+                  <LibraryBig className="size-4 text-[var(--accent)]" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Publisher</p>
+                    <p className="truncate text-sm font-bold text-white">{publisherLabel ?? "Independent"}</p>
+                  </div>
+                </div>
+                <div className="pb-uiverse-row flex items-center gap-3 rounded-xl px-3 py-3">
+                  <CalendarDays className="size-4 text-[var(--accent)]" />
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">First released</p>
+                    <p className="text-sm font-bold text-white">{comic.startYear ?? "Unknown"}</p>
+                  </div>
+                </div>
+                <div className="pb-uiverse-row flex items-center gap-3 rounded-xl px-3 py-3">
+                  <PanelsTopLeft className="size-4 text-[var(--accent)]" />
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Issues</p>
+                    <p className="text-sm font-bold text-white">{comic.issueCount > 0 ? comic.issueCount : issues.length || "Unknown"}</p>
+                  </div>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
       </section>

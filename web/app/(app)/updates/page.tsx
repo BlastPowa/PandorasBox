@@ -24,6 +24,11 @@ export const metadata = { title: "What's New · PBox" };
 
 const RELEASES = [
   {
+    icon: BookOpen,
+    title: "Comics now feels like a real reading hub",
+    text: "Comics now has an artwork-first featured shelf, grid and list views, Continue Reading from your real library history, richer series pages, and clearer issue progress with a visual completion meter and easier resume controls.",
+  },
+  {
     icon: Users,
     title: "Friends is now a proper social hub",
     text: "Friend cards are richer and searchable, your circle can be sorted quickly, social counts are easier to scan, and a new privacy-aware activity view surfaces what accepted friends are adding, starting and finishing.",
