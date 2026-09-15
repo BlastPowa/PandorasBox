@@ -57,7 +57,7 @@ const RELEASES = [
     highlights: [
       "Friends can be searched and sorted with a privacy-aware recent activity view.",
       "Messages support pinned threads, unread filters, search and full-screen mobile conversations.",
-      "Custom chat backgrounds work properly in Light mode again.",
+      "Chat backgrounds now stay visible behind glassy message bubbles and controls in both Light and Dark mode.",
       "Profile activity and showcases use a more visual timeline and larger artwork.",
     ],
   },

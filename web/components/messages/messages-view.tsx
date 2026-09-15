@@ -589,7 +589,10 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
               >
                 {!message.deleted_at && !message.id.startsWith("optimistic-") && <button type="button" aria-label="Reply to message" onClick={() => startReply(message)} className={cn("absolute -top-5 z-[2] hidden size-9 place-items-center rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] opacity-0 shadow-lg transition md:grid md:group-hover:opacity-100 md:focus-visible:opacity-100", own ? "right-12" : "left-12")}><Reply className="size-4" /></button>}
                 {!own && (sender?.username ? <Link href={`/profile/${encodeURIComponent(sender.username)}`} aria-label={`View ${sender.username}'s profile`}><Avatar small url={sender.avatar_url ?? null} label={sender.username} /></Link> : <Avatar small url={sender?.avatar_url ?? null} label="Member" />)}
-                <div className={cn("min-w-0 max-w-[calc(100%-2.75rem)] rounded-2xl border px-3 py-2 shadow-sm sm:max-w-[68%]", own ? "rounded-br-md border-[var(--accent)] bg-[var(--accent)] text-white" : "rounded-bl-md border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-primary)]", detail.chatBackgroundUrl && !own && "shadow-md backdrop-blur-xl")}>
+                <div
+                  className={cn("min-w-0 max-w-[calc(100%-2.75rem)] rounded-2xl border px-3 py-2 shadow-sm sm:max-w-[68%]", own ? "rounded-br-md border-[var(--accent)] bg-[var(--accent)] text-white" : "rounded-bl-md border-[var(--border)] text-[var(--text-primary)] shadow-md backdrop-blur-xl")}
+                  style={!own ? { background: "color-mix(in srgb, var(--bg-surface) 78%, transparent)" } : undefined}
+                >
                   {!own && detail.type === "group" && <p className="mb-1 text-[10px] font-bold text-[var(--accent)]">{sender?.username ?? "Member"}</p>}
                   {message.reply_to_id && (
                     <ReplyPreview
@@ -656,9 +659,9 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
         )}
       </div>
       {mediaOpen && <div className="relative z-[2]"><MediaPicker busy={mediaBusy} onClose={() => setMediaOpen(false)} onUpload={uploadMedia} onSend={sendMedia} /></div>}
-      {typingLabel && <p className="relative z-[2] shrink-0 border-t border-[var(--border)] bg-[var(--bg-surface)] px-4 py-1.5 text-xs font-medium text-[var(--accent)]">{typingLabel}</p>}
+      {typingLabel && <p className="relative z-[2] shrink-0 border-t border-[var(--border)] px-4 py-1.5 text-xs font-medium text-[var(--accent)] backdrop-blur-xl" style={{ background: "color-mix(in srgb, var(--bg-surface) 84%, transparent)" }}>{typingLabel}</p>}
       {replyingTo && (
-        <div className="relative z-[2] flex items-center gap-3 border-t border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 sm:px-4">
+        <div className="relative z-[2] flex items-center gap-3 border-t border-[var(--border)] px-3 py-2 backdrop-blur-xl sm:px-4" style={{ background: "color-mix(in srgb, var(--bg-elevated) 86%, transparent)" }}>
           <Reply className="size-4 shrink-0 text-[var(--accent)]" />
           <div className="min-w-0 flex-1 border-l-2 border-[var(--accent)] pl-3">
             <p className="truncate text-xs font-bold text-[var(--accent)]">Replying to {detail.members.find((member) => member.user_id === replyingTo.sender_id)?.profile?.username ?? "message"}</p>
@@ -672,10 +675,11 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
           event.preventDefault();
           void send();
         }}
-        className="relative z-[2] flex w-full min-w-0 items-end gap-2 overflow-hidden border-t border-[var(--border)] bg-[var(--bg-surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4"
+        className="relative z-[2] flex w-full min-w-0 items-end gap-2 overflow-hidden border-t border-[var(--border)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:p-4"
+        style={{ background: "color-mix(in srgb, var(--bg-surface) 86%, transparent)" }}
       >
         <Button size="icon" type="button" variant="ghost" className="h-12 w-12 shrink-0 rounded-full" onClick={() => setMediaOpen((current) => !current)} aria-label="Add image, GIF, or sticker"><ImagePlus className="size-5" /></Button>
-        <label className="min-h-11 min-w-0 flex-1 rounded-2xl border border-[var(--border)] bg-[var(--bg-base)] px-4 py-3">
+        <label className="min-h-11 min-w-0 flex-1 rounded-2xl border border-[var(--border)] px-4 py-3 shadow-sm backdrop-blur-md" style={{ background: "color-mix(in srgb, var(--bg-base) 72%, transparent)" }}>
           <span className="sr-only">Message</span>
           <textarea
             ref={composerRef}
