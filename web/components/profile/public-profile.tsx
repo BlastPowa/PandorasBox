@@ -13,9 +13,23 @@ import { profileActivityHref } from "@/lib/profile/activity-href";
 
 interface ProfileRow { id: string; username: string | null; avatar_url: string | null; bio: string | null; banner_url: string | null; profile_background_url: string | null; profile_background_position: "top" | "center" | "bottom"; privacy: "public" | "friends" | "private"; created_at: string; }
 interface CollectionRow { id: string; name: string; description: string | null; cover_url: string | null; visibility?: string; created_at: string; }
-interface ActivityRow { id: string; verb: string; title: string | null; poster_url: string | null; media_type: string | null; media_key: string | null; created_at: string; }
+interface ActivityRow { id: string; verb: string; title: string | null; poster_url: string | null; media_type: string | null; media_key: string | null; meta?: Record<string, unknown> | null; created_at: string; }
 
-const VERB_LABEL: Record<string, string> = { started: "started", finished: "completed", rated: "rated", added: "added", created_collection: "created a collection" };
+const VERB_LABEL: Record<string, string> = { started: "started", finished: "completed", rated: "rated", added: "added", progressed: "checked in", created_collection: "created a collection" };
+
+function progressDetail(row: ActivityRow) {
+  const meta = row.meta;
+  if (!meta || row.verb !== "progressed") return null;
+  if (meta.kind === "episode" && typeof meta.episode === "number") {
+    return typeof meta.season === "number" ? `S${meta.season} E${meta.episode}` : `Episode ${meta.episode}`;
+  }
+  if (meta.kind === "issue") {
+    if (typeof meta.issueNumber === "string" && meta.issueNumber.trim()) return `Issue #${meta.issueNumber}`;
+    if (typeof meta.chapter === "number") return `Issue ${meta.chapter}`;
+  }
+  if (meta.kind === "chapter" && typeof meta.chapter === "number") return `Chapter ${meta.chapter}`;
+  return null;
+}
 
 function activityHref(row: ActivityRow) {
   return profileActivityHref(row.media_type, row.media_key, row.title);
@@ -92,7 +106,8 @@ export function PublicProfile({ profile, isOwner, visible, collections, activity
                 <div className="relative space-y-3 before:absolute before:bottom-6 before:left-[27px] before:top-6 before:w-px before:bg-[linear-gradient(var(--accent),transparent)]">
                   {activity.map((row, index) => {
                     const href = activityHref(row);
-                    const content = <><div className="relative z-10 shrink-0"><div className="relative h-[74px] w-[52px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-sm">{row.poster_url ? <Image src={row.poster_url} alt="" fill sizes="52px" className="object-cover" /> : <div className="grid size-full place-items-center"><Activity className="size-4 text-[var(--text-muted)]" /></div>}</div><span className="absolute -left-1 -top-1 grid size-5 place-items-center rounded-full border-2 border-[var(--bg-base)] bg-[var(--accent)] text-[9px] font-black text-white">{index + 1}</span></div><div className="min-w-0 flex-1 py-1"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-[rgb(var(--accent-rgb)/0.16)] bg-[rgb(var(--accent-rgb)/0.08)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--accent)]">{VERB_LABEL[row.verb] ?? row.verb}</span>{row.media_type && <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{row.media_type.replace(/_/g, " ")}</span>}</div>{row.title && <p className="mt-1.5 line-clamp-1 font-display text-base font-bold">{row.title}</p>}<p className="mt-1 text-xs text-[var(--text-secondary)]">{profile.username} {VERB_LABEL[row.verb] ?? row.verb} this title</p><time className="mt-1.5 block text-[10px] text-[var(--text-muted)]">{new Date(row.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</time></div>{href && <ChevronRight className="mt-7 size-4 shrink-0 text-[var(--text-muted)] transition group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />}</>;
+                    const detail = progressDetail(row);
+                    const content = <><div className="relative z-10 shrink-0"><div className="relative h-[74px] w-[52px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-sm">{row.poster_url ? <Image src={row.poster_url} alt="" fill sizes="52px" className="object-cover" /> : <div className="grid size-full place-items-center"><Activity className="size-4 text-[var(--text-muted)]" /></div>}</div><span className="absolute -left-1 -top-1 grid size-5 place-items-center rounded-full border-2 border-[var(--bg-base)] bg-[var(--accent)] text-[9px] font-black text-white">{index + 1}</span></div><div className="min-w-0 flex-1 py-1"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-[rgb(var(--accent-rgb)/0.16)] bg-[rgb(var(--accent-rgb)/0.08)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--accent)]">{VERB_LABEL[row.verb] ?? row.verb}</span>{row.media_type && <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{row.media_type.replace(/_/g, " ")}</span>}{detail && <span className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-2 py-0.5 text-[9px] font-bold text-[var(--text-secondary)]">{detail}</span>}</div>{row.title && <p className="mt-1.5 line-clamp-1 font-display text-base font-bold">{row.title}</p>}<p className="mt-1 text-xs text-[var(--text-secondary)]">{profile.username} {detail ? `reached ${detail}` : `${VERB_LABEL[row.verb] ?? row.verb} this title`}</p><time className="mt-1.5 block text-[10px] text-[var(--text-muted)]">{new Date(row.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</time></div>{href && <ChevronRight className="mt-7 size-4 shrink-0 text-[var(--text-muted)] transition group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />}</>;
                     const className = "group relative flex items-start gap-3 overflow-hidden rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--glass)_90%,transparent)] p-3 shadow-[0_12px_32px_rgba(15,23,42,.05)] backdrop-blur-md transition hover:border-[rgb(var(--accent-rgb)/0.22)] hover:bg-[var(--glass-strong)]";
                     return href ? <Link key={row.id} href={href} className={className}>{content}</Link> : <div key={row.id} className={className}>{content}</div>;
                   })}

@@ -370,6 +370,7 @@ interface FriendActivityRow {
   poster_url: string | null;
   media_type: string | null;
   media_key: string | null;
+  meta?: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -378,8 +379,21 @@ const ACTIVITY_LABELS: Record<string, string> = {
   started: "started",
   finished: "finished",
   rated: "rated",
+  progressed: "checked in",
   created_collection: "made a collection",
 };
+
+function friendActivityDetail(row: FriendActivityRow) {
+  const meta = row.meta;
+  if (!meta || row.verb !== "progressed") return null;
+  if (meta.kind === "episode" && typeof meta.episode === "number") return typeof meta.season === "number" ? `S${meta.season} E${meta.episode}` : `Episode ${meta.episode}`;
+  if (meta.kind === "issue") {
+    if (typeof meta.issueNumber === "string" && meta.issueNumber.trim()) return `Issue #${meta.issueNumber}`;
+    if (typeof meta.chapter === "number") return `Issue ${meta.chapter}`;
+  }
+  if (meta.kind === "chapter" && typeof meta.chapter === "number") return `Chapter ${meta.chapter}`;
+  return null;
+}
 
 function FriendActivityPanel({ friendIds }: { friendIds: string[] }) {
   const [rows, setRows] = useState<FriendActivityRow[]>([]);
@@ -397,7 +411,7 @@ function FriendActivityPanel({ friendIds }: { friendIds: string[] }) {
         return;
       }
       setLoading(true);
-      const { data } = await createClient().from("activity").select("id, user_id, verb, title, poster_url, media_type, media_key, created_at").in("user_id", friendIds).order("created_at", { ascending: false }).limit(36);
+      const { data } = await createClient().from("activity").select("id, user_id, verb, title, poster_url, media_type, media_key, meta, created_at").in("user_id", friendIds).order("created_at", { ascending: false }).limit(36);
       if (cancelled) return;
       const activityRows = (data as FriendActivityRow[] | null) ?? [];
       setRows(activityRows);
@@ -428,9 +442,10 @@ function FriendActivityPanel({ friendIds }: { friendIds: string[] }) {
           {visible.map((row) => {
             const profile = people.get(row.user_id);
             const href = profileActivityHref(row.media_type, row.media_key, row.title);
+            const detail = friendActivityDetail(row);
             const content = <>
               <div className="relative h-[84px] w-[58px] shrink-0 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)]">{row.poster_url ? <Image src={row.poster_url} alt="" fill sizes="58px" className="object-cover transition duration-500 group-hover:scale-105" /> : <div className="grid size-full place-items-center"><Activity className="size-4 text-[var(--text-muted)]" /></div>}</div>
-              <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="text-xs font-bold text-[var(--accent)]">{profile?.username ?? "Someone"}</span><span className="rounded-full bg-[rgb(var(--accent-rgb)/0.08)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{ACTIVITY_LABELS[row.verb] ?? row.verb}</span></div><p className="mt-1.5 line-clamp-2 font-display text-base font-bold">{row.title ?? "their library"}</p><p className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]"><Clock3 className="size-3" /> {new Date(row.created_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p></div>
+              <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="text-xs font-bold text-[var(--accent)]">{profile?.username ?? "Someone"}</span><span className="rounded-full bg-[rgb(var(--accent-rgb)/0.08)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{ACTIVITY_LABELS[row.verb] ?? row.verb}</span>{detail && <span className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-2 py-0.5 text-[9px] font-bold text-[var(--text-secondary)]">{detail}</span>}</div><p className="mt-1.5 line-clamp-2 font-display text-base font-bold">{row.title ?? "their library"}</p><p className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]"><Clock3 className="size-3" /> {new Date(row.created_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p></div>
             </>;
             const className = "group flex min-h-28 items-center gap-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-3 transition hover:-translate-y-0.5 hover:border-[rgb(var(--accent-rgb)/0.32)]";
             return href ? <Link key={row.id} href={href} className={className}>{content}</Link> : <div key={row.id} className={className}>{content}</div>;

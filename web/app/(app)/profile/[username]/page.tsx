@@ -57,7 +57,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     visible
       ? supabase
           .from("activity")
-          .select("id, verb, title, poster_url, media_type, media_key, created_at")
+          .select("id, verb, title, poster_url, media_type, media_key, meta, created_at")
           .eq("user_id", row.id)
           .order("created_at", { ascending: false })
           .limit(20)

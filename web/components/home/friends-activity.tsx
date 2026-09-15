@@ -14,6 +14,7 @@ interface ActivityRow {
   verb: string;
   title: string | null;
   poster_url: string | null;
+  meta?: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -21,9 +22,22 @@ const VERB_LABEL: Record<string, string> = {
   started: "started",
   finished: "finished",
   rated: "rated",
+  progressed: "checked in",
   added: "added",
   created_collection: "created a collection:",
 };
+
+function progressLabel(row: ActivityRow) {
+  const meta = row.meta;
+  if (!meta || row.verb !== "progressed") return null;
+  if (meta.kind === "episode" && typeof meta.episode === "number") return typeof meta.season === "number" ? `S${meta.season} E${meta.episode}` : `Episode ${meta.episode}`;
+  if (meta.kind === "issue") {
+    if (typeof meta.issueNumber === "string" && meta.issueNumber.trim()) return `Issue #${meta.issueNumber}`;
+    if (typeof meta.chapter === "number") return `Issue ${meta.chapter}`;
+  }
+  if (meta.kind === "chapter" && typeof meta.chapter === "number") return `Chapter ${meta.chapter}`;
+  return null;
+}
 
 export function FriendsActivity() {
   const { signedIn } = useLibrary();
@@ -56,7 +70,7 @@ export function FriendsActivity() {
 
       const { data } = await supabase
         .from("activity")
-        .select("id, user_id, verb, title, poster_url, created_at")
+        .select("id, user_id, verb, title, poster_url, meta, created_at")
         .in("user_id", friendIds)
         .order("created_at", { ascending: false })
         .limit(12);
@@ -86,6 +100,7 @@ export function FriendsActivity() {
       <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {rows.map((r) => {
           const p = profiles.get(r.user_id);
+          const detail = progressLabel(r);
           return (
             <Link
               key={r.id}
@@ -100,6 +115,7 @@ export function FriendsActivity() {
               <p className="min-w-0 text-xs text-[var(--text-secondary)]">
                 <span className="font-semibold text-[var(--text)]">{p?.username ?? "Someone"}</span>{" "}
                 {VERB_LABEL[r.verb] ?? r.verb}{" "}
+                {detail && <span className="font-semibold text-[var(--accent)]">{detail} · </span>}
                 {r.title && <span className="font-semibold text-[var(--text)]">{r.title}</span>}
               </p>
             </Link>

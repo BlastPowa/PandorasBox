@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Activity,
   ArrowRight,
   BarChart3,
   BookOpen,
@@ -71,6 +72,11 @@ const RELEASES = [
     text: "The home page now surfaces in-progress titles that have been untouched for three weeks or more, with a quick Resume action and an option to move them to Paused without digging through the full library.",
   },
   {
+    icon: Activity,
+    title: "Episode, chapter and issue check-ins now tell the full story",
+    text: "Progress updates now flow into profile and friends activity with exact episode, season, chapter or comic issue context, using the same privacy rules as the existing social feed.",
+  },
+  {
     icon: Library,
     title: "A cleaner, artwork-led library",
     text: "Library cards surface progress, rating and status more clearly while filters and controls stay easy to scan in both Light and Dark mode.",
@@ -138,7 +144,7 @@ const RELEASES = [
 ];
 
 const NEXT_UP = [
-  "Richer activity history for episodes, chapters, issues and game sessions",
+  "Game-session activity history once game tracking joins the main library model",
   "More cross-media recommendations that connect adaptations and franchises",
   "Additional privacy-safe history imports from user-provided service exports where supported",
 ];

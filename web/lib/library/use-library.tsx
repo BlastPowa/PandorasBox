@@ -27,6 +27,9 @@ interface LibraryContextValue {
   getById: (id: string) => ReelItem | undefined;
 }
 
+type ActivityVerb = "added" | "started" | "finished" | "rated" | "progressed";
+type ActivityMeta = Record<string, string | number | boolean | null>;
+
 const LibraryContext = createContext<LibraryContextValue | null>(null);
 
 export function LibraryProvider({
@@ -119,7 +122,7 @@ export function LibraryProvider({
   }, []);
 
   /** Fire-and-forget: record an activity feed event for friends to see. */
-  const logActivity = useCallback(async (id: string, verb: "added" | "started" | "finished" | "rated") => {
+  const logActivity = useCallback(async (id: string, verb: ActivityVerb, meta?: ActivityMeta) => {
     const m = managerRef.current;
     const supabase = supabaseRef.current;
     if (!m || !supabase) return;
@@ -135,6 +138,10 @@ export function LibraryProvider({
         media_type: item.type,
         title: item.title,
         poster_url: item.posterUrl,
+        meta:
+          meta?.kind === "chapter" && item.type === "comic"
+            ? { ...meta, kind: "issue" }
+            : meta ?? {},
       });
     } catch {
       // activity logging must never break library operations
@@ -145,7 +152,7 @@ export function LibraryProvider({
     async (
       fn: (m: ListManager) => Promise<unknown>,
       syncId?: string,
-      activity?: "added" | "started" | "finished" | "rated"
+      activity?: ActivityVerb | { verb: ActivityVerb; meta?: ActivityMeta }
     ) => {
       const m = managerRef.current;
       if (!m) throw new Error("Sign in to manage your library.");
@@ -155,7 +162,10 @@ export function LibraryProvider({
         window.dispatchEvent(new CustomEvent("pbox-library-changed"));
       }
       if (syncId) void enqueueSync(syncId);
-      if (activity && syncId) void logActivity(syncId, activity);
+      if (activity && syncId) {
+        const event = typeof activity === "string" ? { verb: activity } : activity;
+        void logActivity(syncId, event.verb, event.meta);
+      }
     },
     [refresh, enqueueSync, logActivity]
   );
@@ -175,10 +185,72 @@ export function LibraryProvider({
       setStatus: (id, status) =>
         run((m) => m.update(id, { status }), id, status === "watching" || status === "rewatching" || status === "reading" ? "started" : undefined),
       setRating: (id, rating) => run((m) => m.update(id, { rating }), id, "rated"),
-      markEpisode: (id, episode, season) => run((m) => m.markEpisodeWatched(id, episode, season), id),
-      markChapter: (id, chapter) => run((m) => m.markChapterRead(id, chapter), id),
+      markEpisode: (id, episode, season) =>
+        run((m) => m.markEpisodeWatched(id, episode, season), id, {
+          verb: "progressed",
+          meta: { kind: "episode", episode, season: season ?? null },
+        }),
+      markChapter: (id, chapter) =>
+        run((m) => m.markChapterRead(id, chapter), id, {
+          verb: "progressed",
+          meta: { kind: "chapter", chapter },
+        }),
       markComplete: (id) => run((m) => m.markComplete(id), id, "finished"),
-      updateProgress: (id, progress) => run((m) => m.updateProgress(id, progress), id),
+      updateProgress: (id, progress) => {
+        const before = items.find((item) => item.id === id);
+        let activity: { verb: ActivityVerb; meta?: ActivityMeta } | undefined;
+        if (
+          before?.type === "comic" &&
+          progress.currentIssueNumber !== undefined &&
+          progress.currentIssueNumber !== null &&
+          progress.currentIssueNumber !== before.progress.currentIssueNumber
+        ) {
+          const nextPosition = progress.currentChapter ?? before.progress.currentChapter ?? null;
+          const previousPosition = before.progress.currentChapter ?? null;
+          const nextNumericIssue = Number.parseFloat(progress.currentIssueNumber);
+          const previousNumericIssue = Number.parseFloat(before.progress.currentIssueNumber ?? "");
+          const movedForward =
+            (nextPosition !== null && (previousPosition === null || nextPosition > previousPosition)) ||
+            (Number.isFinite(nextNumericIssue) && (!Number.isFinite(previousNumericIssue) || nextNumericIssue > previousNumericIssue));
+          if (movedForward) {
+            activity = {
+              verb: "progressed",
+              meta: {
+                kind: "issue",
+                chapter: nextPosition,
+                issueNumber: progress.currentIssueNumber,
+              },
+            };
+          }
+        } else if (
+          progress.currentEpisode !== undefined &&
+          progress.currentEpisode !== null &&
+          progress.currentEpisode > (before?.progress.currentEpisode ?? 0)
+        ) {
+          activity = {
+            verb: "progressed",
+            meta: {
+              kind: "episode",
+              episode: progress.currentEpisode,
+              season: progress.currentSeason ?? before?.progress.currentSeason ?? null,
+            },
+          };
+        } else if (
+          progress.currentChapter !== undefined &&
+          progress.currentChapter !== null &&
+          progress.currentChapter > (before?.progress.currentChapter ?? 0)
+        ) {
+          activity = {
+            verb: "progressed",
+            meta: {
+              kind: progress.currentIssueNumber !== undefined || before?.type === "comic" ? "issue" : "chapter",
+              chapter: progress.currentChapter,
+              issueNumber: progress.currentIssueNumber ?? null,
+            },
+          };
+        }
+        return run((m) => m.updateProgress(id, progress), id, activity);
+      },
       getById: (id) => items.find((i) => i.id === id),
     };
   }, [items, loading, error, userId, refresh, run]);
