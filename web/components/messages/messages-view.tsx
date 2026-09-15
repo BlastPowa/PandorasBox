@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, ImagePlus, Laugh, Loader2, MessageCircle, MoreHorizontal, Plus, Reply, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";
+import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, ImagePlus, Laugh, Loader2, MessageCircle, MoreHorizontal, Pin, Plus, Reply, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
@@ -67,13 +67,24 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [inboxFilter, setInboxFilter] = useState<"all" | "unread" | "pinned">("all");
+  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const shellRef = useRef<HTMLDivElement>(null);
   useMobileChatViewport(Boolean(selectedId && !embedded), shellRef);
   const load = useCallback(async () => {
     try {
       const [{ data }, result] = await Promise.all([createClient().auth.getUser(), listConversations()]);
-      setMyId(data.user?.id ?? null);
+      const userId = data.user?.id ?? null;
+      setMyId(userId);
       setConversations(result.conversations);
+      if (userId) {
+        try {
+          const saved = JSON.parse(window.localStorage.getItem(`pbox-message-pins:${userId}`) ?? "[]") as unknown;
+          setPinnedIds(Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : []);
+        } catch {
+          setPinnedIds([]);
+        }
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not load messages");
     } finally {
@@ -89,10 +100,32 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
     return () => window.removeEventListener("pbox:messages-change", refresh);
   }, [load]);
 
+  const setPinned = useCallback((conversationId: string) => {
+    if (!myId) return;
+    setPinnedIds((current) => {
+      const next = current.includes(conversationId) ? current.filter((id) => id !== conversationId) : [conversationId, ...current];
+      window.localStorage.setItem(`pbox-message-pins:${myId}`, JSON.stringify(next));
+      return next;
+    });
+  }, [myId]);
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return needle ? conversations.filter((conversation) => conversation.title.toLowerCase().includes(needle)) : conversations;
-  }, [conversations, query]);
+    return conversations
+      .filter((conversation) => {
+        if (!needle) return true;
+        const latest = conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? "";
+        return `${conversation.title} ${latest}`.toLowerCase().includes(needle);
+      })
+      .filter((conversation) => inboxFilter === "all" || (inboxFilter === "unread" ? conversation.unreadCount > 0 : pinnedIds.includes(conversation.id)))
+      .sort((a, b) => {
+        const aPinned = pinnedIds.includes(a.id);
+        const bPinned = pinnedIds.includes(b.id);
+        if (aPinned !== bPinned) return aPinned ? -1 : 1;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+  }, [conversations, inboxFilter, pinnedIds, query]);
+  const unreadThreads = useMemo(() => conversations.filter((conversation) => conversation.unreadCount > 0).length, [conversations]);
 
   return (
     <div
@@ -113,6 +146,13 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
               <span className="sr-only">Search conversations</span>
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search conversations" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
             </label>
+            <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {(["all", "unread", "pinned"] as const).map((filter) => (
+                <button key={filter} type="button" onClick={() => setInboxFilter(filter)} className={cn("min-h-9 shrink-0 rounded-full border px-3 text-xs font-bold capitalize transition", inboxFilter === filter ? "border-transparent bg-[var(--accent)] text-white shadow-sm" : "border-[var(--border)] bg-[var(--glass)] text-[var(--text-secondary)] hover:text-[var(--text)]")}>
+                  {filter}{filter === "unread" && unreadThreads > 0 ? ` ${unreadThreads}` : filter === "pinned" && pinnedIds.length > 0 ? ` ${pinnedIds.length}` : ""}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {loading ? (
@@ -122,9 +162,11 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="p-6 text-center text-sm text-[var(--text-muted)]">No conversations yet.</div>
+              <div className="p-6 text-center text-sm text-[var(--text-muted)]">
+                {query.trim() ? "No conversations match that search." : inboxFilter === "unread" ? "You are all caught up." : inboxFilter === "pinned" ? "Pin a conversation to keep it close." : "No conversations yet."}
+              </div>
             ) : (
-              filtered.map((conversation) => <ConversationRow key={conversation.id} conversation={conversation} myId={myId} active={selectedId === conversation.id} onClick={() => setSelectedId(conversation.id)} />)
+              filtered.map((conversation) => <ConversationRow key={conversation.id} conversation={conversation} myId={myId} active={selectedId === conversation.id} pinned={pinnedIds.includes(conversation.id)} onPin={() => setPinned(conversation.id)} onClick={() => setSelectedId(conversation.id)} />)
             )}
           </div>
         </aside>
@@ -159,29 +201,34 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
   );
 }
 
-function ConversationRow({ conversation, myId, active, onClick }: { conversation: Conversation; myId: string | null; active: boolean; onClick: () => void }) {
+function ConversationRow({ conversation, myId, active, pinned, onPin, onClick }: { conversation: Conversation; myId: string | null; active: boolean; pinned: boolean; onPin: () => void; onClick: () => void }) {
   const other = conversation.members.find((member) => member.user_id !== myId)?.profile;
   const mine = conversation.members.find((member) => member.user_id === myId);
   const avatar = conversation.type === "direct" ? other?.avatar_url : null;
   return (
-    <button type="button" onClick={onClick} className={cn("flex min-h-[76px] w-full items-center gap-3 border-b border-[var(--border)] px-4 text-left transition hover:bg-[var(--glass)]", active && "bg-[rgb(var(--accent-rgb)/0.1)]")}>
-      <Avatar url={conversation.type === "group" ? conversation.avatar_url : (avatar ?? null)} label={conversation.title} group={conversation.type === "group"} />
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center justify-between gap-2">
-          <strong className="truncate text-sm">{conversation.title}</strong>
-          <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{new Date(conversation.updated_at).toLocaleDateString()}</span>
-        </span>
-        <span className="mt-1 flex items-center justify-between gap-2">
-          <span className="line-clamp-1 text-xs text-[var(--text-muted)]">{mine?.status === "invited" ? "Group invitation" : conversation.latestMessage?.deleted_at ? "Message removed" : (conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? (conversation.latestMessage?.media_attachment?.kind === "sticker" ? "Sticker" : conversation.latestMessage?.media_attachment?.kind === "gif" ? "GIF" : conversation.latestMessage?.media_attachment ? "Image" : "Start the conversation"))}</span>
-          {conversation.unreadCount > 0 && <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[var(--accent)] px-1 font-mono text-[10px] font-bold text-white">{conversation.unreadCount}</span>}
-        </span>
-        {conversation.deliveryStatus && (
-          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)]">
-            <CheckCheck className="size-3" /> {conversation.deliveryStatus}
+    <div className={cn("group flex min-h-[76px] w-full items-center border-b border-[var(--border)] transition hover:bg-[var(--glass)]", active && "bg-[rgb(var(--accent-rgb)/0.1)]", pinned && "shadow-[inset_3px_0_0_rgb(var(--accent-rgb)/0.7)]")}>
+      <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left">
+        <Avatar url={conversation.type === "group" ? conversation.avatar_url : (avatar ?? null)} label={conversation.title} group={conversation.type === "group"} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-1.5"><strong className="truncate text-sm">{conversation.title}</strong>{pinned && <Pin className="size-3 shrink-0 fill-current text-[var(--accent)]" />}</span>
+            <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{new Date(conversation.updated_at).toLocaleDateString()}</span>
           </span>
-        )}
-      </span>
-    </button>
+          <span className="mt-1 flex items-center justify-between gap-2">
+            <span className="line-clamp-1 text-xs text-[var(--text-muted)]">{mine?.status === "invited" ? "Group invitation" : conversation.latestMessage?.deleted_at ? "Message removed" : (conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? (conversation.latestMessage?.media_attachment?.kind === "sticker" ? "Sticker" : conversation.latestMessage?.media_attachment?.kind === "gif" ? "GIF" : conversation.latestMessage?.media_attachment ? "Image" : "Start the conversation"))}</span>
+            {conversation.unreadCount > 0 && <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[var(--accent)] px-1 font-mono text-[10px] font-bold text-white">{conversation.unreadCount}</span>}
+          </span>
+          {conversation.deliveryStatus && (
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)]">
+              <CheckCheck className="size-3" /> {conversation.deliveryStatus}
+            </span>
+          )}
+        </span>
+      </button>
+      <button type="button" onClick={onPin} className={cn("mr-2 grid size-9 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition hover:bg-[var(--bg-surface)] hover:text-[var(--accent)] md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100", pinned && "text-[var(--accent)] md:opacity-100")} aria-label={pinned ? `Unpin ${conversation.title}` : `Pin ${conversation.title}`} title={pinned ? "Unpin conversation" : "Pin conversation"}>
+        <Pin className={cn("size-4", pinned && "fill-current")} />
+      </button>
+    </div>
   );
 }
 

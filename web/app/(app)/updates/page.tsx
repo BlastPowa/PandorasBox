@@ -10,17 +10,29 @@ import {
   Images,
   Library,
   ListChecks,
+  MessageCircle,
   MoonStar,
   Palette,
   Smartphone,
   Sparkles,
   Tv,
+  Users,
 } from "lucide-react";
 import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
 
 export const metadata = { title: "What's New · PBox" };
 
 const RELEASES = [
+  {
+    icon: Users,
+    title: "Friends is now a proper social hub",
+    text: "Friend cards are richer and searchable, your circle can be sorted quickly, social counts are easier to scan, and a new privacy-aware activity view surfaces what accepted friends are adding, starting and finishing.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Messages is quicker to organise",
+    text: "Conversations can now be pinned on your device, filtered to unread or pinned threads, and searched by title or recent message while keeping custom chat atmospheres and mobile full-screen conversations intact.",
+  },
   {
     icon: BarChart3,
     title: "Stats now feels like a real dashboard",
