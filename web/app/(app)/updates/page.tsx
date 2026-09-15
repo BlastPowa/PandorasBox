@@ -65,8 +65,13 @@ const RELEASES = [
   },
   {
     icon: ListChecks,
-    title: "Extension tracking is faster and safer",
-    text: "Extension v1.1.0 saves on pause and visibility changes, reacts faster to single-page app navigation, retries transient writes and refreshes progress views live.",
+    title: "Extension v1.2.0 adds safer history import",
+    text: "Netflix viewing-history CSV files can now be imported locally into PBox. Exact-title matching avoids bad guesses, duplicate library entries are skipped, and no Netflix login or password is requested.",
+  },
+  {
+    icon: ListChecks,
+    title: "Extension security is tighter",
+    text: "v1.2.0 removes unused permissions, disables production source maps, validates extension messages and sync settings, isolates sync identities per installation, and validates remote list data before it can replace local progress.",
   },
   {
     icon: MoonStar,
@@ -89,7 +94,7 @@ const NEXT_UP = [
   "Optional progress reminders for titles that have gone quiet",
   "Richer activity history for episodes, chapters, issues and game sessions",
   "More cross-media recommendations that connect adaptations and franchises",
-  "Privacy-safe history imports from user-provided streaming-service exports where supported",
+  "Additional privacy-safe history imports from user-provided service exports where supported",
 ];
 
 export default function UpdatesPage() {

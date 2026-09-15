@@ -4,7 +4,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   mode: "production",
-  devtool: "source-map",
+  devtool: false,
   entry: {
     "background/service-worker": "./background/service-worker.ts",
     "content-scripts/netflix": "./content-scripts/netflix.ts",

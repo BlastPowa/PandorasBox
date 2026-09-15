@@ -1,32 +1,7 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-const scriptSrc = process.env.NODE_ENV === "production"
-  ? "script-src 'self' 'unsafe-inline'"
-  : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
-
-const csp = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  // Theme bootstrap requires inline script; development keeps the additional local runtime allowance.
-  scriptSrc,
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  // Images are now loaded straight from their source CDNs (see lib/image-loader.ts),
-  // not proxied through /_next/image, so every host must be listed here.
-  "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://comicvine.gamespot.com https://static.comicvine.com https://images.igdb.com https://img.youtube.com https://*.supabase.co https://*.giphy.com",
-  "media-src 'self' https:",
-  // Browser-side services such as GIPHY and Supabase require HTTPS connections.
-  "connect-src 'self' https: wss://*.supabase.co",
-  "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
-  "upgrade-insecure-requests",
-].join("; ");
-
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

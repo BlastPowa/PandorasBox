@@ -84,10 +84,13 @@
 
     <section class="card">
       <h2>Data</h2>
+      <p class="data-copy">Import your Netflix viewing activity without connecting your Netflix account. The CSV is read locally, matched against Reel, and never uploads Netflix credentials.</p>
       <div class="data-actions">
         <button class="btn" id="exportBtn">Export List as JSON</button>
         <button class="btn" id="importBtn">Import List from JSON</button>
+        <button class="btn" id="netflixImportBtn">Import Netflix History CSV</button>
         <input type="file" id="importFile" accept="application/json" class="hidden" />
+        <input type="file" id="netflixImportFile" accept=".csv,text/csv" class="hidden" />
       </div>
       <div id="dataNote" class="save-note hidden"></div>
     </section>

@@ -1,5 +1,5 @@
 import { initManagers } from "../lib/chromeStorage";
-import { getSettings, saveSettings, ensureDefaultSettings } from "../lib/settings";
+import { getSettings, saveSettings, ensureDefaultSettings, getOrCreateSyncUserId } from "../lib/settings";
 import type { ReelMessage, ReelResponseError, AiringTodayEntry } from "../lib/messages";
 import { EpisodeChecker } from "../../core/notifications/episodeChecker";
 import { ChapterChecker } from "../../core/notifications/chapterChecker";
@@ -97,7 +97,8 @@ async function runSupabaseSync(): Promise<{ success: boolean; message: string }>
     return { success: false, message: "Sync is not configured" };
   }
   try {
-    const sync = new SupabaseSync(settings.supabaseUrl, settings.supabaseAnonKey, "reel-default-user");
+    const syncUserId = await getOrCreateSyncUserId();
+    const sync = new SupabaseSync(settings.supabaseUrl, settings.supabaseAnonKey, syncUserId);
     const local = await listManager.getAll();
     const merged = await sync.sync(local);
     await replaceList(merged);
@@ -292,9 +293,38 @@ async function handleMessage(message: ReelMessage): Promise<unknown> {
   }
 }
 
-chrome.runtime.onMessage.addListener((message: ReelMessage, _sender, sendResponse) => {
+const MESSAGE_TYPES = new Set<ReelMessage["type"]>([
+  "saveProgress",
+  "getList",
+  "getInProgress",
+  "addItem",
+  "updateItem",
+  "removeItem",
+  "markEpisodeWatched",
+  "markChapterRead",
+  "markComplete",
+  "updateProgress",
+  "getStats",
+  "getSettings",
+  "updateSettings",
+  "search",
+  "getWatchProviders",
+  "getAiringToday",
+  "syncNow",
+]);
+
+function isAllowedMessage(message: unknown): message is ReelMessage {
+  if (typeof message !== "object" || message === null) return false;
+  const candidate = message as { type?: unknown };
+  return typeof candidate.type === "string" && MESSAGE_TYPES.has(candidate.type as ReelMessage["type"]);
+}
+
+chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
   void (async () => {
     try {
+      if (sender.id !== chrome.runtime.id || !isAllowedMessage(message)) {
+        throw new Error("Rejected untrusted extension message");
+      }
       const result = await handleMessage(message);
       sendResponse(result);
     } catch (error) {

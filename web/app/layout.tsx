@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -55,7 +54,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script src="/theme-init.js" />
       </head>
       <body className="min-h-dvh">
         <Providers>{children}</Providers>

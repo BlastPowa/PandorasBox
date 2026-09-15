@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ReelItem } from "../storage/schema";
+import { validateDecodedList } from "./qrSync";
 
 interface ReelListRow {
   user_id: string;
@@ -13,7 +14,13 @@ export class SupabaseSync {
   private userId: string;
 
   constructor(supabaseUrl: string, supabaseAnonKey: string, userId: string) {
-    this.client = createClient(supabaseUrl, supabaseAnonKey);
+    this.client = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
     this.userId = userId;
   }
 
@@ -52,10 +59,11 @@ export class SupabaseSync {
         return null;
       }
       const row = data as Pick<ReelListRow, "list_data">;
-      if (typeof row.list_data === "string") {
-        return JSON.parse(row.list_data) as ReelItem[];
+      const listData = typeof row.list_data === "string" ? JSON.parse(row.list_data) : row.list_data;
+      if (!validateDecodedList(listData)) {
+        throw new Error("Remote list data failed validation");
       }
-      return row.list_data;
+      return listData;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Supabase pull error: ${error.message}`);

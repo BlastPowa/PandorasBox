@@ -16,7 +16,7 @@ A summary of the protections in place and the (free) dashboard steps to finish h
   server-side in route handlers.
 - **Auth.** Handled by Supabase (bcrypt-hashed passwords, secure session cookies via
   `@supabase/ssr`). The app never stores or sees raw passwords. Protected routes
-  (`/library`, `/collections`, `/stats`, `/settings`, `/admin`) are gated in `middleware.ts`;
+  (`/library`, `/collections`, `/stats`, `/settings`, `/admin`) are gated in `proxy.ts`;
   `/admin` additionally checks `role = 'admin'`.
 - **Rate limiting (anti-abuse / anti-scraping).** All public API routes
   (`/api/search`, `/api/random`, `/api/trailer`, `/api/episodes`) and `/api/admin/refresh`
@@ -26,14 +26,32 @@ A summary of the protections in place and the (free) dashboard steps to finish h
   client parameterizes everything).
 - **Cron protection.** `/api/cron/refresh-availability` requires the `CRON_SECRET` bearer
   token that Vercel Cron sends automatically.
-- **HTTP security headers** (`next.config.ts`): Content-Security-Policy (restricts scripts,
-  connect, img, frame sources; `frame-ancestors 'none'` blocks clickjacking; `object-src 'none'`;
-  `base-uri 'self'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+- **HTTP security headers** (`proxy.ts` + `next.config.ts`): a per-request nonce-based
+  Content-Security-Policy restricts scripts, connect, img and frame sources while still allowing
+  Next.js bootstrap scripts to hydrate safely. `frame-ancestors 'none'` blocks clickjacking;
+  `object-src 'none'` and `base-uri 'self'` close legacy injection paths. Static headers include
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy`, `Strict-Transport-Security` (HSTS preload), `Permissions-Policy`
   (camera/mic/geo disabled), `poweredByHeader: false`.
-- **XSS.** React escapes all rendered values; no `dangerouslySetInnerHTML`. AniList HTML
-  descriptions are stripped to plain text before display.
+- **XSS.** React escapes rendered values and AniList HTML descriptions are stripped to plain
+  text before display. The pre-hydration appearance bootstrap is a static same-origin file at
+  `/theme-init.js`; framework inline scripts must carry the request-specific CSP nonce.
 - **Secrets.** `.env*` is git-ignored; nothing sensitive is committed.
+- **Patched framework baseline.** The web app is pinned to Next.js `16.3.5`, replacing the
+  vulnerable `16.2.10` build and clearing the current npm dependency audit.
+
+## Browser extension hardening
+
+- Production builds do not ship JavaScript source maps.
+- The manifest requests only the extension permissions currently used, while network access is
+  limited to Reel's metadata APIs and configured Supabase cloud projects.
+- Runtime messages must come from the extension itself and use a known message type before the
+  service worker dispatches them.
+- Sync settings are length/type validated, Supabase endpoints must use HTTPS on `supabase.co`,
+  and every installation gets a separate random sync identity instead of sharing a default row.
+- Remote sync payloads are validated as Reel list data before they can replace local state.
+- Netflix history import reads the user's exported CSV locally. The extension never asks for or
+  stores Netflix credentials.
 
 ## Finish in the Supabase dashboard (free, ~2 min)
 
@@ -48,5 +66,4 @@ A summary of the protections in place and the (free) dashboard steps to finish h
 
 - Swap the in-memory limiter for **Upstash Redis** (free tier) for a distributed limit that
   survives serverless cold starts.
-- Nonce-based CSP (drop `'unsafe-inline'`/`'unsafe-eval'` from `script-src`) via middleware.
 - Turn on Vercel **Attack Challenge / WAF** (available on the project's Firewall settings).

@@ -1,7 +1,17 @@
 import { sendMessage } from "../lib/messages";
-import type { ReelItem, ReelSettings } from "../../core/storage/schema";
-import { formatRuntime } from "../../core/utils/formatters";
+import { createDefaultProgress, type ReelItem, type ReelSettings } from "../../core/storage/schema";
+import { formatRuntime, normaliseTitle } from "../../core/utils/formatters";
 import { validateDecodedList } from "../../core/sync/qrSync";
+import type { UnifiedSearchResult } from "../../core/utils/search";
+
+interface NetflixHistoryEntry {
+  title: string;
+  searchTitle: string;
+  watchedAt: string | null;
+  episodic: boolean;
+}
+
+const MAX_NETFLIX_IMPORT_TITLES = 200;
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -31,6 +41,189 @@ function note(target: HTMLElement, message: string, isError = false): void {
   target.classList.remove("hidden");
   target.classList.toggle("error", isError);
   setTimeout(() => target.classList.add("hidden"), 5000);
+}
+
+function parseCsvRows(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === '"') {
+      if (quoted && text[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (char === "," && !quoted) {
+      row.push(field);
+      field = "";
+      continue;
+    }
+    if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && text[index + 1] === "\n") {
+        index += 1;
+      }
+      row.push(field);
+      if (row.some((value) => value.trim().length > 0)) {
+        rows.push(row);
+      }
+      row = [];
+      field = "";
+      continue;
+    }
+    field += char;
+  }
+
+  row.push(field);
+  if (row.some((value) => value.trim().length > 0)) {
+    rows.push(row);
+  }
+  return rows;
+}
+
+function parseNetflixDate(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+
+  const slashDate = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(raw);
+  if (slashDate) {
+    let first = Number(slashDate[1]);
+    let second = Number(slashDate[2]);
+    let year = Number(slashDate[3]);
+    if (year < 100) year += 2000;
+    let month = first;
+    let day = second;
+    if (first > 12 && second <= 12) {
+      day = first;
+      month = second;
+    }
+    const parsed = new Date(Date.UTC(year, month - 1, day, 12));
+    if (
+      parsed.getUTCFullYear() === year &&
+      parsed.getUTCMonth() === month - 1 &&
+      parsed.getUTCDate() === day
+    ) {
+      return parsed.toISOString();
+    }
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function getNetflixSearchTitle(title: string): { searchTitle: string; episodic: boolean } {
+  const seasonMarker = /:\s*(?:season|series|limited series|book|part|episode)\b/i.exec(title);
+  if (!seasonMarker || seasonMarker.index <= 0) {
+    return { searchTitle: title.trim(), episodic: false };
+  }
+  return {
+    searchTitle: title.slice(0, seasonMarker.index).trim(),
+    episodic: true,
+  };
+}
+
+function parseNetflixHistory(text: string): NetflixHistoryEntry[] {
+  const rows = parseCsvRows(text);
+  const header = rows.shift();
+  if (!header) {
+    throw new Error("The Netflix CSV is empty.");
+  }
+  const normalisedHeader = header.map((value) => value.replace(/^\uFEFF/, "").trim().toLowerCase());
+  const titleIndex = normalisedHeader.indexOf("title");
+  const dateIndex = normalisedHeader.indexOf("date");
+  if (titleIndex < 0) {
+    throw new Error("This does not look like a Netflix ViewingActivity.csv file.");
+  }
+
+  const deduped = new Map<string, NetflixHistoryEntry>();
+  for (const row of rows) {
+    const title = (row[titleIndex] ?? "").trim();
+    if (!title) continue;
+    const { searchTitle, episodic } = getNetflixSearchTitle(title);
+    const key = normaliseTitle(searchTitle);
+    if (!key) continue;
+    const watchedAt = dateIndex >= 0 ? parseNetflixDate(row[dateIndex] ?? "") : null;
+    const existing = deduped.get(key);
+    if (!existing) {
+      deduped.set(key, { title, searchTitle, watchedAt, episodic });
+      continue;
+    }
+    const existingTime = existing.watchedAt ? new Date(existing.watchedAt).getTime() : 0;
+    const incomingTime = watchedAt ? new Date(watchedAt).getTime() : 0;
+    if (incomingTime >= existingTime) {
+      deduped.set(key, {
+        title,
+        searchTitle,
+        watchedAt,
+        episodic: existing.episodic || episodic,
+      });
+    } else if (episodic && !existing.episodic) {
+      existing.episodic = true;
+    }
+  }
+  return Array.from(deduped.values());
+}
+
+function chooseExactNetflixMatch(
+  entry: NetflixHistoryEntry,
+  results: UnifiedSearchResult[]
+): UnifiedSearchResult | null {
+  const wanted = normaliseTitle(entry.searchTitle);
+  const exact = results.filter((result) => normaliseTitle(result.title) === wanted);
+  if (exact.length === 0) return null;
+
+  if (entry.episodic) {
+    const episodic = exact.filter((result) => result.type === "series" || result.type === "anime");
+    const tmdb = episodic.filter((result) => result.source === "tmdb");
+    if (tmdb.length === 1) return tmdb[0];
+    if (episodic.length === 1) return episodic[0];
+    return null;
+  }
+
+  const movies = exact.filter((result) => result.type === "movie");
+  if (movies.length === 1) return movies[0];
+  if (exact.length === 1) return exact[0];
+  return null;
+}
+
+function netflixResultToItem(
+  result: UnifiedSearchResult,
+  watchedAt: string | null
+): Omit<ReelItem, "addedAt" | "updatedAt"> {
+  const progress = createDefaultProgress();
+  progress.totalEpisodes = result.totalEpisodes;
+  progress.totalChapters = result.totalChapters;
+  const completed = result.type === "movie";
+  if (completed) progress.percentComplete = 100;
+  return {
+    id: result.id,
+    source: result.source,
+    type: result.type,
+    title: result.title,
+    posterUrl: result.posterUrl,
+    backdropUrl: result.backdropUrl ?? null,
+    synopsis: result.synopsis,
+    status: completed ? "completed" : "watching",
+    progress,
+    rating: null,
+    genres: [],
+    totalEpisodes: result.totalEpisodes,
+    totalChapters: result.totalChapters,
+    totalSeasons: null,
+    year: result.year,
+    anilistId: result.anilistId,
+    tmdbId: result.tmdbId,
+    mangadexId: result.mangadexId,
+    malId: result.malId,
+    completedAt: completed ? watchedAt : null,
+    lastWatchedSite: "netflix.com",
+  };
 }
 
 async function loadOverview(): Promise<void> {
@@ -271,6 +464,74 @@ function setupDataActions(): void {
         note(byId("dataNote"), error instanceof Error ? error.message : "Import failed", true);
       } finally {
         fileInput.value = "";
+      }
+    })();
+  });
+
+  const netflixFileInput = byId<HTMLInputElement>("netflixImportFile");
+  byId("netflixImportBtn").addEventListener("click", () => netflixFileInput.click());
+  netflixFileInput.addEventListener("change", () => {
+    const file = netflixFileInput.files?.[0];
+    if (!file) return;
+
+    void (async () => {
+      const dataNote = byId("dataNote");
+      try {
+        const entries = parseNetflixHistory(await file.text());
+        if (entries.length === 0) {
+          note(dataNote, "No Netflix viewing-history titles were found in that CSV.", true);
+          return;
+        }
+
+        const selected = entries.slice(0, MAX_NETFLIX_IMPORT_TITLES);
+        const existing = await sendMessage({ type: "getList" });
+        const existingIds = new Set(existing.map((item) => item.id));
+        let imported = 0;
+        let alreadyThere = 0;
+        let unmatched = 0;
+
+        dataNote.classList.remove("hidden", "error");
+        for (let index = 0; index < selected.length; index += 1) {
+          if (index % 10 === 0) {
+            dataNote.textContent = `Matching Netflix history… ${index}/${selected.length}`;
+          }
+          const entry = selected[index];
+          const results = await sendMessage({ type: "search", query: entry.searchTitle });
+          const match = chooseExactNetflixMatch(entry, results);
+          if (!match) {
+            unmatched += 1;
+            continue;
+          }
+          if (existingIds.has(match.id)) {
+            alreadyThere += 1;
+            continue;
+          }
+          try {
+            await sendMessage({ type: "addItem", item: netflixResultToItem(match, entry.watchedAt) });
+            existingIds.add(match.id);
+            imported += 1;
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "";
+            if (message.includes("already exists")) {
+              alreadyThere += 1;
+            } else {
+              unmatched += 1;
+            }
+          }
+        }
+
+        const capped = entries.length > selected.length
+          ? ` Limited to the newest ${MAX_NETFLIX_IMPORT_TITLES} unique titles for this import.`
+          : "";
+        note(
+          dataNote,
+          `Netflix import: ${imported} added, ${alreadyThere} already in Reel, ${unmatched} skipped because no exact match was safe.${capped}`
+        );
+        await loadOverview();
+      } catch (error) {
+        note(dataNote, error instanceof Error ? error.message : "Netflix history import failed", true);
+      } finally {
+        netflixFileInput.value = "";
       }
     })();
   });
