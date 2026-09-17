@@ -97,10 +97,37 @@ function providerScope(id: string): string[] {
   return [];
 }
 
+const companionSources = [
+  {
+    name: "Cinejoy",
+    href: "https://cinejoy.to/",
+    detail: "Movies + TV",
+    coverage: "TMDB title mapping, seasons and episodes",
+  },
+  {
+    name: "CinemaOS",
+    href: "https://cinemaos.live/",
+    detail: "Movies + TV",
+    coverage: "Title, season and episode progress",
+  },
+  {
+    name: "Crunchyroll",
+    href: "https://www.crunchyroll.com/",
+    detail: "Anime",
+    coverage: "Dedicated episode tracking",
+  },
+  {
+    name: "Netflix + Disney+",
+    href: null,
+    detail: "Movies + TV",
+    coverage: "Dedicated playback tracking",
+  },
+] as const;
+
 function BrowserCompanionCard() {
   return (
     <GlassCard macDots title="Browser companion" strong>
-      <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1.15fr_.85fr] lg:items-center">
+      <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1.05fr_.95fr] lg:items-start">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="grid size-11 place-items-center rounded-2xl bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--accent)]">
@@ -112,14 +139,15 @@ function BrowserCompanionCard() {
             </div>
           </div>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-            Track movies, series, anime, manga and manhwa while you browse. The new long-form filter skips social feeds,
-            clips and small autoplay videos, while Netflix, Disney+, Crunchyroll and CinemaOS keep dedicated tracking.
+            Track movies, series, anime, manga and manhwa while you browse. Cinejoy and CinemaOS are covered by the
+            browser companion alongside Netflix, Disney+ and Crunchyroll, with dedicated playback parsing where the site exposes it.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--text-muted)]">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1.5">
               <ShieldCheck className="size-3.5 text-emerald-500" /> No Netflix or Disney password required
             </span>
             <span className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1.5">Chrome / Chromium</span>
+            <span className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1.5">Playback tracking</span>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild>
@@ -132,13 +160,52 @@ function BrowserCompanionCard() {
             </Button>
           </div>
         </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
-          <p className="text-sm font-semibold">Install in Chrome</p>
-          <ol className="mt-3 space-y-2 text-xs leading-5 text-[var(--text-secondary)]">
-            <li><span className="mr-2 font-bold text-[var(--accent)]">1.</span>Download and extract the ZIP.</li>
-            <li><span className="mr-2 font-bold text-[var(--accent)]">2.</span>Open <code className="rounded bg-[var(--glass)] px-1.5 py-0.5">chrome://extensions</code> and enable Developer mode.</li>
-            <li><span className="mr-2 font-bold text-[var(--accent)]">3.</span>Choose <strong>Load unpacked</strong> and select the extracted folder.</li>
-          </ol>
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">Tracked playback sources</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">Runs locally in the extension while you watch.</p>
+              </div>
+              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-500">
+                Supported
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {companionSources.map((source) => {
+                const body = (
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--glass)] p-3 transition-colors hover:border-[rgb(var(--accent-rgb)/0.35)]">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-[var(--text-primary)]">{source.name}</p>
+                      {source.href && <ExternalLink className="size-3 text-[var(--text-muted)]" />}
+                    </div>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">{source.detail}</p>
+                    <p className="mt-1.5 text-[11px] leading-4 text-[var(--text-muted)]">{source.coverage}</p>
+                  </div>
+                );
+
+                return source.href ? (
+                  <a key={source.name} href={source.href} target="_blank" rel="noreferrer" className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                    {body}
+                  </a>
+                ) : (
+                  <div key={source.name}>{body}</div>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-[11px] leading-5 text-[var(--text-muted)]">
+              Account syncing is managed separately below. Cinejoy and CinemaOS currently use companion tracking rather than a third-party account connection.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+            <p className="text-sm font-semibold">Install in Chrome</p>
+            <ol className="mt-3 space-y-2 text-xs leading-5 text-[var(--text-secondary)]">
+              <li><span className="mr-2 font-bold text-[var(--accent)]">1.</span>Download and extract the ZIP.</li>
+              <li><span className="mr-2 font-bold text-[var(--accent)]">2.</span>Open <code className="rounded bg-[var(--glass)] px-1.5 py-0.5">chrome://extensions</code> and enable Developer mode.</li>
+              <li><span className="mr-2 font-bold text-[var(--accent)]">3.</span>Choose <strong>Load unpacked</strong> and select the extracted folder.</li>
+            </ol>
+          </div>
         </div>
       </div>
     </GlassCard>
