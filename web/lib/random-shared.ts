@@ -1,10 +1,47 @@
 export type RandomType = "any" | "movie" | "series" | "kdrama" | "anime" | "manga";
 export type GenreMode = "any" | "all";
+export type RandomEra = "any" | "2020s" | "2010s" | "2000s" | "classic";
+export type RandomQuality = "any" | "7" | "8";
 
 export interface RandomFilters {
   type: RandomType;
   genres: string[];
   mode: GenreMode;
+  era: RandomEra;
+  quality: RandomQuality;
+}
+
+export const RANDOM_ERAS: { key: RandomEra; label: string; hint: string }[] = [
+  { key: "any", label: "Any era", hint: "All years" },
+  { key: "2020s", label: "2020s", hint: "2020–now" },
+  { key: "2010s", label: "2010s", hint: "2010–2019" },
+  { key: "2000s", label: "2000s", hint: "2000–2009" },
+  { key: "classic", label: "Classics", hint: "Before 2000" },
+];
+
+export const RANDOM_QUALITY: { key: RandomQuality; label: string; hint: string }[] = [
+  { key: "any", label: "Anything", hint: "No score floor" },
+  { key: "7", label: "Well rated", hint: "7.0+" },
+  { key: "8", label: "Top tier", hint: "8.0+" },
+];
+
+export function yearRangeForEra(era: RandomEra): { min?: number; max?: number } {
+  switch (era) {
+    case "2020s":
+      return { min: 2020 };
+    case "2010s":
+      return { min: 2010, max: 2019 };
+    case "2000s":
+      return { min: 2000, max: 2009 };
+    case "classic":
+      return { max: 1999 };
+    default:
+      return {};
+  }
+}
+
+export function minimumScore(quality: RandomQuality): number | undefined {
+  return quality === "any" ? undefined : Number.parseInt(quality, 10);
 }
 
 /** TMDB movie genre ids (real, so filtering actually works). */

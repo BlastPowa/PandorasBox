@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getRandomTitles, type RandomType } from "@/lib/random";
-import type { GenreMode } from "@/lib/random-shared";
+import type { GenreMode, RandomEra, RandomQuality } from "@/lib/random-shared";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const TYPES: RandomType[] = ["any", "movie", "series", "kdrama", "anime", "manga"];
 const MODES: GenreMode[] = ["any", "all"];
+const ERAS: RandomEra[] = ["any", "2020s", "2010s", "2000s", "classic"];
+const QUALITIES: RandomQuality[] = ["any", "7", "8"];
 
 export async function GET(request: NextRequest) {
   const limit = rateLimit(request, "random", 30, 60_000);
@@ -15,6 +17,10 @@ export async function GET(request: NextRequest) {
   const type = (TYPES.includes(typeParam as RandomType) ? typeParam : "any") as RandomType;
   const modeParam = searchParams.get("mode") ?? "any";
   const mode = (MODES.includes(modeParam as GenreMode) ? modeParam : "any") as GenreMode;
+  const eraParam = searchParams.get("era") ?? "any";
+  const era = (ERAS.includes(eraParam as RandomEra) ? eraParam : "any") as RandomEra;
+  const qualityParam = searchParams.get("quality") ?? "any";
+  const quality = (QUALITIES.includes(qualityParam as RandomQuality) ? qualityParam : "any") as RandomQuality;
   const genres = (searchParams.get("genres") ?? "")
     .split(",")
     .map((g) => g.trim())
@@ -22,7 +28,7 @@ export async function GET(request: NextRequest) {
     .slice(0, 10);
 
   try {
-    const results = await getRandomTitles({ type, genres, mode });
+    const results = await getRandomTitles({ type, genres, mode, era, quality });
     return NextResponse.json({ results });
   } catch (e) {
     return NextResponse.json(

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Compass } from "lucide-react";
+import { ArrowRight, Compass, Dices, Flame, Sparkles, Star, WandSparkles } from "lucide-react";
 import {
   getTrendingAnime,
   getPopularAnime,
@@ -28,6 +28,13 @@ import { AmbientBackground } from "@/components/home/ambient-background";
 export const revalidate = 3600;
 
 const NETFLIX = getStreamingProvider("netflix")!;
+
+const DISCOVERY_PATHS = [
+  { label: "Movie night", description: "Recent well-rated thrillers", href: "/randomize?type=movie&genres=Thriller&era=2020s&quality=7", icon: Flame },
+  { label: "Anime gem", description: "Top-tier fantasy picks", href: "/randomize?type=anime&genres=Fantasy&quality=8", icon: Sparkles },
+  { label: "Comfort watch", description: "2000s comedy series", href: "/randomize?type=series&genres=Comedy&era=2000s&quality=7", icon: Star },
+  { label: "Surprise me", description: "Open the whole box", href: "/randomize", icon: Dices },
+] as const;
 
 async function BrowseContent() {
   const [
@@ -83,7 +90,7 @@ async function BrowseContent() {
           <span className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-[rgb(var(--accent-rgb)/0.30)] bg-[rgb(var(--accent-rgb)/0.12)] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent)] backdrop-blur-md"><Compass className="size-3.5" /> Explore PBox</span>
           <h1 className="font-display text-4xl font-extrabold tracking-tight text-[var(--text)] sm:text-6xl">Find your next world</h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">Movies, series, anime, manga, comics, and games—curated across every corner of your entertainment library.</p>
-          <div className="mt-5 flex flex-wrap gap-3"><Link href="/movies" className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--accent-hover)]">Browse movies <ArrowRight className="size-4" /></Link><Link href="/anime" className="inline-flex h-11 items-center rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] px-6 text-sm font-semibold text-[var(--text)] shadow-sm backdrop-blur-md transition hover:border-[var(--border-strong)]">Explore anime</Link></div>
+          <div className="mt-5 flex flex-wrap gap-3"><Link href="/movies" className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--accent-hover)]">Browse movies <ArrowRight className="size-4" /></Link><Link href="/randomize" className="inline-flex h-11 items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] px-6 text-sm font-semibold text-[var(--text)] shadow-sm backdrop-blur-md transition hover:border-[var(--border-strong)]"><Dices className="size-4" /> Open the Box</Link></div>
         </div>
       </section>
       {!hasTmdb && (
@@ -93,10 +100,32 @@ async function BrowseContent() {
         </p>
       )}
 
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-3 px-1">
+          <div>
+            <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent)]"><WandSparkles className="size-3.5" /> Discovery paths</div>
+            <h2 className="font-display text-xl font-bold">Start with a vibe</h2>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">Jump into a tuned Randomizer preset, then reshape it however you want.</p>
+          </div>
+          <Link href="/randomize" className="hidden text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] sm:inline-flex">All randomizer controls</Link>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {DISCOVERY_PATHS.map((path) => {
+            const Icon = path.icon;
+            return (
+              <Link key={path.label} href={path.href} className="glass group flex min-h-28 items-end justify-between gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] p-4 transition hover:-translate-y-0.5 hover:border-[rgb(var(--accent-rgb)/0.45)]">
+                <div><span className="font-display text-base font-bold text-[var(--text)]">{path.label}</span><span className="mt-1 block text-xs text-[var(--text-muted)]">{path.description}</span></div>
+                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)] transition group-hover:bg-[rgb(var(--accent-rgb)/0.2)]"><Icon className="size-4.5" /></span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
       <FranchiseExplorer franchises={FRANCHISES} />
 
-      <PosterRow title="Popular Movies" items={movies} viewAllHref="/browse/popular-movies" />
-      <PosterRow title="Popular TV & Series" items={series} viewAllHref="/browse/popular-series" />
+      <PosterRow title="Popular Movies" items={movies} viewAllHref="/browse/popular-movies" quickLook />
+      <PosterRow title="Popular TV & Series" items={series} viewAllHref="/browse/popular-series" quickLook />
       <ProviderSwitcher initialProvider="netflix" initialResults={netflix} />
       <PosterRow title="K-Drama" subtitle="Trending from Korea" items={kdrama} viewAllHref="/browse/kdrama" />
       <PosterRow title="Animation & Cartoons" subtitle="Western & all-ages" items={cartoons} viewAllHref="/browse/cartoons" />
@@ -104,7 +133,7 @@ async function BrowseContent() {
       <PosterRow title="DC" subtitle="Movies & TV" items={dc} viewAllHref="/browse/dc" />
       <PosterRow title="Disney Movies" items={disneyMovies} viewAllHref="/browse/disney-movies" />
       <PosterRow title="OG TV Shows" subtitle="Nickelodeon, Disney XD, Kix-era action, Cartoon Network & more" items={nostalgia} viewAllHref="/browse/og-tv" randomize />
-      <PosterRow title="Trending Anime" items={anime} viewAllHref="/browse/trending-anime" />
+      <PosterRow title="Trending Anime" items={anime} viewAllHref="/browse/trending-anime" quickLook />
       <PosterRow title="Popular Anime" items={popAnime} viewAllHref="/browse/popular-anime" />
       <PosterRow title="Trending Manga" items={manga} viewAllHref="/browse/trending-manga" />
       <PosterRow title="Top Rated Movies" items={topMovies} viewAllHref="/browse/top-rated-movies" />
