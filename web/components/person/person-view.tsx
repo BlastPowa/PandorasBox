@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Cake, MapPin, Link2, Film } from "lucide-react";
+import { Briefcase, Cake, Clapperboard, Film, Link2, MapPin, Search, Star, Tv } from "lucide-react";
 import type { PersonDetail, PersonCredit } from "@/lib/person";
 import { Pill, TypeBadge } from "@/components/ui-fx/badge";
 import { EmptyState } from "@/components/ui-fx/feedback";
@@ -33,6 +33,7 @@ export function PersonView({ person }: { person: PersonDetail }) {
   const [department, setDepartment] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("popularity");
+  const [query, setQuery] = useState("");
 
   const departments = useMemo(() => {
     const set = new Set(person.credits.map((c) => c.department));
@@ -48,6 +49,14 @@ export function PersonView({ person }: { person: PersonDetail }) {
     let list = person.credits.slice();
     if (department !== "all") list = list.filter((c) => c.department === department);
     if (typeFilter !== "all") list = list.filter((c) => c.type === typeFilter);
+    const normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery) {
+      list = list.filter((c) =>
+        c.title.toLowerCase().includes(normalizedQuery) ||
+        c.role.toLowerCase().includes(normalizedQuery) ||
+        c.department.toLowerCase().includes(normalizedQuery)
+      );
+    }
     list.sort((a, b) => {
       switch (sort) {
         case "date":
@@ -61,10 +70,20 @@ export function PersonView({ person }: { person: PersonDetail }) {
       }
     });
     return list;
-  }, [person.credits, department, typeFilter, sort]);
+  }, [person.credits, department, typeFilter, sort, query]);
 
-  const knownFor = person.credits.slice().sort((a, b) => b.popularity - a.popularity).slice(0, 3);
+  const knownFor = person.credits.slice().sort((a, b) => b.popularity - a.popularity).slice(0, 5);
   const yrs = age(person.birthday, person.deathday);
+  const movieCount = person.credits.filter((credit) => credit.type === "movie").length;
+  const seriesCount = person.credits.filter((credit) => credit.type === "series").length;
+  const actingCount = person.credits.filter((credit) => credit.department === "Acting").length;
+  const scoredCredits = person.credits.filter((credit) => credit.score !== null);
+  const averageScore = scoredCredits.length > 0
+    ? scoredCredits.reduce((total, credit) => total + (credit.score ?? 0), 0) / scoredCredits.length
+    : null;
+  const datedCredits = person.credits.filter((credit) => credit.year !== null);
+  const firstYear = datedCredits.length > 0 ? Math.min(...datedCredits.map((credit) => credit.year ?? Number.POSITIVE_INFINITY)) : null;
+  const latestYear = datedCredits.length > 0 ? Math.max(...datedCredits.map((credit) => credit.year ?? Number.NEGATIVE_INFINITY)) : null;
 
   return (
     <div className="pb-14">
@@ -134,15 +153,7 @@ export function PersonView({ person }: { person: PersonDetail }) {
 
           {knownFor.length > 0 && (
             <p className="text-sm text-[var(--text-secondary)]">
-              Known for{" "}
-              {knownFor.map((c, i) => (
-                <span key={c.id}>
-                  <Link href={`/title/${c.type}/${c.source}/${c.tmdbId}`} className="font-semibold text-[var(--text)] hover:text-[var(--accent)]">
-                    {c.title}
-                  </Link>
-                  {i < knownFor.length - 1 ? ", " : ""}
-                </span>
-              ))}
+              Best known for <span className="font-semibold text-[var(--text)]">{knownFor.slice(0, 3).map((credit) => credit.title).join(", ")}</span>
             </p>
           )}
 
@@ -163,6 +174,68 @@ export function PersonView({ person }: { person: PersonDetail }) {
       </section>
 
       <div className="mx-auto mt-8 max-w-[1400px] px-4 md:px-8">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="pb-uiverse-card rounded-[20px] p-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)]"><Clapperboard className="size-4 text-[var(--accent)]" /> Movies</div>
+            <p className="mt-2 font-display text-2xl font-black tabular-nums">{movieCount}</p>
+            <p className="text-[11px] text-[var(--text-muted)]">film credits</p>
+          </div>
+          <div className="pb-uiverse-card rounded-[20px] p-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)]"><Tv className="size-4 text-[var(--accent)]" /> Series</div>
+            <p className="mt-2 font-display text-2xl font-black tabular-nums">{seriesCount}</p>
+            <p className="text-[11px] text-[var(--text-muted)]">television credits</p>
+          </div>
+          <div className="pb-uiverse-card rounded-[20px] p-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)]"><Briefcase className="size-4 text-[var(--accent)]" /> Career</div>
+            <p className="mt-2 font-display text-2xl font-black tabular-nums">{actingCount}</p>
+            <p className="text-[11px] text-[var(--text-muted)]">
+              {firstYear !== null && latestYear !== null ? `${firstYear}–${latestYear} · acting roles` : "acting roles"}
+            </p>
+          </div>
+          <div className="pb-uiverse-card rounded-[20px] p-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)]"><Star className="size-4 text-[var(--gold)]" /> Credit score</div>
+            <p className="mt-2 font-display text-2xl font-black tabular-nums">{averageScore !== null ? averageScore.toFixed(1) : "—"}</p>
+            <p className="text-[11px] text-[var(--text-muted)]">average across scored titles</p>
+          </div>
+        </section>
+
+        {knownFor.length > 0 && (
+          <section className="mt-6 space-y-3">
+            <div className="flex items-end justify-between gap-3 px-1">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)]">Signature credits</p>
+                <h2 className="mt-1 font-display text-xl font-bold">Known for</h2>
+              </div>
+              <span className="text-xs text-[var(--text-muted)]">Ordered by popularity</span>
+            </div>
+            <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {knownFor.map((credit) => (
+                <Link
+                  key={`${credit.id}-${credit.department}-${credit.role}`}
+                  href={`/title/${credit.type}/${credit.source}/${credit.tmdbId}`}
+                  className="group relative w-[62vw] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--bg-surface)] sm:w-[210px]"
+                >
+                  <div className="relative aspect-[16/10] overflow-hidden">
+                    {credit.posterUrl ? (
+                      <Image src={credit.posterUrl} alt={credit.title} fill sizes="240px" className="object-cover object-top transition-transform duration-300 group-hover:scale-105" />
+                    ) : (
+                      <div className="grid size-full place-items-center bg-[var(--bg-elevated)] font-display text-2xl font-bold text-[var(--text-muted)]">{credit.title.charAt(0)}</div>
+                    )}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,8,12,.88),transparent_65%)]" />
+                    {credit.score !== null && (
+                      <span className="absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] font-bold text-[var(--gold)] backdrop-blur">★ {credit.score.toFixed(1)}</span>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <h3 className="line-clamp-1 text-sm font-bold">{credit.title}</h3>
+                    <p className="mt-1 line-clamp-1 text-[11px] text-[var(--text-muted)]">{credit.role || credit.department}{credit.year !== null ? ` · ${credit.year}` : ""}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-surface)] p-4 shadow-[0_18px_55px_rgba(15,23,42,.06)] sm:p-6">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -171,23 +244,35 @@ export function PersonView({ person }: { person: PersonDetail }) {
             </div>
           </div>
           <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:pb-0">
               {departments.map((d) => (
                 <Pill key={d} active={department === d} onClick={() => setDepartment(d)}>
                   {d === "all" ? "All Roles" : d}
                 </Pill>
               ))}
             </div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-semibold outline-none"
-            >
-              {SORTS.map((s) => (
-                <option key={s.key} value={s.key}>{s.label}</option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <label className="relative min-w-0 sm:w-64">
+                <span className="sr-only">Search filmography</span>
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search titles or roles"
+                  className="min-h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-base)] pl-9 pr-3 text-xs font-medium text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
+                />
+              </label>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                className="min-h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-semibold outline-none focus:border-[var(--accent)]"
+              >
+                {SORTS.map((s) => (
+                  <option key={s.key} value={s.key}>{s.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {types.length > 2 && (
@@ -201,9 +286,12 @@ export function PersonView({ person }: { person: PersonDetail }) {
           )}
 
           {filtered.length === 0 ? (
-            <EmptyState icon={<Film className="size-10" />} title="No credits found" description="Try a different filter." />
+            <EmptyState icon={<Film className="size-10" />} title="No credits found" description="Try a different role, media type or search term." />
           ) : (
-            <CreditGrid credits={filtered} />
+            <>
+              <p className="text-xs font-medium text-[var(--text-muted)]">Showing {filtered.length} of {person.credits.length} credits</p>
+              <CreditGrid credits={filtered} />
+            </>
           )}
         </div>
         </section>
