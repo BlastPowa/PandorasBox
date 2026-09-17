@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: ShieldCheck,
+    batch: "Revamp batch 18",
+    date: "17 September 2026",
+    title: "Admin control room",
+    text: "The admin workspace now has clearer navigation, faster triage and better visibility into provider links, directory services, announcements and user-submitted issues.",
+    highlights: [
+      "Admin sections now use descriptive workspace cards instead of a row of basic pills, with clearer context for each management area.",
+      "User Issues adds All, Open and Resolved triage views with live counts for faster moderation.",
+      "Provider Links now shows link, provider and global counts plus search across media keys, provider names and categories.",
+      "Sites Directory adds service, free-option and category counts, search, category filtering and direct outbound links for verification.",
+      "Announcements now exposes its variant control and displays active state, body copy and message type in richer cards.",
+    ],
+  },
+  {
     icon: BarChart3,
     batch: "Revamp batch 17",
     date: "17 September 2026",
@@ -382,7 +396,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["17 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["18 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
