@@ -9,6 +9,7 @@ import {
   Clapperboard,
   Dices,
   Gamepad2,
+  Globe,
   Library,
   MoonStar,
   Smartphone,
@@ -116,6 +117,20 @@ const RELEASES = [
 ];
 
 const ROLLING_RELEASES = [
+  {
+    icon: Globe,
+    batch: "Revamp batch 15",
+    date: "17 September 2026",
+    title: "Watch, Read & Play launch hub",
+    text: "The external-site directory now works like a proper launch hub, with clearer coverage, faster category navigation and more context before opening another service.",
+    highlights: [
+      "The directory now shows total services, free options and category coverage before the provider list.",
+      "Category jump controls make Movies & TV, Anime, Manga, Manhwa, Comics, Games and mixed providers reachable without scanning the whole page.",
+      "Each category now explains its coverage and shows service and free-option counts.",
+      "Provider cards expose the destination domain, Free or Paid access and a clearer external-launch action using the existing directory data.",
+      "The layout now uses larger touch targets, horizontal category navigation and denser responsive cards for phone and tablet use.",
+    ],
+  },
   {
     icon: Bell,
     batch: "Revamp batch 14",
@@ -339,7 +354,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["14 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["15 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
