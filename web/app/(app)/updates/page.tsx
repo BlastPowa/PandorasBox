@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bookmark,
   Clapperboard,
+  Dices,
   Gamepad2,
   Library,
   MoonStar,
@@ -113,6 +114,20 @@ const RELEASES = [
 ];
 
 const ROLLING_RELEASES = [
+  {
+    icon: Dices,
+    batch: "Revamp batch 11",
+    date: "17 September 2026",
+    title: "Guided browse & smarter Randomizer",
+    text: "Browse now turns discovery rails into clearer starting points, while the Randomizer can shape a pick by era and rating quality as well as media type and genre.",
+    highlights: [
+      "Browse adds discovery paths for movie night, anime gems, comfort watches and a full surprise mode, each opening a tuned Randomizer preset.",
+      "Randomizer adds 2020s, 2010s, 2000s and classic era controls across supported TMDB and AniList sources.",
+      "Well-rated and top-tier quality filters apply real source score thresholds instead of only changing the presentation.",
+      "Quick-pick presets, reset controls and result summaries make it easier to understand and reshape a generated set.",
+      "Surprise Me now mixes manga into the cross-media pool, and major Browse rails expose richer quick-look detail on desktop.",
+    ],
+  },
   {
     icon: Trophy,
     batch: "Revamp batch 10",
@@ -280,7 +295,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["10 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["11 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
