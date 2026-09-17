@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Dices,
+    batch: "Revamp batch 25",
+    date: "17 September 2026",
+    title: "Open Box reliability & rotating quick picks",
+    text: "The randomizer now handles narrow anime and manga filters more reliably and keeps its quick-pick suggestions fresher between runs.",
+    highlights: [
+      "AniList random picks now check the real number of available result pages before choosing one, preventing narrow filters from landing on empty pages.",
+      "Anime Gem and similar high-score presets fall back to a valid populated page when a later random page has no matches.",
+      "Quick Pick now rotates through a larger curated pool covering movies, TV, K-drama, anime and manga.",
+      "Opening the Box refreshes the visible Quick Pick choices for the next run, and a Shuffle picks control can rotate them on demand.",
+      "The randomizer keeps the selected type, era, quality and genre filters explicit while improving empty-result resilience.",
+    ],
+  },
+  {
     icon: Clapperboard,
     batch: "Revamp batch 24",
     date: "17 September 2026",
@@ -480,7 +494,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["24 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["25 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
