@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowRightLeft,
   BarChart3,
+  Bell,
   Bookmark,
   Clapperboard,
   Dices,
@@ -115,6 +116,20 @@ const RELEASES = [
 ];
 
 const ROLLING_RELEASES = [
+  {
+    icon: Bell,
+    batch: "Revamp batch 14",
+    date: "17 September 2026",
+    title: "Notification & activity inbox",
+    text: "Notifications now work more like a proper social activity inbox, with clearer urgency, richer people and media context, and access to older updates beyond the first page.",
+    highlights: [
+      "The inbox now shows exact unread totals, the amount currently loaded and friend or group requests that still need a response.",
+      "Notifications are grouped into Today, Yesterday, This week and Earlier so active conversations and older updates are easier to scan.",
+      "Actor avatars, notification-type labels, profile shortcuts and richer shared-title cards add context without opening every item first.",
+      "Unread counts stay visible on the Unread filter and Mark all read is disabled when there is nothing left to clear.",
+      "The existing cursor pagination is now exposed through Load more, so notifications beyond the first API page are no longer hidden from the UI.",
+    ],
+  },
   {
     icon: ArrowRightLeft,
     batch: "Revamp batch 13",
@@ -324,7 +339,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["13 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["14 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
