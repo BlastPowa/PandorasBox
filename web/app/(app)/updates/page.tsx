@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Globe,
+    batch: "Revamp batch 23",
+    date: "17 September 2026",
+    title: "Provider logos across discovery filters",
+    text: "Streaming-service choices are now easier to scan across discovery, especially on mobile where provider names previously blended into the rest of the filter controls.",
+    highlights: [
+      "The active streaming provider now shows its service logo beside the provider discovery heading.",
+      "Provider switchers use logo-backed service tiles with larger touch targets and horizontal snap scrolling.",
+      "The mobile Movies and TV filter sheet now uses a visual provider picker instead of a plain text select menu.",
+      "Provider filters keep a clear All option and active-state styling while remaining compact on smaller screens.",
+      "Existing title-level Where to Watch provider artwork stays consistent with the new discovery controls.",
+    ],
+  },
+  {
     icon: Clapperboard,
     batch: "Revamp batch 22",
     date: "17 September 2026",
@@ -452,7 +466,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["22 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["23 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
