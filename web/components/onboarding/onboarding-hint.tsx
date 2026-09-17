@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { X, Compass, ListChecks, Star, Tv, Sparkles } from "lucide-react";
+import { X, Compass, ListChecks, Plug, Tv, Sparkles } from "lucide-react";
 
 const STORAGE_KEY = "pb_onboarding_seen_v1";
 
 const STEPS = [
-  { icon: Compass, text: "Discover via Home, Browse, Search, or Randomize" },
-  { icon: ListChecks, text: "Add titles to your library with a status" },
-  { icon: Tv, text: "Mark episodes/chapters as you go" },
-  { icon: Star, text: "Rate, review, and build your own rankings" },
+  { icon: Compass, text: "Discover movies, shows, anime, manga, comics, games and books" },
+  { icon: ListChecks, text: "Track status, progress, ratings, rankings and collections" },
+  { icon: Tv, text: "Resume from Home and use Schedule to see what releases next" },
+  { icon: Plug, text: "Connect supported services or the browser companion in Settings" },
 ];
 
 export function OnboardingHint() {
@@ -64,19 +64,19 @@ export function OnboardingHint() {
           </li>
         ))}
       </ul>
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           onClick={dismiss}
-          className="flex-1 rounded-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-3 py-1.5 text-xs font-bold text-[#0a0a0f]"
+          className="rounded-[var(--radius-md)] bg-[linear-gradient(120deg,var(--accent),var(--accent-2))] px-3 py-2 text-xs font-bold text-[#0a0a0f]"
         >
-          Got it
+          Start exploring
         </button>
         <Link
           href="/faq"
           onClick={dismiss}
-          className="glass rounded-[var(--radius-md)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]"
+          className="glass rounded-[var(--radius-md)] px-3 py-2 text-center text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]"
         >
-          More help
+          Help centre
         </Link>
       </div>
     </div>
