@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Activity,
   ArrowRight,
+  ArrowRightLeft,
   BarChart3,
   Bookmark,
   Clapperboard,
@@ -114,6 +115,20 @@ const RELEASES = [
 ];
 
 const ROLLING_RELEASES = [
+  {
+    icon: ArrowRightLeft,
+    batch: "Revamp batch 13",
+    date: "17 September 2026",
+    title: "Import, backup & device migration",
+    text: "Moving an existing entertainment history into PBox now has a clearer migration flow, while backups show exactly what is about to move between files and devices.",
+    highlights: [
+      "Import now explains the three migration paths up front: pasted lists, MyAnimeList XML and full PBox backups or transfer codes.",
+      "Backup shows a live Library snapshot with total titles, in-progress, completed and planned counts plus media coverage before exporting.",
+      "JSON backups keep status, progress, ratings and source IDs and only add titles that are not already in the Library when restored.",
+      "Transfer-code import is now always available, so a code received from another device can be pasted immediately without first generating a code locally.",
+      "Generated transfer codes now include clearer handoff instructions and duplicate-only restores report that the Library is already up to date.",
+    ],
+  },
   {
     icon: Activity,
     batch: "Revamp batch 12",
@@ -309,7 +324,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["12 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["13 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
