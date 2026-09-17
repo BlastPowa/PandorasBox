@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Clock } from "lucide-react";
+import { Clock, Radio } from "lucide-react";
 import type { AiredEpisode } from "@/lib/anime";
 
 function timeAgo(unixSeconds: number): string {
@@ -16,17 +16,25 @@ export function LatestEpisodes({ episodes }: { episodes: AiredEpisode[] }) {
 
   return (
     <section className="space-y-3">
-      <div className="px-1">
-        <h2 className="font-display text-lg font-bold">Latest Episodes</h2>
-        <p className="text-xs text-[var(--text-muted)]">Recently released episodes</p>
+      <div className="flex flex-wrap items-end justify-between gap-2 px-1">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)]">
+            <Radio className="size-3.5" /> Airing now
+          </div>
+          <h2 className="mt-1 font-display text-xl font-bold">Latest Episodes</h2>
+          <p className="text-xs text-[var(--text-muted)]">Recently released episodes from popular currently airing shows</p>
+        </div>
+        <span className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1 text-[11px] font-bold text-[var(--text-secondary)]">
+          {episodes.length} recent drops
+        </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5">
         {episodes.map((ep) => (
           <Link
             key={ep.id}
             href={`/title/anime/anilist/${ep.anilistId}`}
-            className="group pb-card-3d overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)]"
+            className="group pb-card-3d w-[72vw] max-w-[260px] shrink-0 snap-start overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] sm:w-auto sm:max-w-none"
           >
             <div className="relative aspect-video w-full overflow-hidden">
               {ep.posterUrl ? (
