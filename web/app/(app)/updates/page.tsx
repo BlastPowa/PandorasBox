@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Users,
+    batch: "Revamp batch 21",
+    date: "17 September 2026",
+    title: "Cast & creator profiles",
+    text: "Person pages now surface career context and signature credits faster, with stronger filmography tools for larger acting and creator histories.",
+    highlights: [
+      "Career summary cards now show movie, series and acting-credit totals plus the average score across rated credits.",
+      "Known For is now a visual horizontal rail ordered by popularity with artwork, roles, years and title scores.",
+      "Filmographies can be searched by title, role or department alongside the existing role, media-type and sort controls.",
+      "Result counts and a clearer empty state make large filtered credit lists easier to understand.",
+      "Role controls and credit rails now use touch-friendly horizontal layouts on smaller screens.",
+    ],
+  },
+  {
     icon: Sparkles,
     batch: "Revamp batch 20",
     date: "17 September 2026",
@@ -424,7 +438,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["20 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["21 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
