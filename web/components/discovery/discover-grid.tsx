@@ -275,7 +275,7 @@ export function DiscoverGrid({ kind, initial }: Props) {
       ) : (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {uniqueItems(items).map((item) => (
-            <PosterCard key={`${item.source}:${item.type}:${item.id}`} item={item} />
+            <PosterCard key={`${item.source}:${item.type}:${item.id}`} item={item} quickLook />
           ))}
           {/* Skeletons occupy the incoming row so the grid never jumps. */}
           {loadingMore && Array.from({ length: 6 }).map((_, i) => <PosterSkeleton key={`sk-${i}`} />)}

@@ -129,6 +129,7 @@ export function ProviderSwitcher({
             <PosterCard
               key={item.id}
               item={item}
+              quickLook
               className="w-[var(--poster-w-sm)] shrink-0 snap-start sm:w-[var(--poster-w)]"
             />
           ))}
