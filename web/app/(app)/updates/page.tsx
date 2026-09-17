@@ -32,7 +32,7 @@ const RELEASES = [
       "Continue Watching now sits directly under Spotlight with wide glass cards, progress bars and exact resume context.",
       "Browse by Provider uses rounded Netflix, Disney+, Prime Video, Max and other service tiles with an expandable movie/show rail.",
       "Because you watched rows use your recent movie and TV history before broader genre, anime and manga recommendations.",
-      "Recommendations are split across Movies, TV, Anime and Manga with genre-specific rails.",
+      "Home keeps recommendations compact while deeper movie, TV, anime and manga discovery stays available in Discover.",
       "Connected stories can surface adaptations, sequels, related titles and franchise entries.",
     ],
   },
@@ -117,6 +117,21 @@ const RELEASES = [
 ];
 
 const ROLLING_RELEASES = [
+  {
+    icon: Clapperboard,
+    batch: "Revamp batch 31",
+    date: "17 September 2026",
+    title: "A cleaner, faster-scanning Home",
+    text: "Home now keeps tracking and quick decisions near the top while reducing repeated discovery rails and duplicate progress prompts further down the page.",
+    highlights: [
+      "Progress at a Glance now sits directly under Spotlight so library stats are visible before the long-form content rails.",
+      "Pick something for tonight now follows Continue Watching, keeping resume and next-choice actions together.",
+      "The stale-title reminder rail was removed from Home because it repeated much of the same library state already covered by Continue Watching and Library.",
+      "Separate Trending Movies and Trending TV rails are now one mixed Trending Now row covering movies, TV, anime and manga.",
+      "Home recommendation output is capped so Because You Watched stays useful without growing into several near-duplicate genre rows; deeper recommendations remain in Discover.",
+      "The current Home route keeps Spotlight artwork local to the hero instead of mounting the full-page ambient artwork layer, avoiding the older duplicated-hero layout.",
+    ],
+  },
   {
     icon: Smartphone,
     batch: "Revamp batch 30",
@@ -567,7 +582,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["30 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["31 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
