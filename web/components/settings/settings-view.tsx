@@ -2,7 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, Upload, LogOut, QrCode, ClipboardList, Sparkles, FileCode2, Plus, RotateCcw, Trash2 } from "lucide-react";
+import {
+  ArrowRightLeft,
+  ClipboardList,
+  Download,
+  FileCode2,
+  LibraryBig,
+  LogOut,
+  Plus,
+  QrCode,
+  RotateCcw,
+  Sparkles,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { encodeListToQR, decodeListFromQR, validateDecodedList } from "@core/sync/qrSync";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { createDefaultProgress, type ReelItem, type ReelItemStatus } from "@core/storage/schema";
@@ -95,6 +108,7 @@ export function SettingsView({
 }) {
   const { items, signedIn, add } = useLibrary();
   const [qr, setQr] = useState<string | null>(null);
+  const [transferCode, setTransferCode] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -146,7 +160,7 @@ export function SettingsView({
       const parsed = kind === "json" ? (JSON.parse(text) as unknown) : decodeListFromQR(text);
       if (!validateDecodedList(parsed)) {
         toast.error("That file isn't a valid PBox export.");
-        return;
+        return false;
       }
       const existing = new Set(items.map((i) => i.id));
       let n = 0;
@@ -158,10 +172,19 @@ export function SettingsView({
         await add(rest);
         n += 1;
       }
-      toast.success(`Imported ${n} new titles`);
+      toast.success(n ? `Imported ${n} new titles` : "Everything in that backup is already in your Library");
+      return true;
     } catch {
       toast.error("Import failed");
+      return false;
     }
+  }
+
+  async function importTransferCode() {
+    const code = transferCode.trim();
+    if (!code) return;
+    const imported = await importFrom(code, "code");
+    if (imported) setTransferCode("");
   }
 
   async function runImport(rows: ParsedImportRow[], requestedTypes = scope) {
@@ -329,6 +352,17 @@ export function SettingsView({
     if (added) toast.success(`Added ${added} title${added === 1 ? "" : "s"}`);
   }
 
+  const activeCount = items.filter((item) => ["watching", "rewatching", "reading"].includes(item.status)).length;
+  const completedCount = items.filter((item) => item.status === "completed").length;
+  const plannedCount = items.filter((item) => item.status === "planned").length;
+  const libraryGroups = [
+    { label: "Movies", count: items.filter((item) => item.type === "movie").length },
+    { label: "TV", count: items.filter((item) => item.type === "series").length },
+    { label: "Anime", count: items.filter((item) => item.type === "anime").length },
+    { label: "Manga", count: items.filter((item) => item.type === "manga" || item.type === "manhwa").length },
+    { label: "Comics", count: items.filter((item) => item.type === "comic").length },
+  ].filter((group) => group.count > 0);
+
   return (
     <div className="space-y-5">
       <SettingsTabs
@@ -381,6 +415,23 @@ export function SettingsView({
             <>
               <GlassCard macDots title="Bring your list with you">
                 <div className="space-y-4 p-5">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+                      <ClipboardList className="size-5 text-[var(--accent)]" />
+                      <p className="mt-3 text-sm font-semibold">Paste a list</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Best for Letterboxd, Notes, spreadsheets, and plain text. Clean the rows, then review matches before anything is added.</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+                      <FileCode2 className="size-5 text-[var(--accent)]" />
+                      <p className="mt-3 text-sm font-semibold">MyAnimeList XML</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Bring anime and manga exports through the same match review so statuses and progress can be checked before import.</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+                      <ArrowRightLeft className="size-5 text-[var(--accent)]" />
+                      <p className="mt-3 text-sm font-semibold">PBox backup or transfer</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Use the Backup tab for a full JSON snapshot or a portable transfer code when moving between devices.</p>
+                    </div>
+                  </div>
                   <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgb(var(--accent-rgb)/0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
                     <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
                     <span>
@@ -469,16 +520,64 @@ export function SettingsView({
                   {!signedIn && (
                     <p className="text-sm text-[var(--text-muted)]">Sign in to export or import your library.</p>
                   )}
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="glass" onClick={exportJson} disabled={!signedIn}>
-                      <Download className="size-4" /> Export JSON
-                    </Button>
-                    <Button variant="glass" onClick={() => fileRef.current?.click()} disabled={!signedIn}>
-                      <Upload className="size-4" /> Import JSON
-                    </Button>
-                    <Button variant="glass" onClick={showQr} disabled={!signedIn}>
-                      <QrCode className="size-4" /> Share code
-                    </Button>
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <LibraryBig className="size-4 text-[var(--accent)]" />
+                          <p className="text-sm font-semibold">Current Library snapshot</p>
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">Exports use the Library you have right now, including status, progress, ratings, and source IDs.</p>
+                      </div>
+                      <span className="shrink-0 font-mono text-2xl font-bold">{items.length}</span>
+                    </div>
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--glass)] p-3"><p className="font-mono text-lg font-bold">{activeCount}</p><p className="text-[11px] text-[var(--text-muted)]">In progress</p></div>
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--glass)] p-3"><p className="font-mono text-lg font-bold">{completedCount}</p><p className="text-[11px] text-[var(--text-muted)]">Completed</p></div>
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--glass)] p-3"><p className="font-mono text-lg font-bold">{plannedCount}</p><p className="text-[11px] text-[var(--text-muted)]">Planned</p></div>
+                    </div>
+                    {libraryGroups.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {libraryGroups.map((group) => <span key={group.label} className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)]">{group.label} · {group.count}</span>)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+                      <p className="text-sm font-semibold">File backup</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Download a dated JSON snapshot for safekeeping. Importing a snapshot only adds titles that are not already in your Library.</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button variant="glass" onClick={exportJson} disabled={!signedIn}>
+                          <Download className="size-4" /> Export JSON
+                        </Button>
+                        <Button variant="glass" onClick={() => fileRef.current?.click()} disabled={!signedIn}>
+                          <Upload className="size-4" /> Import JSON
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+                      <p className="text-sm font-semibold">Device transfer</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Paste a code you received at any time, or generate a portable code from this device to move the current Library elsewhere.</p>
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          value={transferCode}
+                          onChange={(e) => setTransferCode(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void importTransferCode();
+                          }}
+                          placeholder="Paste a transfer code…"
+                          disabled={!signedIn}
+                          className="min-w-0 flex-1"
+                        />
+                        <Button onClick={() => void importTransferCode()} disabled={!signedIn || !transferCode.trim()}>
+                          <ArrowRightLeft className="size-4" /> Import code
+                        </Button>
+                      </div>
+                      <Button className="mt-2 w-full sm:w-auto" variant="glass" onClick={showQr} disabled={!signedIn}>
+                        <QrCode className="size-4" /> Generate transfer code
+                      </Button>
+                    </div>
                     <input
                       ref={fileRef}
                       type="file"
@@ -492,21 +591,15 @@ export function SettingsView({
                     />
                   </div>
                   {qr && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 rounded-[var(--radius-md)] border border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
                       <p className="text-xs text-[var(--text-muted)]">
-                        Copy this portable code to move your library to another device or share it:
+                        This code contains your current Library snapshot. Copy it to the other device, open Backup, and paste it into Import code.
                       </p>
                       <textarea
                         readOnly
                         value={qr}
                         onFocus={(e) => e.target.select()}
                         className="h-24 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 font-mono text-[10px] text-[var(--text-secondary)]"
-                      />
-                      <Input
-                        placeholder="Paste a code here to import..."
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") void importFrom((e.target as HTMLInputElement).value, "code");
-                        }}
                       />
                     </div>
                   )}
