@@ -118,6 +118,21 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Sparkles,
+    batch: "Revamp batch 34",
+    date: "17 September 2026",
+    title: "Search works as a complete destination",
+    text: "Search now has its own clear query flow and a lighter title/description switch while keeping the existing multi-source discovery and half-remembered-title tools.",
+    highlights: [
+      "The Search page now includes a dedicated page-level search field, so discovery no longer depends on the global header search.",
+      "Queries still preserve the existing URL, multi-source results, franchise matching and filtering behavior.",
+      "Search titles and Describe it now use one compact segmented control with larger touch targets and less explanatory clutter.",
+      "The Describe it panel now focuses on useful plot, character and scene guidance instead of exposing internal quota or API implementation details.",
+      "Memory-search cooldown, fallback matching, confidence signals and direct result routing remain in place.",
+      "Focused lint, nonincremental TypeScript and the full 61-route production build pass after the Search refresh.",
+    ],
+  },
+  {
     icon: Users,
     batch: "Revamp batch 33",
     date: "17 September 2026",
@@ -614,7 +629,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["33 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["34 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
