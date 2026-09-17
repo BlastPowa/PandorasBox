@@ -271,7 +271,7 @@ export async function createCollection(
 
 export async function updateCollection(
   id: string,
-  patch: Partial<Pick<Collection, "name" | "description" | "visibility" | "cover_mode" | "cover_url" | "cover_item_id">>
+  patch: Partial<Pick<Collection, "name" | "description" | "visibility" | "cover_mode" | "cover_url" | "cover_item_id" | "tags">>
 ): Promise<void> {
   const supabase = createClient();
   const body: Record<string, unknown> = { ...patch };

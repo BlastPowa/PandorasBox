@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CopyPlus, FolderOpen, Globe, Lock, Users, EyeOff } from "lucide-react";
+import { Check, CopyPlus, EyeOff, FolderOpen, Globe, Lock, Pencil, Tags, Users, X } from "lucide-react";
 import { BackButton } from "@/components/shell/back-button";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import {
@@ -52,6 +52,11 @@ export function CollectionDetail({ id }: { id: string }) {
   const [isOwner, setIsOwner] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("added");
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editTags, setEditTags] = useState("");
+  const [savingDetails, setSavingDetails] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -129,6 +134,49 @@ export function CollectionDetail({ id }: { id: string }) {
     }
   }
 
+  function beginEditDetails() {
+    if (!collection) return;
+    setEditName(collection.name);
+    setEditDescription(collection.description ?? "");
+    setEditTags(collection.tags.join(", "));
+    setEditingDetails(true);
+  }
+
+  async function saveDetails() {
+    if (!collection) return;
+    const name = editName.trim();
+    if (!name) {
+      toast.error("Collection name cannot be empty");
+      return;
+    }
+    const tags = Array.from(new Set(
+      editTags
+        .split(",")
+        .map((tag) => tag.trim().replace(/^#/, ""))
+        .filter(Boolean)
+    )).slice(0, 8);
+    setSavingDetails(true);
+    try {
+      await updateCollection(collection.id, {
+        name,
+        description: editDescription.trim() || null,
+        tags,
+      });
+      setCollection({
+        ...collection,
+        name,
+        description: editDescription.trim() || null,
+        tags,
+      });
+      setEditingDetails(false);
+      toast.success("Collection details updated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update collection");
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
   async function copyCollection() {
     try {
       const response = await fetch(`/api/collections/${id}/copy`, { method: "POST" });
@@ -188,8 +236,52 @@ export function CollectionDetail({ id }: { id: string }) {
           <div className="mt-auto flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-3xl">
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-white/65">Collection</p>
-              <h1 className="pb-collection-title font-display text-4xl font-black leading-[.94] tracking-[-0.04em] sm:text-6xl">{collection.name}</h1>
-              {collection.description && <p className="mt-3 max-w-2xl text-sm leading-6 text-white/78 sm:text-[15px]">{collection.description}</p>}
+              {editingDetails ? (
+                <div className="space-y-3 rounded-[22px] border border-white/15 bg-black/25 p-3 backdrop-blur-xl sm:p-4">
+                  <input
+                    value={editName}
+                    onChange={(event) => setEditName(event.target.value)}
+                    maxLength={80}
+                    aria-label="Collection name"
+                    className="w-full rounded-xl border border-white/15 bg-black/25 px-3 py-2 font-display text-2xl font-black text-white outline-none placeholder:text-white/35 focus:border-white/35 sm:text-3xl"
+                  />
+                  <textarea
+                    value={editDescription}
+                    onChange={(event) => setEditDescription(event.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    aria-label="Collection description"
+                    placeholder="Describe this collection"
+                    className="w-full resize-none rounded-xl border border-white/15 bg-black/25 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/35"
+                  />
+                  <label className="block">
+                    <span className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-white/60"><Tags className="size-3" /> Tags</span>
+                    <input
+                      value={editTags}
+                      onChange={(event) => setEditTags(event.target.value)}
+                      maxLength={180}
+                      placeholder="anime, comfort, favorites"
+                      className="w-full rounded-xl border border-white/15 bg-black/25 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/35"
+                    />
+                  </label>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <button type="button" onClick={() => setEditingDetails(false)} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-white/75 transition hover:bg-white/10 hover:text-white"><X className="size-3.5" /> Cancel</button>
+                    <button type="button" disabled={savingDetails} onClick={() => void saveDetails()} className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-black text-black transition hover:bg-white/90 disabled:opacity-55"><Check className="size-3.5" /> {savingDetails ? "Saving…" : "Save details"}</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start gap-2">
+                    <h1 className="pb-collection-title font-display text-4xl font-black leading-[.94] tracking-[-0.04em] sm:text-6xl">{collection.name}</h1>
+                    {isOwner && (
+                      <button type="button" onClick={beginEditDetails} aria-label="Edit collection details" className="mt-1 rounded-full border border-white/15 bg-black/20 p-2 text-white/65 backdrop-blur-md transition hover:bg-black/40 hover:text-white">
+                        <Pencil className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {collection.description && <p className="mt-3 max-w-2xl text-sm leading-6 text-white/78 sm:text-[15px]">{collection.description}</p>}
+                </>
+              )}
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-white/75">
                 <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1.5 backdrop-blur-md">{items.length} {items.length === 1 ? "title" : "titles"}</span>
                 <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1.5 capitalize backdrop-blur-md">{collection.visibility}</span>

@@ -80,8 +80,25 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
       const ratingDelta = (b.rating ?? 0) - (a.rating ?? 0);
       if (ratingDelta !== 0) return ratingDelta;
     }
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
+
+  function beginEditing() {
+    if (!myReview) return;
+    setDraft(myReview.body);
+    setDraftRating(myReview.rating);
+    setDraftSpoiler(myReview.is_spoiler);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    if (myReview) {
+      setDraft(myReview.body);
+      setDraftRating(myReview.rating);
+      setDraftSpoiler(myReview.is_spoiler);
+    }
+    setEditing(false);
+  }
 
   async function submit() {
     if (draft.trim().length < 1) {
@@ -214,10 +231,10 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-[var(--text-muted)]">Your review</span>
               <div className="flex gap-1">
-                <button onClick={() => setEditing(true)} className="rounded-md p-1.5 text-[var(--text-secondary)] hover:bg-[var(--glass-strong)]">
+                <button onClick={beginEditing} aria-label="Edit your review" className="rounded-md p-1.5 text-[var(--text-secondary)] hover:bg-[var(--glass-strong)]">
                   <Pencil className="size-3.5" />
                 </button>
-                <button onClick={() => void remove(myReview.id)} className="rounded-md p-1.5 text-[var(--dropped)] hover:bg-[var(--glass-strong)]">
+                <button onClick={() => void remove(myReview.id)} aria-label="Delete your review" className="rounded-md p-1.5 text-[var(--dropped)] hover:bg-[var(--glass-strong)]">
                   <Trash2 className="size-3.5" />
                 </button>
               </div>
@@ -243,7 +260,7 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
             </label>
             <div className="flex justify-end gap-2">
               {editing && (
-                <Button size="sm" variant="glass" onClick={() => setEditing(false)}>Cancel</Button>
+                <Button size="sm" variant="glass" onClick={cancelEditing}>Cancel</Button>
               )}
               <Button size="sm" onClick={submit} loading={submitting}>
                 <Send className="size-3.5" /> {myReview ? "Update" : "Post review"}
@@ -281,7 +298,9 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
                 )}
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{r.username}</div>
-                    <div className="text-[10px] text-[var(--text-muted)]">{timeAgo(r.created_at)}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">
+                      {timeAgo(r.updated_at)}{r.updated_at !== r.created_at ? " · edited" : ""}
+                    </div>
                   </div>
                 </div>
                 {r.rating !== null && <RatingStars value={r.rating} readOnly size={13} />}
