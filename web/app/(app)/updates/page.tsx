@@ -119,6 +119,21 @@ const RELEASES = [
 const ROLLING_RELEASES = [
   {
     icon: Library,
+    batch: "Revamp batch 27",
+    date: "17 September 2026",
+    title: "Book cover & external search reliability",
+    text: "Books now recover more gracefully when Open Library artwork is incomplete, and external searches use the live search route instead of sending readers to a dead page.",
+    highlights: [
+      "Open Library covers now prefer a valid work cover and fall back to a normalized ISBN cover when artwork is missing.",
+      "Book cover requests use Open Library's no-placeholder mode so missing artwork can be detected cleanly.",
+      "Failed book thumbnails switch to a readable book icon and title card instead of leaving a broken image behind.",
+      "Book detail posters use the same fallback treatment for consistent artwork across discovery and detail pages.",
+      "Anna's Archive actions now use the site's verified /s/ search route with ISBN first and title plus author as fallback.",
+      "The external action is labelled as a search so availability is not implied when the external catalogue has no match.",
+    ],
+  },
+  {
+    icon: Library,
     batch: "Revamp batch 26",
     date: "17 September 2026",
     title: "Collection editing & review polish",
@@ -509,7 +524,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["26 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["27 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
