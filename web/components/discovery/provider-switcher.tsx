@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { UnifiedSearchResult } from "@core/utils/search";
-import { STREAMING_PROVIDERS } from "@/lib/streaming-providers";
+import { STREAMING_PROVIDERS, providerLogoUrl } from "@/lib/streaming-providers";
 import { PosterCard } from "./poster-card";
 import { PosterSkeleton } from "@/components/ui-fx/feedback";
 import { cn } from "@/lib/utils";
@@ -55,11 +55,22 @@ export function ProviderSwitcher({
   return (
     <section className="glass space-y-4 rounded-[var(--radius-lg)] border border-[var(--border)] p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-lg font-bold">Streaming Services</h2>
-          <p className="text-xs text-[var(--text-muted)]">
-            Popular on {active?.name ?? "your provider"} right now
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          {active && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={providerLogoUrl(active)}
+              alt=""
+              aria-hidden="true"
+              className="size-10 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-black/5"
+            />
+          )}
+          <div className="min-w-0">
+            <h2 className="font-display text-lg font-bold">Streaming Services</h2>
+            <p className="truncate text-xs text-[var(--text-muted)]">
+              Popular on {active?.name ?? "your provider"} right now
+            </p>
+          </div>
         </div>
 
         <div className="flex rounded-full border border-[var(--border)] bg-[var(--bg-base)] p-0.5">
@@ -81,20 +92,23 @@ export function ProviderSwitcher({
         </div>
       </div>
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {STREAMING_PROVIDERS.map((p) => (
           <button
             key={p.slug}
             onClick={() => setSlug(p.slug)}
             aria-pressed={slug === p.slug}
+            title={p.name}
             className={cn(
-              "shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200",
+              "flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-xl border px-2.5 py-2 text-xs font-semibold transition-all duration-200",
               slug === p.slug
-                ? "border-[var(--accent)] bg-[var(--glass-strong)] text-[var(--text)]"
-                : "border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+                ? "border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.10)] text-[var(--text)] shadow-sm"
+                : "border-[var(--border)] bg-[var(--bg-surface)]/70 text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text)]"
             )}
           >
-            {p.name}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={providerLogoUrl(p)} alt="" aria-hidden="true" className="size-7 shrink-0 rounded-lg object-cover" />
+            <span className="max-w-24 truncate">{p.name}</span>
           </button>
         ))}
       </div>
