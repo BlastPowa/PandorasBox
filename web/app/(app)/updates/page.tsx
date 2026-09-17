@@ -118,6 +118,22 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Users,
+    batch: "Revamp batch 35",
+    date: "17 September 2026",
+    title: "Profiles put real activity first",
+    text: "Public profiles now reach collections and activity faster, with identity, privacy, actions and real tracking numbers grouped into one cleaner header.",
+    highlights: [
+      "Profile banners are shorter so featured collections and recent activity begin higher on the page.",
+      "Avatar and identity details use a tighter layout that remains readable on phones and tablets.",
+      "Privacy state is now visible beside the username instead of using a generic Collector status chip.",
+      "Collections, recent titles and completions now sit directly below the profile summary as compact scrollable stats.",
+      "The repeated synthetic level ring, collector-level card and duplicate large stat cards were removed to reduce noise and scrolling.",
+      "Friend, message and edit-profile actions keep their existing behavior while fitting into the revised information hierarchy.",
+      "Focused lint, nonincremental TypeScript and the full 61-route production build pass after the profile refresh.",
+    ],
+  },
+  {
     icon: Sparkles,
     batch: "Revamp batch 34",
     date: "17 September 2026",
@@ -629,7 +645,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["34 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["35 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
