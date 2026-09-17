@@ -4,13 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  BookOpen,
   Check,
   ChevronRight,
   CirclePlay,
   Clock3,
   Compass,
-  Film,
   Library,
   Plus,
   Sparkles,
@@ -23,9 +21,13 @@ import { libraryItemHref } from "@/lib/library/item-href";
 import { useLibrary, useLibraryStats } from "@/lib/library/use-library";
 import { AmbientBackground, HERO_SLIDE_EVENT } from "@/components/home/ambient-background";
 import { ForYouRow } from "@/components/home/for-you-row";
+import { ProviderFeed } from "@/components/home/provider-feed";
+import { PosterRow } from "@/components/discovery/poster-row";
 
 type DashboardProps = {
   trending: UnifiedSearchResult[];
+  trendingMovies: UnifiedSearchResult[];
+  trendingSeries: UnifiedSearchResult[];
   upcoming: UnifiedSearchResult[];
   generatedAt: number;
 };
@@ -123,8 +125,8 @@ function SectionHeading({
   );
 }
 
-export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProps) {
-  const { items, loading, signedIn, markEpisode, markChapter, updateProgress, setStatus } = useLibrary();
+export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcoming, generatedAt }: DashboardProps) {
+  const { items, loading, signedIn, setStatus } = useLibrary();
   const stats = useLibraryStats(items);
   const spotlightSlides = useMemo(
     () => trending.filter((item) => Boolean(item.backdropUrl ?? item.posterUrl)).slice(0, 6),
@@ -135,6 +137,7 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
   const active = items
     .filter((item) => item.status === "watching" || item.status === "rewatching" || item.status === "reading")
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  const continueWatching = active.filter((item) => item.type === "movie" || item.type === "series" || item.type === "anime");
   const planned = items
     .filter((item) => item.status === "planned")
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
@@ -175,30 +178,10 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
     })
     .slice(0, 5);
 
-  const checkIn = async (item: ReelItem) => {
-    if (item.type === "series" || item.type === "anime") {
-      await markEpisode(item.id, (item.progress.currentEpisode ?? 0) + 1, item.progress.currentSeason ?? undefined);
-      return;
-    }
-    if (item.type === "manga" || item.type === "manhwa") {
-      await markChapter(item.id, (item.progress.currentChapter ?? 0) + 1);
-      return;
-    }
-    if (item.type === "comic") {
-      const current = Number.parseInt(item.progress.currentIssueNumber ?? "0", 10) || 0;
-      await updateProgress(item.id, {
-        currentIssueNumber: String(current + 1),
-        currentIssueId: item.progress.currentIssueId ?? null,
-      });
-      return;
-    }
-    await updateProgress(item.id, { movieTimestamp: (item.progress.movieTimestamp ?? 0) + 10 });
-  };
-
   return (
     <div className="pb-home-dashboard space-y-10 pb-8">
       <AmbientBackground imageUrl={heroArtwork} />
-      <section className="relative -mx-3 min-h-[470px] overflow-hidden rounded-[30px] sm:-mx-4 sm:min-h-[520px] lg:min-h-[570px]">
+      <section className="relative -mx-3 min-h-[430px] overflow-hidden rounded-[26px] sm:-mx-4 sm:min-h-[500px] sm:rounded-[30px] lg:min-h-[570px]">
         {heroArtwork && (
           <div
             aria-hidden="true"
@@ -208,7 +191,7 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
         )}
         <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,13,.82)_0%,rgba(7,8,13,.52)_42%,rgba(7,8,13,.10)_76%,transparent_100%)]" />
         <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(0deg,rgba(7,8,13,.72)_0%,transparent_48%,rgba(7,8,13,.08)_100%)]" />
-        <div className="relative z-10 flex min-h-[470px] items-end p-7 sm:min-h-[520px] sm:p-10 lg:min-h-[570px] lg:p-14">
+        <div className="relative z-10 flex min-h-[430px] items-end p-5 sm:min-h-[500px] sm:p-9 lg:min-h-[570px] lg:p-14">
           <div className="max-w-3xl pb-2">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md">
               <Sparkles className="size-3.5" /> Spotlight
@@ -257,16 +240,71 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
       </section>
 
       <section>
-        <SectionHeading eyebrow="Now showing" title="Popular right now" action="Explore all" href="/browse" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {trending.slice(0, 6).map((item) => (
-            <Link key={`${item.source}-${item.id}`} href={resultHref(item)} className="pb-uiverse-media-card group min-w-0 rounded-[22px] p-2.5">
-              <div className="pb-uiverse-media-card__poster aspect-[2/3] overflow-hidden rounded-[16px]"><Poster title={item.title} posterUrl={item.posterUrl} /></div>
-              <div className="mt-2.5 flex items-center gap-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">{item.type === "movie" ? <Film className="size-3" /> : item.type === "manga" || item.type === "manhwa" ? <BookOpen className="size-3" /> : <Compass className="size-3" />} {mediaTypeLabel(item.type)}</div>
-              <p className="mb-1 mt-1 line-clamp-2 px-1 text-sm font-semibold leading-5 text-[var(--text)] group-hover:text-[var(--accent)]">{item.title}</p>
-            </Link>
-          ))}
-        </div>
+        <SectionHeading eyebrow="Back to your stories" title="Continue watching" action="Your library" href="/library" />
+        {!signedIn ? (
+          <div className="pb-uiverse-card pb-uiverse-card--notice rounded-2xl p-6 text-sm text-[var(--text-secondary)]">
+            Sign in to sync exact progress across your library. You can still explore everything below.
+          </div>
+        ) : continueWatching.length === 0 ? (
+          <div className="pb-uiverse-card pb-uiverse-card--notice grid gap-4 rounded-2xl p-6 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div><p className="font-semibold text-[var(--text)]">Nothing waiting to resume yet.</p><p className="mt-1 text-sm text-[var(--text-secondary)]">Start a movie or show and Pandora’s Box will keep the exact point here.</p></div>
+            <Link href="/search" className="pb-uiverse-button pb-uiverse-button--accent inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white"><Plus className="size-4" /> Add your first title</Link>
+          </div>
+        ) : (
+          <div className="-mx-2 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex snap-x snap-mandatory gap-3 sm:gap-4">
+              {continueWatching.slice(0, 10).map((item) => {
+                const artwork = item.backdropUrl ?? item.posterUrl;
+                return (
+                  <article key={item.id} className="pb-continue-card group relative w-[78vw] max-w-[360px] shrink-0 snap-start overflow-hidden rounded-[22px] sm:w-[340px] md:w-[370px] lg:w-[390px]">
+                    <Link href={libraryItemHref(item)} className="block">
+                      <div className="relative aspect-[16/9] overflow-hidden bg-[var(--bg-elevated)]">
+                        {artwork ? (
+                          <div className="absolute inset-0 bg-cover bg-center transition duration-500 group-hover:scale-[1.035]" style={{ backgroundImage: `url(\"${artwork}\")` }} />
+                        ) : (
+                          <div className="grid size-full place-items-center px-6 text-center font-display text-lg font-bold text-[var(--text-muted)]">{item.title}</div>
+                        )}
+                        <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(7,8,13,.92)_0%,rgba(7,8,13,.24)_58%,rgba(7,8,13,.04)_100%)]" />
+                        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+                          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/70">
+                            <span>{mediaTypeLabel(item.type)}</span><span>•</span><span>{progressLabel(item)}</span>
+                          </div>
+                          <h3 className="mt-1.5 line-clamp-1 font-display text-lg font-bold text-white sm:text-xl">{item.title}</h3>
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/20">
+                            <div className="h-full rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,.45)]" style={{ width: `${Math.max(2, progressPercent(item))}%` }} />
+                          </div>
+                          <p className="mt-2 text-[11px] font-medium text-white/65">{Math.round(progressPercent(item))}% complete · {updatedTime(item.updatedAt, generatedAt)}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <ProviderFeed />
+
+      <ForYouRow />
+
+      <section className="space-y-6">
+        <SectionHeading eyebrow="Now showing" title="What everyone is watching" action="Explore all" href="/browse" />
+        <PosterRow
+          title="Trending movies"
+          subtitle="Popular films moving fastest this week"
+          items={trendingMovies}
+          viewAllHref="/movies"
+          quickLook
+        />
+        <PosterRow
+          title="Trending TV"
+          subtitle="Series people are watching right now"
+          items={trendingSeries}
+          viewAllHref="/tv"
+          quickLook
+        />
       </section>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -282,39 +320,6 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
             <div className="mt-1 text-xs font-semibold text-[var(--text-muted)]">{label}</div>
           </div>
         ))}
-      </section>
-
-      <section>
-        <SectionHeading eyebrow="Continue watching & reading" title="Pick up where you left off" action="Your library" href="/library" />
-        {!signedIn ? (
-          <div className="pb-uiverse-card pb-uiverse-card--notice rounded-2xl p-6 text-sm text-[var(--text-secondary)]">
-            Sign in to sync exact progress across your library. You can still explore everything below.
-          </div>
-        ) : active.length === 0 ? (
-          <div className="pb-uiverse-card pb-uiverse-card--notice grid gap-4 rounded-2xl p-6 sm:grid-cols-[1fr_auto] sm:items-center">
-            <div><p className="font-semibold text-[var(--text)]">Nothing in progress yet.</p><p className="mt-1 text-sm text-[var(--text-secondary)]">Add a title, set it as in progress and Pandora’s Box will keep the exact point here.</p></div>
-            <Link href="/search" className="pb-uiverse-button pb-uiverse-button--accent inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white"><Plus className="size-4" /> Add your first title</Link>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {active.slice(0, 6).map((item) => (
-              <article key={item.id} className="pb-uiverse-card pb-uiverse-card--progress group grid grid-cols-[84px_1fr] overflow-hidden rounded-2xl">
-                <Link href={libraryItemHref(item)} className="block min-h-[126px] overflow-hidden"><Poster title={item.title} posterUrl={item.posterUrl} /></Link>
-                <div className="min-w-0 p-4">
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]"><span>{mediaTypeLabel(item.type)}</span><span>·</span><span>{progressLabel(item)}</span></div>
-                  <Link href={libraryItemHref(item)} className="mt-1.5 line-clamp-1 block font-semibold text-[var(--text)] group-hover:text-[var(--accent)]">{item.title}</Link>
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--bg-elevated)]"><div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${progressPercent(item)}%` }} /></div>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <span className="truncate text-[11px] text-[var(--text-muted)]">{updatedTime(item.updatedAt, generatedAt)}</span>
-                    <button onClick={() => void checkIn(item)} className="pb-uiverse-checkin inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-[var(--accent)]">
-                      <Plus className="size-3" /> {item.type === "movie" ? "10 min" : item.type === "series" || item.type === "anime" ? "Episode" : item.type === "comic" ? "Issue" : "Chapter"}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
       </section>
 
       {signedIn && staleItems.length > 0 && (
@@ -360,8 +365,6 @@ export function HomeDashboard({ trending, upcoming, generatedAt }: DashboardProp
           </div>
         </section>
       )}
-
-      <ForYouRow />
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
         <section className="pb-uiverse-card pb-uiverse-card--feature pb-aura rounded-[24px] p-5 sm:p-6">

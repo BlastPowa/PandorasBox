@@ -4,12 +4,14 @@ import type { UnifiedSearchResult } from "@core/utils/search";
 import { getAniListMedia } from "@core/api/anilist";
 import { discoverTitles } from "@/lib/discover";
 import { genresFor } from "@/lib/browse-filters";
-import { getPopularAnime, getTrendingAnime, getTrendingManga } from "@/lib/discovery";
+import { getPopularAnime, getTrendingAnime, getTrendingManga, mapTmdb, type TMDBTrending } from "@/lib/discovery";
 import { getFranchiseItems, matchFranchiseQuery } from "@/lib/franchises";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 type RecentSeed = {
   title: string;
+  type?: string;
+  tmdbId?: number | null;
   anilistId?: number | null;
 };
 
@@ -117,6 +119,44 @@ async function connectionRows(seeds: RecentSeed[], seen: Set<string>): Promise<C
   return rows.slice(0, 3);
 }
 
+async function becauseRows(seeds: RecentSeed[], seen: Set<string>): Promise<ConnectionRow[]> {
+  const key = process.env.TMDB_API_KEY ?? "";
+  if (!key) return [];
+
+  const selected: RecentSeed[] = [];
+  const movie = seeds.find((seed) => seed.type === "movie" && typeof seed.tmdbId === "number");
+  const series = seeds.find((seed) => seed.type === "series" && typeof seed.tmdbId === "number");
+  if (movie) selected.push(movie);
+  if (series) selected.push(series);
+
+  const emitted = new Set<string>();
+  const rows = await Promise.allSettled(
+    selected.map(async (seed): Promise<ConnectionRow | null> => {
+      const kind = seed.type === "movie" ? "movie" : "tv";
+      const response = await fetch(
+        `https://api.themoviedb.org/3/${kind}/${seed.tmdbId}/recommendations?api_key=${key}&language=en-US&page=1`,
+        { next: { revalidate: 60 * 60 } },
+      );
+      if (!response.ok) return null;
+      const payload = await response.json() as { results?: TMDBTrending[] };
+      const items = (payload.results ?? [])
+        .filter((item) => !item.adult)
+        .map((item) => mapTmdb(kind, item))
+        .filter((item) => !seen.has(item.id) && !emitted.has(item.id))
+        .slice(0, 16);
+      items.forEach((item) => emitted.add(item.id));
+      if (items.length === 0) return null;
+      return {
+        title: `Because you watched ${seed.title}`,
+        subtitle: kind === "movie" ? "More movies with a similar tone, audience and story profile" : "More shows picked from similar series and viewer tastes",
+        items,
+      };
+    }),
+  );
+
+  return rows.flatMap((row) => row.status === "fulfilled" && row.value ? [row.value] : []);
+}
+
 function finiteWeight(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(value, 100)) : 0;
 }
@@ -197,11 +237,12 @@ export async function POST(request: NextRequest) {
     })),
   ];
 
-  const [discovered, trendingAnime, popularAnime, trendingManga, connections] = await Promise.all([
+  const [discovered, trendingAnime, popularAnime, trendingManga, because, connections] = await Promise.all([
     Promise.allSettled(discoveryRequests),
     getTrendingAnime(14),
     getPopularAnime(14),
     getTrendingManga(18),
+    becauseRows(recentSeeds, seen),
     connectionRows(recentSeeds, seen),
   ]);
 
@@ -261,6 +302,7 @@ export async function POST(request: NextRequest) {
       anime: genreRecommendations(animeCandidates, animeGenreWeights, genreWeights, mediaTypeWeight(typeWeights, "anime")),
       manga: genreRecommendations(mangaCandidates, mangaGenreWeights, genreWeights, mediaTypeWeight(typeWeights, "manga")),
     },
+    because,
     connections,
   });
 }

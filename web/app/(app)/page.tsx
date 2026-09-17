@@ -55,7 +55,15 @@ async function HomeContent() {
     ...popular.slice(0, 2),
   ];
 
-  return <HomeDashboard trending={trending} upcoming={upcoming} generatedAt={getGeneratedAt()} />;
+  return (
+    <HomeDashboard
+      trending={trending}
+      trendingMovies={movies}
+      trendingSeries={series}
+      upcoming={upcoming}
+      generatedAt={getGeneratedAt()}
+    />
+  );
 }
 
 function getGeneratedAt(): number {

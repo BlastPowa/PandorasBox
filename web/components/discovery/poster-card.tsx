@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowUpRight } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { TypeBadge } from "@/components/ui-fx/badge";
 import { cn } from "@/lib/utils";
@@ -9,10 +10,12 @@ export function PosterCard({
   item,
   className,
   style,
+  quickLook = false,
 }: {
   item: UnifiedSearchResult;
   className?: string;
   style?: React.CSSProperties;
+  quickLook?: boolean;
 }) {
   const href = mediaItemHref(item);
   return (
@@ -57,6 +60,21 @@ export function PosterCard({
             </span>
           )}
         </div>
+        {quickLook && (
+          <div className="pointer-events-none absolute inset-0 hidden bg-[linear-gradient(to_top,rgba(7,8,13,.98)_8%,rgba(7,8,13,.91)_48%,rgba(7,8,13,.32)_78%,transparent)] p-3 opacity-0 transition duration-300 group-hover:opacity-100 group-focus-within:opacity-100 sm:flex sm:flex-col sm:justify-end">
+            <div className="translate-y-2 transition duration-300 group-hover:translate-y-0 group-focus-within:translate-y-0">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-white/70">
+                {item.year && <span>{item.year}</span>}
+                {item.score !== null && <span className="text-[var(--gold)]">★ {item.score.toFixed(1)}</span>}
+              </div>
+              <h3 className="line-clamp-2 font-display text-sm font-bold leading-tight text-white">{item.title}</h3>
+              {item.synopsis && <p className="mt-2 line-clamp-3 text-[10px] leading-4 text-white/72">{item.synopsis}</p>}
+              <span className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+                Quick look <ArrowUpRight className="size-3" />
+              </span>
+            </div>
+          </div>
+        )}
         </div>
       </Link>
     </div>

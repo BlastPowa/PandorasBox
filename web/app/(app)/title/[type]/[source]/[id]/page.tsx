@@ -133,18 +133,10 @@ export default async function TitlePage({
                   <Star className="size-3.5 fill-current" /> {detail.score.toFixed(1)}
                 </span>
               )}
-              {(detail.ratings ?? []).map((r) => (
-                <span
-                  key={r.source}
-                  className="hidden items-center gap-1 rounded-full bg-[var(--glass)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)] sm:flex"
-                  title={r.source}
-                >
-                  {r.source === "Rotten Tomatoes" ? "🍅" : r.source === "Internet Movie Database" ? "IMDb" : r.source === "Metacritic" ? "Metacritic" : r.source}{" "}
-                  <span className="font-semibold text-[var(--text)]">{r.value}</span>
-                </span>
-              ))}
             </div>
             <h1 className="max-w-4xl font-display text-3xl font-extrabold leading-[0.96] tracking-tight text-[var(--text)] sm:text-5xl lg:text-6xl">{detail.title}</h1>
+
+            {(detail.score !== null || (detail.ratings ?? []).length > 0) && <RatingsStrip detail={detail} />}
 
             {/* Availability badges (live) */}
             {availability && (
@@ -317,7 +309,6 @@ export default async function TitlePage({
 
           {/* Where to watch */}
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-            {detail.about && <AboutCard detail={detail} />}
             <div id="where-to-watch" className="scroll-mt-24">
               <GlassCard macDots title={isReading ? "Where to Read" : "Where to Watch"}>
                 <div className="p-4">
@@ -332,6 +323,7 @@ export default async function TitlePage({
                 </div>
               </GlassCard>
             </div>
+            {detail.about && <AboutCard detail={detail} />}
             <Suspense fallback={<div className="skeleton h-28 rounded-[var(--radius-lg)]" />}><FriendsWithTitle mediaKey={detail.id} /></Suspense>
           </aside>
         </div>
@@ -387,27 +379,6 @@ function AboutCard({ detail }: { detail: DetailData }) {
   return (
     <GlassCard macDots title="About">
       <div className="p-4">
-        {(detail.score !== null || (detail.ratings ?? []).length > 0) && (
-          <div className="mb-4 grid grid-cols-2 gap-2 border-b border-[var(--border)] pb-4">
-            {detail.score !== null && (
-              <div className="pb-uiverse-mini-card rounded-[var(--radius-md)] px-3 py-2.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">TMDB</div>
-                <div className="mt-1 flex items-center gap-1 font-mono text-sm font-bold text-[var(--gold)]">
-                  <Star className="size-3.5 fill-current" /> {detail.score.toFixed(1)}/10
-                </div>
-              </div>
-            )}
-            {(detail.ratings ?? []).map((rating) => (
-              <div key={rating.source} className="pb-uiverse-mini-card rounded-[var(--radius-md)] px-3 py-2.5">
-                <div className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                  {ratingLabel(rating.source)}
-                </div>
-                <div className="mt-1 font-mono text-sm font-bold text-[var(--text)]">{rating.value}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <dl className="space-y-3">
           {rows.map(([label, value]) => (
             <div key={label} className="grid grid-cols-[104px_1fr] gap-3 text-sm">
@@ -418,6 +389,26 @@ function AboutCard({ detail }: { detail: DetailData }) {
         </dl>
       </div>
     </GlassCard>
+  );
+}
+
+function RatingsStrip({ detail }: { detail: DetailData }) {
+  const ratings = [
+    ...(detail.score !== null ? [{ source: "TMDB", value: `${detail.score.toFixed(1)}/10` }] : []),
+    ...(detail.ratings ?? []).map((rating) => ({ source: ratingLabel(rating.source), value: rating.value })),
+  ];
+  return (
+    <div className="mt-4 flex max-w-3xl gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+      {ratings.map((rating) => (
+        <div key={`${rating.source}-${rating.value}`} className="min-w-[112px] shrink-0 rounded-xl border border-[var(--border)] bg-[var(--glass)] px-3 py-2 backdrop-blur-md">
+          <div className="truncate text-[9px] font-extrabold uppercase tracking-[0.14em] text-[var(--text-muted)]">{rating.source}</div>
+          <div className="mt-0.5 flex items-center gap-1 font-mono text-sm font-black text-[var(--text)]">
+            {rating.source === "TMDB" && <Star className="size-3.5 fill-current text-[var(--gold)]" />}
+            {rating.value}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

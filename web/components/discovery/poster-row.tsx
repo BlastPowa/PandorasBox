@@ -57,6 +57,7 @@ export function PosterRow({
   viewAllHref,
   randomize = false,
   action,
+  quickLook = false,
 }: {
   title: string;
   subtitle?: string;
@@ -64,6 +65,7 @@ export function PosterRow({
   viewAllHref?: string;
   randomize?: boolean;
   action?: React.ReactNode;
+  quickLook?: boolean;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const { ref: rowRef, visible } = useRevealOnScroll<HTMLDivElement>();
@@ -122,7 +124,7 @@ export function PosterRow({
       </div>
       <div
         ref={scrollerRef}
-        className="-mx-1 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-mx-1 touch-pan-x snap-x snap-mandatory overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <div
           ref={rowRef}
@@ -132,6 +134,7 @@ export function PosterRow({
             <PosterCard
               key={itemKey(item)}
               item={item}
+              quickLook={quickLook}
               style={{ "--i": i } as React.CSSProperties}
               className={cn(CARD_WIDTH, "shrink-0 snap-start")}
             />

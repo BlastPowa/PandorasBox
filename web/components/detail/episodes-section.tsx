@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Check, ListChecks, Undo2 } from "lucide-react";
+import { X, Check, ListChecks, Undo2, Star, CalendarDays, Clock3 } from "lucide-react";
 import type { TMDBEpisode } from "@core/api/tmdb";
 import { formatAirDate, formatRuntime } from "@core/utils/formatters";
 import { Spinner } from "@/components/ui-fx/feedback";
@@ -92,10 +92,25 @@ export function EpisodesSection({
   }
 
   const seasons = Array.from({ length: Math.max(1, totalSeasons) }, (_, i) => i + 1);
+  const ratedEpisodes = episodes.filter((episode) => (episode.vote_average ?? 0) > 0);
+  const seasonAverage = ratedEpisodes.length > 0
+    ? ratedEpisodes.reduce((sum, episode) => sum + (episode.vote_average ?? 0), 0) / ratedEpisodes.length
+    : null;
   return (
     <section id="pbox-episodes" className="mt-10 scroll-mt-24 border-t border-[var(--border)] pt-8">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-xl font-bold">Episodes</h2>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)]">Episode guide</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-2xl font-bold">Season {season}</h2>
+            <span className="rounded-full bg-[var(--glass)] px-2.5 py-1 text-xs font-semibold text-[var(--text-muted)]">{episodes.length} episodes</span>
+            {seasonAverage !== null && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--gold-rgb)/0.12)] px-2.5 py-1 font-mono text-xs font-bold text-[var(--gold)]">
+                <Star className="size-3 fill-current" /> {seasonAverage.toFixed(1)}
+              </span>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           {seasons.length > 1 && <div className="flex max-w-[60vw] gap-1 overflow-x-auto rounded-full border border-[var(--border)] bg-[var(--glass)] p-1 [scrollbar-width:none]">{seasons.map((value) => <button key={value} type="button" onClick={() => void changeSeason(value)} aria-pressed={season === value} className={`h-8 shrink-0 rounded-full px-3 text-xs font-semibold transition ${season === value ? "bg-[var(--accent)] text-[#08090d]" : "text-[var(--text-secondary)] hover:text-[var(--text)]"}`}>Season {value}</button>)}</div>}
           {item && (
@@ -160,6 +175,9 @@ export function EpisodesSection({
                     </div>
                     {ep.air_date && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(ep.air_date)}</span>}
                     {ep.runtime !== null && <span className="ml-2 text-xs text-[var(--text-muted)]">{formatRuntime(ep.runtime)}</span>}
+                    {(ep.vote_average ?? 0) > 0 && (
+                      <span className="ml-2 inline-flex items-center gap-0.5 font-mono text-xs font-semibold text-[var(--gold)]"><Star className="size-3 fill-current" /> {ep.vote_average!.toFixed(1)}</span>
+                    )}
                     {ep.overview && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-secondary)]">{ep.overview}</p>}
                   </div>
                 </button>
@@ -201,11 +219,14 @@ export function EpisodesSection({
                 </div>
                 <div className="p-5">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs text-[var(--accent)]">Episode {selected.episode_number}</span>
-                    {selected.air_date && <span className="text-xs text-[var(--text-muted)]">{formatAirDate(selected.air_date)}</span>}
-                    {selected.runtime !== null && <span className="text-xs text-[var(--text-muted)]">· {formatRuntime(selected.runtime)}</span>}
+                    <span className="font-mono text-xs font-bold text-[var(--accent)]">S{season} · E{selected.episode_number}</span>
                   </div>
                   <Dialog.Title className="font-display text-lg font-bold">{selected.name}</Dialog.Title>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selected.air_date && <span className="inline-flex items-center gap-1 rounded-full bg-[var(--glass)] px-2 py-1 text-[11px] text-[var(--text-muted)]"><CalendarDays className="size-3" /> {formatAirDate(selected.air_date)}</span>}
+                    {selected.runtime !== null && <span className="inline-flex items-center gap-1 rounded-full bg-[var(--glass)] px-2 py-1 text-[11px] text-[var(--text-muted)]"><Clock3 className="size-3" /> {formatRuntime(selected.runtime)}</span>}
+                    {(selected.vote_average ?? 0) > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--gold-rgb)/0.12)] px-2 py-1 font-mono text-[11px] font-bold text-[var(--gold)]"><Star className="size-3 fill-current" /> {selected.vote_average!.toFixed(1)}{selected.vote_count ? ` · ${selected.vote_count} votes` : ""}</span>}
+                  </div>
                   <Dialog.Description asChild>
                     <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
                       {selected.overview || "No synopsis available for this episode yet."}

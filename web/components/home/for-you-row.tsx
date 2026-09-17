@@ -10,7 +10,12 @@ type RecommendationProfile = {
   types: Record<string, number>;
   typeGenres: Record<string, Record<string, number>>;
   seenIds: string[];
-  recentSeeds: { title: string; anilistId: number | null }[];
+  recentSeeds: {
+    title: string;
+    type: string;
+    tmdbId: number | null;
+    anilistId: number | null;
+  }[];
 };
 
 type RecommendationGroups = {
@@ -72,7 +77,12 @@ function buildProfile(items: ReturnType<typeof useLibrary>["items"]): Recommenda
     recentSeeds: [...items]
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 12)
-      .map((item) => ({ title: item.title, anilistId: item.anilistId })),
+      .map((item) => ({
+        title: item.title,
+        type: item.type,
+        tmdbId: item.tmdbId,
+        anilistId: item.anilistId,
+      })),
   };
 }
 
@@ -84,11 +94,18 @@ function topGenres(profile: RecommendationProfile, type: string) {
 
 export function ForYouRow() {
   const { items, signedIn, loading } = useLibrary();
-  const [result, setResult] = useState<{ key: string; groups: RecommendationGroups; genreGroups: GenreRecommendationGroups; connections: ConnectionRow[] }>({ key: "", groups: EMPTY_GROUPS, genreGroups: EMPTY_GENRE_GROUPS, connections: [] });
+  const [result, setResult] = useState<{
+    key: string;
+    groups: RecommendationGroups;
+    genreGroups: GenreRecommendationGroups;
+    because: ConnectionRow[];
+    connections: ConnectionRow[];
+  }>({ key: "", groups: EMPTY_GROUPS, genreGroups: EMPTY_GENRE_GROUPS, because: [], connections: [] });
   const profile = useMemo(() => buildProfile(items), [items]);
   const profileKey = useMemo(() => JSON.stringify(profile), [profile]);
   const groups = result.key === profileKey ? result.groups : EMPTY_GROUPS;
   const genreGroups = result.key === profileKey ? result.genreGroups : EMPTY_GENRE_GROUPS;
+  const because = result.key === profileKey ? result.because : [];
   const connections = result.key === profileKey ? result.connections : [];
   const fetching = signedIn && !loading && items.length > 0 && result.key !== profileKey;
   const labels = useMemo(() => ({
@@ -110,7 +127,12 @@ export function ForYouRow() {
     })
       .then(async (response) => {
         if (!response.ok) throw new Error("Recommendation request failed");
-        const data = await response.json() as { groups?: Partial<RecommendationGroups>; genreGroups?: Partial<GenreRecommendationGroups>; connections?: ConnectionRow[] };
+        const data = await response.json() as {
+          groups?: Partial<RecommendationGroups>;
+          genreGroups?: Partial<GenreRecommendationGroups>;
+          because?: ConnectionRow[];
+          connections?: ConnectionRow[];
+        };
         setResult({
           key: profileKey,
           groups: {
@@ -125,12 +147,13 @@ export function ForYouRow() {
             anime: data.genreGroups?.anime ?? {},
             manga: data.genreGroups?.manga ?? {},
           },
+          because: data.because ?? [],
           connections: data.connections ?? [],
         });
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setResult({ key: profileKey, groups: EMPTY_GROUPS, genreGroups: EMPTY_GENRE_GROUPS, connections: [] });
+        setResult({ key: profileKey, groups: EMPTY_GROUPS, genreGroups: EMPTY_GENRE_GROUPS, because: [], connections: [] });
       });
 
     return () => controller.abort();
@@ -140,17 +163,20 @@ export function ForYouRow() {
   if (fetching && Object.values(groups).every((group) => group.length === 0)) {
     return <div className="space-y-8"><PosterRowSkeleton title="Movies for you" /><PosterRowSkeleton title="TV shows for you" /></div>;
   }
-  if (connections.length === 0 && Object.values(groups).every((group) => group.length === 0)) return null;
+  if (because.length === 0 && connections.length === 0 && Object.values(groups).every((group) => group.length === 0)) return null;
 
   return (
     <section className="space-y-8" aria-label="Recommendations based on your library history">
       <div className="px-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Picked from your history</p>
-        <h2 className="mt-1 font-display text-xl font-bold tracking-[-0.02em] text-[var(--text)] sm:text-2xl">More stories that match your taste</h2>
-        <p className="mt-1 max-w-2xl text-xs leading-5 text-[var(--text-muted)]">Your recent library now drives both genre picks and connected-story recommendations, including adaptations, sequels and franchise entries you have not saved yet.</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Made for you</p>
+        <h2 className="mt-1 font-display text-xl font-bold tracking-[-0.02em] text-[var(--text)] sm:text-2xl">Because you watched</h2>
+        <p className="mt-1 max-w-2xl text-xs leading-5 text-[var(--text-muted)]">Recent movies and shows shape the first rows, then your wider library history fills in genres, connected stories, anime and manga.</p>
       </div>
+      {because.map((row) => (
+        <PosterRow key={row.title} title={row.title} subtitle={row.subtitle} items={row.items} viewAllHref={row.href} quickLook />
+      ))}
       {connections.map((connection) => (
-        <PosterRow key={connection.title} title={connection.title} subtitle={connection.subtitle} items={connection.items} viewAllHref={connection.href} />
+        <PosterRow key={connection.title} title={connection.title} subtitle={connection.subtitle} items={connection.items} viewAllHref={connection.href} quickLook />
       ))}
       <RecommendationRows media="Movies" fallbackTitle="Movies for you" fallbackSubtitle={labels.movies.length ? `Because you’ve been into ${labels.movies.join(", ")}` : "Based on your recently watched and saved movies"} groups={genreGroups.movies} items={groups.movies} viewAllHref="/movies" />
       <RecommendationRows media="TV" fallbackTitle="TV shows for you" fallbackSubtitle={labels.series.length ? `More ${labels.series.join(", ")} from your TV history` : "Based on the series you watch and save"} groups={genreGroups.series} items={groups.series} viewAllHref="/tv" />
@@ -177,7 +203,7 @@ function RecommendationRows({
 }) {
   const genreRows = Object.entries(groups).filter(([, recommendations]) => recommendations.length > 0).slice(0, 2);
   if (genreRows.length === 0) {
-    return <PosterRow title={fallbackTitle} subtitle={fallbackSubtitle} items={items} viewAllHref={viewAllHref} />;
+    return <PosterRow title={fallbackTitle} subtitle={fallbackSubtitle} items={items} viewAllHref={viewAllHref} quickLook />;
   }
 
   return (
@@ -189,6 +215,7 @@ function RecommendationRows({
           subtitle={index === 0 ? `Your recent ${media.toLowerCase()} history leans toward ${genre}` : `Another strong match from your ${genre} history`}
           items={recommendations}
           viewAllHref={media === "Movies" ? `/movies?genre=${encodeURIComponent(genre)}` : media === "TV" ? `/tv?genre=${encodeURIComponent(genre)}` : viewAllHref}
+          quickLook
         />
       ))}
     </div>

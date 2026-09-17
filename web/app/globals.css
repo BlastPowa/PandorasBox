@@ -988,6 +988,105 @@ html.pb-reduce-motion .pb-stagger.is-visible > * {
   background: rgb(255 255 255 / 0.92);
 }
 
+.pb-continue-card {
+  border: 1px solid rgb(255 255 255 / 0.20);
+  background: color-mix(in srgb, var(--glass) 56%, transparent);
+  box-shadow: 0 18px 42px rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.16);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+  backdrop-filter: blur(12px) saturate(1.08);
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s ease, box-shadow 0.28s ease;
+}
+.pb-continue-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(108deg, transparent 22%, rgb(255 255 255 / 0.13) 47%, transparent 68%);
+  transform: translateX(-135%);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pb-provider-tile {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background:
+    radial-gradient(circle at 18% 0%, rgb(255 255 255 / 0.12), transparent 42%),
+    color-mix(in srgb, var(--glass) 52%, transparent);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+  backdrop-filter: blur(12px) saturate(1.08);
+  transition: transform 0.26s ease, border-color 0.26s ease, background 0.26s ease, box-shadow 0.26s ease;
+}
+.pb-provider-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 25%, rgb(255 255 255 / 0.14) 48%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform 0.6s ease;
+}
+.pb-provider-tile.is-active {
+  border-color: rgb(var(--accent-rgb) / 0.48);
+  background:
+    radial-gradient(circle at 18% 0%, rgb(255 255 255 / 0.16), transparent 40%),
+    linear-gradient(145deg, rgb(var(--accent-rgb) / 0.18), color-mix(in srgb, var(--glass) 58%, transparent));
+  box-shadow: 0 16px 34px rgb(0 0 0 / 0.16), 0 0 24px rgb(var(--accent-rgb) / 0.10), inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+.pb-provider-results {
+  border: 1px solid rgb(255 255 255 / 0.18);
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.07), rgb(var(--accent-rgb) / 0.055)),
+    color-mix(in srgb, var(--glass) 54%, transparent);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.14), inset 0 1px 0 rgb(255 255 255 / 0.13);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  backdrop-filter: blur(16px) saturate(1.08);
+}
+@media (hover: hover) {
+  .pb-continue-card:hover {
+    transform: translateY(-5px) scale(1.012);
+    border-color: rgb(var(--accent-rgb) / 0.38);
+    box-shadow: 0 24px 52px rgb(0 0 0 / 0.26), 0 0 26px rgb(var(--accent-rgb) / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.20);
+  }
+  .pb-continue-card:hover::after,
+  .pb-provider-tile:hover::after { transform: translateX(130%); }
+  .pb-provider-tile:hover {
+    transform: translateY(-4px) scale(1.025);
+    border-color: rgb(var(--accent-rgb) / 0.34);
+    box-shadow: 0 16px 34px rgb(0 0 0 / 0.18), 0 0 22px rgb(var(--accent-rgb) / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.18);
+  }
+}
+
+:root:not([data-mode="dark"]) .pb-continue-card,
+:root:not([data-mode="dark"]) .pb-provider-tile,
+:root:not([data-mode="dark"]) .pb-provider-results {
+  border-color: color-mix(in srgb, var(--border-strong) 58%, white);
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.86), rgb(255 255 255 / 0.62) 64%, rgb(var(--accent-rgb) / 0.065)),
+    color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  box-shadow: 0 14px 34px rgb(15 23 42 / 0.09), inset 0 1px 0 rgb(255 255 255 / 0.92);
+}
+:root:not([data-mode="dark"]) .pb-provider-tile.is-active {
+  border-color: rgb(var(--accent-rgb) / 0.38);
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.92), rgb(var(--accent-rgb) / 0.12)),
+    color-mix(in srgb, var(--bg-surface) 92%, transparent);
+}
+
+@media (max-width: 767px) {
+  .pb-home-dashboard { padding-inline: 0.1rem; }
+  .pb-provider-feed { margin-inline: -0.1rem; }
+  .pb-provider-tile { min-height: 94px; }
+  .pb-provider-results { border-radius: 20px; }
+  .pb-continue-card { border-radius: 20px; }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .pb-provider-tile { min-height: 102px; }
+  .pb-provider-results { padding: 1rem; }
+}
+
 :root[data-mode="dark"] .pb-uiverse-card {
   border-color: rgb(255 255 255 / 0.20);
   background:
