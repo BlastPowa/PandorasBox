@@ -118,6 +118,21 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Sparkles,
+    batch: "Revamp batch 29",
+    date: "17 September 2026",
+    title: "Sharper backgrounds & smoother scrolling",
+    text: "Cinematic artwork now stays clearer while heavy full-page blur work and duplicate background paints have been reduced across the app.",
+    highlights: [
+      "The shared ambient backdrop now dims and scales with scroll without applying a viewport-sized blur on every frame.",
+      "Book and comic detail pages reuse the ambient artwork instead of rendering a second blurred copy of the same cover.",
+      "Public profiles now use one continuous background layer instead of painting the profile artwork twice.",
+      "Person and title fallback heroes keep their artwork visible with dimming, saturation and gradients instead of large blur filters.",
+      "Shorts keeps its cinematic poster atmosphere while removing two expensive large-area blur effects around each trailer.",
+      "Production TypeScript and the full 61-route Next.js build pass with the new rendering path.",
+    ],
+  },
+  {
     icon: Activity,
     batch: "Revamp batch 28",
     date: "17 September 2026",
@@ -538,7 +553,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["28 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["29 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
