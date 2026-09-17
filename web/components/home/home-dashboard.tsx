@@ -4,22 +4,17 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  Check,
   ChevronRight,
   CirclePlay,
-  Clock3,
   Compass,
   Library,
   Plus,
   Sparkles,
-  Target,
-  TrendingUp,
 } from "lucide-react";
 import type { ReelItem } from "@core/storage/schema";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { libraryItemHref } from "@/lib/library/item-href";
 import { useLibrary, useLibraryStats } from "@/lib/library/use-library";
-import { AmbientBackground, HERO_SLIDE_EVENT } from "@/components/home/ambient-background";
 import { ForYouRow } from "@/components/home/for-you-row";
 import { ProviderFeed } from "@/components/home/provider-feed";
 import { PosterRow } from "@/components/discovery/poster-row";
@@ -28,7 +23,6 @@ type DashboardProps = {
   trending: UnifiedSearchResult[];
   trendingMovies: UnifiedSearchResult[];
   trendingSeries: UnifiedSearchResult[];
-  upcoming: UnifiedSearchResult[];
   generatedAt: number;
 };
 
@@ -125,7 +119,7 @@ function SectionHeading({
   );
 }
 
-export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcoming, generatedAt }: DashboardProps) {
+export function HomeDashboard({ trending, trendingMovies, trendingSeries, generatedAt }: DashboardProps) {
   const { items, loading, signedIn, setStatus } = useLibrary();
   const stats = useLibraryStats(items);
   const spotlightSlides = useMemo(
@@ -144,7 +138,6 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcomi
   const staleItems = active
     .filter((item) => generatedAt - new Date(item.updatedAt).getTime() > 21 * 86_400_000)
     .sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
-  const stale = staleItems.length;
   const safeSpotlightIndex = spotlightSlides.length > 0 ? spotlightIndex % spotlightSlides.length : 0;
   const spotlight = spotlightSlides[safeSpotlightIndex] ?? trending[0] ?? null;
   const heroArtwork = spotlight?.backdropUrl ?? spotlight?.posterUrl ?? null;
@@ -159,10 +152,6 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcomi
 
     return () => window.clearInterval(timer);
   }, [spotlightSlides]);
-
-  useEffect(() => {
-    if (heroArtwork) window.dispatchEvent(new CustomEvent(HERO_SLIDE_EVENT, { detail: heroArtwork }));
-  }, [heroArtwork]);
 
   const showSpotlight = (index: number) => {
     setSpotlightIndex(index);
@@ -180,7 +169,6 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcomi
 
   return (
     <div className="pb-home-dashboard space-y-10 pb-8">
-      <AmbientBackground imageUrl={heroArtwork} />
       <section className="relative -mx-3 min-h-[430px] overflow-hidden rounded-[26px] sm:-mx-4 sm:min-h-[500px] sm:rounded-[30px] lg:min-h-[570px]">
         {heroArtwork && (
           <div
@@ -285,6 +273,36 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcomi
         )}
       </section>
 
+      {signedIn && (
+        <section className="pb-uiverse-card rounded-[22px] p-4 sm:p-5" aria-label="Library summary">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="pb-uiverse-icon grid size-10 shrink-0 place-items-center rounded-xl text-[var(--accent)]"><Library className="size-4" /></div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Your library</p>
+                <h2 className="mt-0.5 font-display text-base font-bold text-[var(--text)] sm:text-lg">Progress at a glance</h2>
+              </div>
+            </div>
+            <div className="grid flex-1 grid-cols-4 gap-2 sm:max-w-2xl">
+              {[
+                { label: "Active", value: stats.watching },
+                { label: "Planned", value: stats.planned },
+                { label: "Done", value: stats.completed },
+                { label: "Saved", value: stats.totalItems },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-xl bg-[var(--glass)] px-2 py-2.5 text-center">
+                  <div className="font-display text-lg font-bold tabular-nums text-[var(--text)] sm:text-xl">{loading ? "—" : value}</div>
+                  <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)] sm:text-[10px]">{label}</div>
+                </div>
+              ))}
+            </div>
+            <Link href="/stats" className="pb-uiverse-action-link inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-xl px-3 text-xs font-bold text-[var(--accent)]">
+              Full stats <ChevronRight className="size-4" />
+            </Link>
+          </div>
+        </section>
+      )}
+
       <ProviderFeed />
 
       <ForYouRow />
@@ -305,21 +323,6 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcomi
           viewAllHref="/tv"
           quickLook
         />
-      </section>
-
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "In progress", value: stats.watching, icon: CirclePlay },
-          { label: "Planned", value: stats.planned, icon: Target },
-          { label: "Completed", value: stats.completed, icon: Check },
-          { label: "Total saved", value: stats.totalItems, icon: Library },
-        ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="pb-uiverse-card pb-uiverse-card--stat rounded-2xl p-4 sm:p-5">
-            <div className="pb-uiverse-icon mb-3 grid size-9 place-items-center rounded-xl text-[var(--accent)]"><Icon className="size-4" /></div>
-            <div className="font-display text-2xl font-bold text-[var(--text)]">{loading ? "—" : value}</div>
-            <div className="mt-1 text-xs font-semibold text-[var(--text-muted)]">{label}</div>
-          </div>
-        ))}
       </section>
 
       {signedIn && staleItems.length > 0 && (
@@ -366,10 +369,12 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcomi
         </section>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
-        <section className="pb-uiverse-card pb-uiverse-card--feature pb-aura rounded-[24px] p-5 sm:p-6">
+      <section className="pb-uiverse-card pb-uiverse-card--feature pb-aura rounded-[24px] p-5 sm:p-6">
+        <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
+          <div>
           <SectionHeading eyebrow="What fits tonight?" title="Pick something for tonight" action="Open the Box" href="/randomize" />
-          <p className="-mt-2 mb-5 text-sm leading-6 text-[var(--text-secondary)]">A short list from what you already saved, prioritising things you have started and are closest to finishing.</p>
+            <p className="-mt-2 text-sm leading-6 text-[var(--text-secondary)]">A short list from what you already saved, prioritising things you have started and are closest to finishing.</p>
+          </div>
           <div className="space-y-2">
             {nextBest.length === 0 ? (
               <Link href="/browse" className="pb-uiverse-row flex items-center justify-between rounded-xl p-4 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)]">Explore titles to build your list <ArrowRight className="size-4" /></Link>
@@ -381,34 +386,8 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, upcomi
               </Link>
             ))}
           </div>
-        </section>
-
-        <section className="pb-uiverse-card pb-uiverse-card--feature pb-aura rounded-[24px] p-5 sm:p-6">
-          <SectionHeading eyebrow="Your list" title="Saved for later" action="View stats" href="/stats" />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="pb-uiverse-mini-card rounded-2xl p-4"><div className="text-2xl font-bold text-[var(--text)]">{stats.planned}</div><div className="mt-1 text-xs font-semibold text-[var(--text-muted)]">saved for later</div></div>
-            <div className="pb-uiverse-mini-card rounded-2xl p-4"><div className="text-2xl font-bold text-[var(--text)]">{stale}</div><div className="mt-1 text-xs font-semibold text-[var(--text-muted)]">quiet for 3+ weeks</div></div>
-            <div className="pb-uiverse-mini-card pb-uiverse-mini-card--accent col-span-2 rounded-2xl p-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-[var(--accent)]"><TrendingUp className="size-4" /> A little nudge</div>
-              <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{stats.planned === 0 ? "Nothing is waiting right now. Save anything you want to come back to later." : stale > 0 ? `${stale} in-progress ${stale === 1 ? "title has" : "titles have"} gone quiet. Pick one back up or move it to Paused.` : "Everything you’re following is up to date. Keep checking in whenever you finish an episode, chapter, issue or a few more minutes."}</p>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {upcoming.length > 0 && (
-        <section>
-          <SectionHeading eyebrow="Coming soon" title="On your radar" action="Full calendar" href="/schedule" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {upcoming.slice(0, 4).map((item) => (
-              <Link key={`${item.source}-${item.id}`} href={resultHref(item)} className="pb-uiverse-card pb-uiverse-card--compact group flex min-w-0 gap-3 rounded-2xl p-3">
-                <div className="h-20 w-14 shrink-0 overflow-hidden rounded-lg"><Poster title={item.title} posterUrl={item.posterUrl} /></div>
-                <div className="min-w-0 py-1"><div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]"><Clock3 className="size-3" /> {mediaTypeLabel(item.type)}</div><p className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-[var(--text)] group-hover:text-[var(--accent)]">{item.title}</p>{item.year && <p className="mt-1 text-xs text-[var(--text-muted)]">{item.year}</p>}</div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+        </div>
+      </section>
 
     </div>
   );

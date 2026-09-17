@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";
@@ -114,6 +115,12 @@ export function ForYouRow() {
     anime: topGenres(profile, "anime"),
     manga: topGenres(profile, "manga"),
   }), [profile]);
+  const preferredMedia = useMemo(() => ([
+    { key: "movies" as const, weight: profile.types.movie ?? 0 },
+    { key: "series" as const, weight: profile.types.series ?? 0 },
+    { key: "anime" as const, weight: profile.types.anime ?? 0 },
+    { key: "manga" as const, weight: (profile.types.manga ?? 0) + (profile.types.manhwa ?? 0) },
+  ].sort((a, b) => b.weight - a.weight).slice(0, 2).map((entry) => entry.key)), [profile.types]);
 
   useEffect(() => {
     if (!signedIn || loading || items.length === 0) return;
@@ -172,16 +179,19 @@ export function ForYouRow() {
         <h2 className="mt-1 font-display text-xl font-bold tracking-[-0.02em] text-[var(--text)] sm:text-2xl">Because you watched</h2>
         <p className="mt-1 max-w-2xl text-xs leading-5 text-[var(--text-muted)]">Recent movies and shows shape the first rows, then your wider library history fills in genres, connected stories, anime and manga.</p>
       </div>
-      {because.map((row) => (
+      {because.slice(0, 1).map((row) => (
         <PosterRow key={row.title} title={row.title} subtitle={row.subtitle} items={row.items} viewAllHref={row.href} quickLook />
       ))}
-      {connections.map((connection) => (
+      {connections.slice(0, 1).map((connection) => (
         <PosterRow key={connection.title} title={connection.title} subtitle={connection.subtitle} items={connection.items} viewAllHref={connection.href} quickLook />
       ))}
-      <RecommendationRows media="Movies" fallbackTitle="Movies for you" fallbackSubtitle={labels.movies.length ? `Because you’ve been into ${labels.movies.join(", ")}` : "Based on your recently watched and saved movies"} groups={genreGroups.movies} items={groups.movies} viewAllHref="/movies" />
-      <RecommendationRows media="TV" fallbackTitle="TV shows for you" fallbackSubtitle={labels.series.length ? `More ${labels.series.join(", ")} from your TV history` : "Based on the series you watch and save"} groups={genreGroups.series} items={groups.series} viewAllHref="/tv" />
-      <RecommendationRows media="Anime" fallbackTitle="Anime for you" fallbackSubtitle={labels.anime.length ? `Matched to ${labels.anime.join(", ")} in your anime list` : "Based on your anime history"} groups={genreGroups.anime} items={groups.anime} viewAllHref="/anime" />
-      <RecommendationRows media="Manga" fallbackTitle="Manga for you" fallbackSubtitle={labels.manga.length ? `Matched to ${labels.manga.join(", ")} in your reading history` : "Based on your manga and reading history"} groups={genreGroups.manga} items={groups.manga} viewAllHref="/browse/trending-manga" />
+      {preferredMedia.includes("movies") && <RecommendationRows media="Movies" fallbackTitle="Movies for you" fallbackSubtitle={labels.movies.length ? `Because you’ve been into ${labels.movies.join(", ")}` : "Based on your recently watched and saved movies"} groups={genreGroups.movies} items={groups.movies} viewAllHref="/movies" />}
+      {preferredMedia.includes("series") && <RecommendationRows media="TV" fallbackTitle="TV shows for you" fallbackSubtitle={labels.series.length ? `More ${labels.series.join(", ")} from your TV history` : "Based on the series you watch and save"} groups={genreGroups.series} items={groups.series} viewAllHref="/tv" />}
+      {preferredMedia.includes("anime") && <RecommendationRows media="Anime" fallbackTitle="Anime for you" fallbackSubtitle={labels.anime.length ? `Matched to ${labels.anime.join(", ")} in your anime list` : "Based on your anime history"} groups={genreGroups.anime} items={groups.anime} viewAllHref="/anime" />}
+      {preferredMedia.includes("manga") && <RecommendationRows media="Manga" fallbackTitle="Manga for you" fallbackSubtitle={labels.manga.length ? `Matched to ${labels.manga.join(", ")} in your reading history` : "Based on your manga and reading history"} groups={genreGroups.manga} items={groups.manga} viewAllHref="/browse/trending-manga" />}
+      <div className="flex justify-end px-1">
+        <Link href="/browse" className="text-xs font-bold text-[var(--accent)] hover:underline">More recommendations in Discover</Link>
+      </div>
     </section>
   );
 }
@@ -201,7 +211,7 @@ function RecommendationRows({
   items: UnifiedSearchResult[];
   viewAllHref: string;
 }) {
-  const genreRows = Object.entries(groups).filter(([, recommendations]) => recommendations.length > 0).slice(0, 2);
+  const genreRows = Object.entries(groups).filter(([, recommendations]) => recommendations.length > 0).slice(0, 1);
   if (genreRows.length === 0) {
     return <PosterRow title={fallbackTitle} subtitle={fallbackSubtitle} items={items} viewAllHref={viewAllHref} quickLook />;
   }

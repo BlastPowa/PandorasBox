@@ -1,58 +1,27 @@
 import { Suspense } from "react";
 import {
-  getPopularAnime,
   getTrendingAnime,
   getTrendingManga,
   getTrendingMovies,
   getTrendingSeries,
 } from "@/lib/discovery";
-import { getUpcomingAnime, getUpcomingMovies, type ScheduleEntry } from "@/lib/schedule";
-import type { UnifiedSearchResult } from "@core/utils/search";
 import { HomeDashboard } from "@/components/home/home-dashboard";
 
 export const revalidate = 1800;
 
-function scheduleToResult(e: ScheduleEntry): UnifiedSearchResult {
-  const numId = Number.parseInt(e.refId, 10);
-  return {
-    id: e.id,
-    source: e.source,
-    type: e.detailType,
-    title: e.title,
-    posterUrl: e.posterUrl,
-    year: new Date(e.timestamp * 1000).getFullYear(),
-    synopsis: null,
-    score: null,
-    totalEpisodes: null,
-    totalChapters: null,
-    anilistId: e.source === "anilist" ? numId : null,
-    tmdbId: e.source === "tmdb" ? numId : null,
-    mangadexId: null,
-    malId: null,
-  };
-}
-
 async function HomeContent() {
-  const [anime, popular, manga, movies, series, upAnime, upMovies] = await Promise.all([
+  const [anime, manga, movies, series] = await Promise.all([
     getTrendingAnime(),
-    getPopularAnime(),
     getTrendingManga(),
     getTrendingMovies(),
     getTrendingSeries(),
-    getUpcomingAnime(),
-    getUpcomingMovies("IE"),
   ]);
-
-  const upcoming = [...upMovies.slice(0, 8), ...upAnime.slice(0, 8)]
-    .sort((a, b) => a.timestamp - b.timestamp)
-    .map(scheduleToResult);
 
   const trending = [
     ...movies.slice(0, 3),
     ...series.slice(0, 2),
     ...anime.slice(0, 3),
     ...manga.slice(0, 2),
-    ...popular.slice(0, 2),
   ];
 
   return (
@@ -60,7 +29,6 @@ async function HomeContent() {
       trending={trending}
       trendingMovies={movies}
       trendingSeries={series}
-      upcoming={upcoming}
       generatedAt={getGeneratedAt()}
     />
   );
