@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { ArrowUp, ArrowDown, Trash2, Plus, Trophy } from "lucide-react";
+import { ArrowUp, ArrowDown, Trash2, Plus, Trophy, Search, Star, Crown, Library } from "lucide-react";
 import type { ReelItemType } from "@core/storage/schema";
+import { getStatusLabel } from "@core/utils/formatters";
 import { useLibrary } from "@/lib/library/use-library";
 import {
   listRankings,
@@ -43,6 +44,7 @@ export function RankingsView() {
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
 
   async function load() {
     setLoading(true);
@@ -72,10 +74,20 @@ export function RankingsView() {
   }, [category, signedIn]);
 
   const rankedIds = useMemo(() => new Set(rankings.map((r) => r.item_id)), [rankings]);
-  const candidates = useMemo(
-    () => items.filter((i) => i.type === category && !rankedIds.has(i.id)),
-    [items, category, rankedIds]
-  );
+  const categoryItems = useMemo(() => items.filter((item) => item.type === category), [items, category]);
+  const libraryById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<ReelItemType, number>();
+    for (const item of items) counts.set(item.type, (counts.get(item.type) ?? 0) + 1);
+    return counts;
+  }, [items]);
+  const candidates = useMemo(() => {
+    const query = pickerQuery.trim().toLocaleLowerCase();
+    return categoryItems
+      .filter((item) => !rankedIds.has(item.id))
+      .filter((item) => !query || item.title.toLocaleLowerCase().includes(query))
+      .sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1) || a.title.localeCompare(b.title));
+  }, [categoryItems, pickerQuery, rankedIds]);
 
   async function move(index: number, direction: -1 | 1) {
     const other = index + direction;
@@ -98,7 +110,7 @@ export function RankingsView() {
     try {
       await addToRanking(category, itemId, title, posterUrl);
       toast.success(`Added to your Top ${CATEGORIES.find((c) => c.key === category)?.label}`);
-      setPickerOpen(false);
+      setPickerQuery("");
       void load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not add");
@@ -125,29 +137,107 @@ export function RankingsView() {
     );
   }
 
+  const categoryLabel = CATEGORIES.find((c) => c.key === category)?.label ?? "titles";
+
+  function rankActions(entry: RankingEntry, index: number) {
+    return (
+      <div className="flex shrink-0 items-center gap-1">
+        <button
+          type="button"
+          aria-label={`Move ${entry.title} up`}
+          onClick={() => void move(index, -1)}
+          disabled={index === 0}
+          className="grid size-8 place-items-center rounded-[8px] text-[var(--text-secondary)] transition hover:bg-[var(--glass-strong)] disabled:opacity-30"
+        >
+          <ArrowUp className="size-4" />
+        </button>
+        <button
+          type="button"
+          aria-label={`Move ${entry.title} down`}
+          onClick={() => void move(index, 1)}
+          disabled={index === rankings.length - 1}
+          className="grid size-8 place-items-center rounded-[8px] text-[var(--text-secondary)] transition hover:bg-[var(--glass-strong)] disabled:opacity-30"
+        >
+          <ArrowDown className="size-4" />
+        </button>
+        <button
+          type="button"
+          aria-label={`Remove ${entry.title} from rankings`}
+          onClick={() => void remove(entry.id)}
+          className="grid size-8 place-items-center rounded-[8px] text-[var(--dropped)] transition hover:bg-[var(--glass-strong)]"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" aria-label="Ranking categories">
         {CATEGORIES.map((c) => (
-          <Pill key={c.key} active={category === c.key} onClick={() => setCategory(c.key)}>{c.label}</Pill>
+          <Pill
+            key={c.key}
+            active={category === c.key}
+            onClick={() => {
+              setCategory(c.key);
+              setPickerOpen(false);
+              setPickerQuery("");
+            }}
+          >
+            {c.label} <span className="ml-1 opacity-70">{categoryCounts.get(c.key) ?? 0}</span>
+          </Pill>
         ))}
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-[var(--text-secondary)]">
-          Your personal Top {CATEGORIES.find((c) => c.key === category)?.label} — reorder with the arrows.
-        </p>
-        <Button size="sm" onClick={() => setPickerOpen((v) => !v)}>
-          <Plus className="size-4" /> Add title
-        </Button>
+      <div className="pb-uiverse-card pb-aura overflow-hidden rounded-[var(--radius-xl)] p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">
+              <Crown className="size-4" /> Personal taste list
+            </div>
+            <h2 className="mt-1 font-display text-xl font-extrabold sm:text-2xl">Top {categoryLabel}</h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              Rank the titles you would recommend first. Your library rating and status stay visible as context while you order them.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setPickerOpen((value) => !value)}>
+            <Plus className="size-4" /> {pickerOpen ? "Close picker" : "Add title"}
+          </Button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="pb-uiverse-row rounded-xl px-3 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">Ranked</p>
+            <p className="mt-1 font-display text-xl font-bold">{rankings.length}</p>
+          </div>
+          <div className="pb-uiverse-row rounded-xl px-3 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">In library</p>
+            <p className="mt-1 font-display text-xl font-bold">{categoryItems.length}</p>
+          </div>
+          <div className="pb-uiverse-row col-span-2 rounded-xl px-3 py-3 sm:col-span-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">Still unranked</p>
+            <p className="mt-1 font-display text-xl font-bold">{Math.max(categoryItems.length - rankings.length, 0)}</p>
+          </div>
+        </div>
       </div>
 
       {pickerOpen && (
-        <div className="pb-uiverse-card pb-uiverse-card--compact max-h-72 space-y-1 overflow-y-auto rounded-[var(--radius-md)] p-3">
+        <div className="pb-uiverse-card pb-uiverse-card--compact rounded-[var(--radius-md)] p-3 sm:p-4">
+          <div className="relative mb-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input
+              value={pickerQuery}
+              onChange={(event) => setPickerQuery(event.target.value)}
+              placeholder={`Search your ${categoryLabel.toLowerCase()} library`}
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-base)] pl-10 pr-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.16)]"
+            />
+          </div>
+          <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
           {candidates.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)]">
-              Nothing to add — every {CATEGORIES.find((c) => c.key === category)?.label.toLowerCase()} title in your
-              library is already ranked, or your library has none of this type yet.
+              {pickerQuery.trim()
+                ? `No unranked ${categoryLabel.toLowerCase()} match “${pickerQuery.trim()}”.`
+                : `Nothing to add — every ${categoryLabel.toLowerCase()} title in your library is already ranked, or your library has none of this type yet.`}
             </p>
           ) : (
             candidates.map((c) => (
@@ -159,10 +249,23 @@ export function RankingsView() {
                 <div className="relative h-12 w-8 shrink-0 overflow-hidden rounded-[4px] bg-[var(--bg-elevated)]">
                   {c.posterUrl && <Image src={c.posterUrl} alt="" fill sizes="32px" className="object-cover" />}
                 </div>
-                <span className="truncate text-sm">{c.title}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{c.title}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--text-muted)]">
+                    {c.year && <span>{c.year}</span>}
+                    <span>{getStatusLabel(c.status)}</span>
+                    {c.rating !== null && (
+                      <span className="inline-flex items-center gap-1 text-[var(--accent)]">
+                        <Star className="size-3 fill-current" /> {c.rating.toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Plus className="size-4 shrink-0 text-[var(--accent)]" />
               </button>
             ))
           )}
+          </div>
         </div>
       )}
 
@@ -175,27 +278,81 @@ export function RankingsView() {
           description="Click 'Add title' to start ranking the titles in your library."
         />
       ) : (
-        <div className="space-y-2">
-          {rankings.map((r, i) => (
-            <div key={r.id} className="pb-uiverse-row flex items-center gap-3 rounded-[var(--radius-md)] p-2.5">
-              <span className="w-7 shrink-0 text-center font-display text-lg font-bold text-[var(--accent)]">{i + 1}</span>
-              <Link href={detailHref(r.category, r.item_id)} className="relative h-14 w-10 shrink-0 overflow-hidden rounded-[6px] bg-[var(--bg-elevated)]">
-                {r.poster_url && <Image src={r.poster_url} alt="" fill sizes="40px" className="object-cover" />}
-              </Link>
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.title}</span>
-              <div className="flex shrink-0 items-center gap-1">
-                <button onClick={() => void move(i, -1)} disabled={i === 0} className="grid size-8 place-items-center rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--glass-strong)] disabled:opacity-30">
-                  <ArrowUp className="size-4" />
-                </button>
-                <button onClick={() => void move(i, 1)} disabled={i === rankings.length - 1} className="grid size-8 place-items-center rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--glass-strong)] disabled:opacity-30">
-                  <ArrowDown className="size-4" />
-                </button>
-                <button onClick={() => void remove(r.id)} className="grid size-8 place-items-center rounded-[8px] text-[var(--dropped)] hover:bg-[var(--glass-strong)]">
-                  <Trash2 className="size-4" />
-                </button>
+        <div className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            {rankings.slice(0, 3).map((entry, index) => {
+              const libraryItem = libraryById.get(entry.item_id);
+              return (
+                <article key={entry.id} className="pb-uiverse-card pb-aura overflow-hidden rounded-[20px] p-3">
+                  <div className="flex items-start gap-3">
+                    <Link
+                      href={detailHref(entry.category, entry.item_id)}
+                      className="relative h-28 w-20 shrink-0 overflow-hidden rounded-xl bg-[var(--bg-elevated)]"
+                    >
+                      {entry.poster_url && <Image src={entry.poster_url} alt="" fill sizes="80px" className="object-cover" />}
+                      <span className="absolute left-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-[rgba(8,8,12,0.76)] font-display text-sm font-black text-white backdrop-blur">
+                        {index + 1}
+                      </span>
+                    </Link>
+                    <div className="min-w-0 flex-1 pt-1">
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--accent)]">
+                        {index === 0 ? "Your #1" : `Rank ${index + 1}`}
+                      </p>
+                      <Link href={detailHref(entry.category, entry.item_id)} className="mt-1 line-clamp-2 text-sm font-bold hover:text-[var(--accent)]">
+                        {entry.title}
+                      </Link>
+                      {libraryItem && (
+                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-[var(--text-muted)]">
+                          {libraryItem.year && <span>{libraryItem.year}</span>}
+                          <span>{getStatusLabel(libraryItem.status)}</span>
+                          {libraryItem.rating !== null && <span>{libraryItem.rating.toFixed(1)} ★</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-muted)]">
+                      {index === 0 ? <Crown className="size-3.5 text-[var(--accent)]" /> : <Library className="size-3.5" />}
+                      {index === 0 ? "Current favourite" : "Personal ranking"}
+                    </span>
+                    {rankActions(entry, index)}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          {rankings.length > 3 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">The rest of your list</h3>
+                <span className="text-xs text-[var(--text-muted)]">{rankings.length - 3} more</span>
               </div>
+              {rankings.slice(3).map((entry, relativeIndex) => {
+                const index = relativeIndex + 3;
+                const libraryItem = libraryById.get(entry.item_id);
+                return (
+                  <div key={entry.id} className="pb-uiverse-row flex items-center gap-3 rounded-[var(--radius-md)] p-2.5">
+                    <span className="w-7 shrink-0 text-center font-display text-lg font-bold text-[var(--accent)]">{index + 1}</span>
+                    <Link href={detailHref(entry.category, entry.item_id)} className="relative h-14 w-10 shrink-0 overflow-hidden rounded-[6px] bg-[var(--bg-elevated)]">
+                      {entry.poster_url && <Image src={entry.poster_url} alt="" fill sizes="40px" className="object-cover" />}
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <Link href={detailHref(entry.category, entry.item_id)} className="block truncate text-sm font-semibold hover:text-[var(--accent)]">{entry.title}</Link>
+                      {libraryItem && (
+                        <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">
+                          {[libraryItem.year, getStatusLabel(libraryItem.status), libraryItem.rating !== null ? `${libraryItem.rating.toFixed(1)} ★` : null]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                    {rankActions(entry, index)}
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

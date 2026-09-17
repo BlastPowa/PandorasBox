@@ -5,7 +5,7 @@ export const metadata = { title: "My Rankings · PBox" };
 
 export default function RankingsPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 md:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 md:px-8">
       <div className="space-y-6">
         <DiscoveryPageHeader
           eyebrow="Your favourites"

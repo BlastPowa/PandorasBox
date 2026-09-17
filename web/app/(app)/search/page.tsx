@@ -23,13 +23,7 @@ async function Results({ q }: { q: string }) {
       }
     : null;
   return (
-    <>
-      <p className="mb-4 text-sm text-[var(--text-secondary)]">
-        {results.length} result{results.length === 1 ? "" : "s"} for{" "}
-        <span className="font-semibold text-[var(--text)]">&ldquo;{q}&rdquo;</span>
-      </p>
-      <FilterableGrid items={results} franchise={franchise} />
-    </>
+    <FilterableGrid items={results} franchise={franchise} query={q} />
   );
 }
 

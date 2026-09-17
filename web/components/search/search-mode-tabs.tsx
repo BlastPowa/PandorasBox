@@ -9,18 +9,20 @@ export function SearchModeTabs({ children }: { children: ReactNode }) {
 
   return (
     <div>
-      <div className="mb-4 flex gap-2">
+      <div className="mb-5 grid gap-2 sm:grid-cols-2">
         <button
           onClick={() => setMode("search")}
-          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold ${mode === "search" ? "bg-[var(--accent)] text-[#0a0a0f]" : "glass text-[var(--text-secondary)]"}`}
+          className={`rounded-2xl border p-3 text-left transition ${mode === "search" ? "border-[rgb(var(--accent-rgb)/0.45)] bg-[rgb(var(--accent-rgb)/0.12)] shadow-[0_12px_36px_rgb(var(--accent-rgb)/0.08)]" : "border-[var(--border)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]"}`}
         >
-          <SearchIcon className="size-3.5" /> Search
+          <span className="flex items-center gap-2 text-sm font-bold"><SearchIcon className="size-4 text-[var(--accent)]" /> Search by title</span>
+          <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">Find exact titles and compare media types, scores and release years.</span>
         </button>
         <button
           onClick={() => setMode("describe")}
-          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold ${mode === "describe" ? "bg-[var(--accent)] text-[#0a0a0f]" : "glass text-[var(--text-secondary)]"}`}
+          className={`rounded-2xl border p-3 text-left transition ${mode === "describe" ? "border-[rgb(var(--accent-rgb)/0.45)] bg-[rgb(var(--accent-rgb)/0.12)] shadow-[0_12px_36px_rgb(var(--accent-rgb)/0.08)]" : "border-[var(--border)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]"}`}
         >
-          <Sparkles className="size-3.5" /> Describe It
+          <span className="flex items-center gap-2 text-sm font-bold"><Sparkles className="size-4 text-[var(--accent)]" /> Describe it</span>
+          <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">Use plot details, a scene or a half-remembered premise when the title is missing.</span>
         </button>
       </div>
       {mode === "search" ? children : <MemorySearchPanel />}
