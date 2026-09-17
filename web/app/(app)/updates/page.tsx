@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Clapperboard,
+    batch: "Revamp batch 24",
+    date: "17 September 2026",
+    title: "Movie & TV hovercards with inline trailers",
+    text: "Movie and TV discovery cards now expose richer desktop quick-look information and can open a trailer directly inside the card without leaving the rail.",
+    highlights: [
+      "Movie and TV poster cards now use the richer quick-look hover treatment across discovery grids and provider rails.",
+      "Quick-look cards keep year, score, synopsis and a direct title link visible in one compact overlay.",
+      "TMDB-backed movies and series can expand an inline YouTube privacy-enhanced trailer inside the mini card.",
+      "Trailer data is fetched only when requested so ordinary poster browsing stays lightweight.",
+      "The trailer panel includes loading and unavailable states and can be collapsed without leaving the card.",
+    ],
+  },
+  {
     icon: Globe,
     batch: "Revamp batch 23",
     date: "17 September 2026",
@@ -466,7 +480,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["23 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["24 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
