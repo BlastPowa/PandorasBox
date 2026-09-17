@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Sparkles,
+    batch: "Revamp batch 20",
+    date: "17 September 2026",
+    title: "Anime discovery hub",
+    text: "Anime discovery now brings seasonal context, fresh episode drops and the main discovery rails into one easier-to-navigate hub without changing the AniList data source.",
+    highlights: [
+      "A new discovery panel adds quick jumps to Latest, Season, Trending and Popular anime plus a direct search path.",
+      "The active season now shows title count, average score and the highest-scoring seasonal pick from the existing data.",
+      "Latest Episodes has clearer airing context, a recent-drop count and a swipe-first mobile layout.",
+      "Season controls now work better on phones with horizontal season navigation and a full-width year selector.",
+      "Trending and Popular anime rails now support the same richer quick-look flow used across other discovery areas.",
+    ],
+  },
+  {
     icon: Clapperboard,
     batch: "Revamp batch 19",
     date: "17 September 2026",
@@ -410,7 +424,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["19 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["20 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
