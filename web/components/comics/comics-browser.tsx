@@ -93,6 +93,14 @@ export function ComicsBrowser({ initial }: { initial: ComicSeries[] }) {
     .filter((item) => item.type === "comic" && (item.progress.currentChapter ?? 0) > 0 && item.status !== "completed" && item.id.startsWith("comicvine-"))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 8), [items]);
+  const progressByComic = useMemo(() => new Map(items
+    .filter((item) => item.type === "comic" && item.id.startsWith("comicvine-") && (item.progress.currentChapter ?? 0) > 0)
+    .map((item) => {
+      const current = item.progress.currentChapter ?? 0;
+      const total = item.totalChapters ?? 0;
+      const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : Math.min(100, current * 4);
+      return [item.id.replace("comicvine-", ""), { current, total, percent }] as const;
+    })), [items]);
 
   return (
     <div className="space-y-7 sm:space-y-8">
@@ -212,11 +220,11 @@ export function ComicsBrowser({ initial }: { initial: ComicSeries[] }) {
           </p>
         ) : view === "grid" ? (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
-            {displayComics.map((comic) => <ComicCard key={comic.id} comic={comic} />)}
+            {displayComics.map((comic) => <ComicCard key={comic.id} comic={comic} progress={progressByComic.get(String(comic.id)) ?? null} />)}
           </div>
         ) : (
           <div className="grid gap-2 lg:grid-cols-2">
-            {displayComics.map((comic) => <ComicCard key={comic.id} comic={comic} view="list" />)}
+            {displayComics.map((comic) => <ComicCard key={comic.id} comic={comic} view="list" progress={progressByComic.get(String(comic.id)) ?? null} />)}
           </div>
         )}
       </section>

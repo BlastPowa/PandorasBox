@@ -14,6 +14,8 @@ import {
   Clock3,
   Film,
   LibraryBig,
+  ListTodo,
+  Target,
   Sparkles,
   Star,
   Trophy,
@@ -73,6 +75,22 @@ export function StatsView({ username, avatarUrl }: { username: string | null; av
         <KpiCard icon={<CheckCircle2 className="size-4" />} label="Completed" value={String(stats.completed)} detail={`${stats.completionRate.toFixed(0)}% completion`} />
         <KpiCard icon={<Star className="size-4" />} label="Average rating" value={stats.meanRating ? stats.meanRating.toFixed(1) : "—"} detail={stats.ratedCount ? `${stats.ratedCount} rated titles` : "No ratings yet"} />
         <KpiCard icon={<Clock3 className="size-4" />} label="Watch time" value={formatWatchTime(stats.watchMinutes)} detail={`${stats.episodesSeen.toLocaleString()} episodes logged`} />
+      </section>
+
+      <section className="pb-uiverse-card pb-aura rounded-[24px] p-4 sm:p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Actionable insights</p>
+            <h2 className="mt-1 font-display text-xl font-extrabold sm:text-2xl">What to pick up next</h2>
+          </div>
+          <Link href="/library" className="text-xs font-bold text-[var(--accent)] transition hover:opacity-75">Open library →</Link>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <InsightCard icon={<Target className="size-4" />} label="Near the finish" value={stats.nearlyDone.length} detail={stats.nearlyDone[0] ? `${stats.nearlyDone[0].title} is ${Math.round(stats.nearlyDone[0].progress.percentComplete)}% complete` : "No titles above 75% yet"} />
+          <InsightCard icon={<Activity className="size-4" />} label="Current rotation" value={stats.active} detail={stats.nextFocus ? `${stats.nextFocus.title} is your furthest active title` : "Start tracking something in progress"} />
+          <InsightCard icon={<ListTodo className="size-4" />} label="Planned backlog" value={stats.planned} detail={stats.planned ? "Titles waiting in your planned list" : "Your planned list is clear"} />
+          <InsightCard icon={<Star className="size-4" />} label="Needs a rating" value={stats.unratedCompleted} detail={stats.unratedCompleted ? "Completed titles without a score" : "Every completed title is rated"} />
+        </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.08fr_.92fr]">
@@ -337,6 +355,19 @@ function KpiCard({ icon, label, value, detail }: { icon: React.ReactNode; label:
   );
 }
 
+function InsightCard({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: number; detail: string }) {
+  return (
+    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--glass)] p-3.5 transition hover:border-[rgb(var(--accent-rgb)/0.28)] sm:p-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="grid size-9 place-items-center rounded-xl border border-[rgb(var(--accent-rgb)/0.16)] bg-[rgb(var(--accent-rgb)/0.08)] text-[var(--accent)]">{icon}</span>
+        <strong className="font-display text-2xl font-extrabold">{value}</strong>
+      </div>
+      <p className="mt-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)]">{label}</p>
+      <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-[var(--text-muted)]">{detail}</p>
+    </article>
+  );
+}
+
 function CompletionRing({ value, completed, total }: { value: number; completed: number; total: number }) {
   const radius = 62;
   const circumference = 2 * Math.PI * radius;
@@ -485,6 +516,14 @@ function buildStats(items: ReelItem[]) {
   const maxWeeklyActivity = Math.max(0, ...weeklyActivity.map((week) => week.count));
   const recent = items.slice().sort((a, b) => safeDate(b.updatedAt) - safeDate(a.updatedAt)).slice(0, 6);
   const topMedium = mediaGroups.slice().sort((a, b) => b.count - a.count)[0] ?? null;
+  const nearlyDone = items
+    .filter((item) => item.status !== "completed" && item.progress.percentComplete >= 75 && item.progress.percentComplete < 100)
+    .sort((a, b) => b.progress.percentComplete - a.progress.percentComplete);
+  const nextFocus = items
+    .filter((item) => ["watching", "rewatching", "reading"].includes(item.status) && item.progress.percentComplete < 100)
+    .sort((a, b) => b.progress.percentComplete - a.progress.percentComplete)[0] ?? null;
+  const planned = items.filter((item) => item.status === "planned").length;
+  const unratedCompleted = items.filter((item) => item.status === "completed" && !(typeof item.rating === "number" && item.rating > 0)).length;
 
   return {
     total,
@@ -507,6 +546,10 @@ function buildStats(items: ReelItem[]) {
     recent,
     recentStreak: getRecentActivityStreak(items),
     topMedium,
+    nearlyDone,
+    nextFocus,
+    planned,
+    unratedCompleted,
   };
 }
 

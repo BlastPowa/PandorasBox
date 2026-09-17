@@ -254,6 +254,7 @@ export interface GameDetail {
   backdropUrl: string | null;
   rating: number | null;
   year: number | null;
+  releaseDate: string | null;
   genres: string[];
   platforms: string[];
   developers: string[];
@@ -316,6 +317,7 @@ export async function getGameDetail(id: number): Promise<GameDetail | null> {
     backdropUrl: shots[0] ? igdbImage(shots[0].image_id, "1080p") : null,
     rating: typeof g.rating === "number" ? Math.round(g.rating) / 10 : null,
     year: g.first_release_date ? new Date(g.first_release_date * 1000).getUTCFullYear() : null,
+    releaseDate: g.first_release_date ? new Date(g.first_release_date * 1000).toISOString() : null,
     genres: (g.genres ?? []).map((x) => x.name),
     platforms: (g.platforms ?? []).map((p) => p.abbreviation ?? p.name),
     developers: companies.filter((c) => c.developer).map((c) => c.company.name),

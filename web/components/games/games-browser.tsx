@@ -331,7 +331,7 @@ function UpcomingGameCard({ game }: { game: GameCardData }) {
           </div>
         </div>
         <div className="flex items-center justify-between gap-2 px-3.5 py-3">
-          <div className="min-w-0"><p className="truncate text-xs font-bold text-[var(--text)]">{studioLabel}</p><p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{game.platforms.slice(0, 2).join(" · ") || "Platforms TBA"}</p></div>
+          <div className="min-w-0"><p className="truncate text-xs font-bold text-[var(--text)]">{studioLabel}</p><p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{releaseLabel} · {game.platforms.slice(0, 2).join(" · ") || "Platforms TBA"}</p></div>
           <span className="hidden items-center gap-1 text-[10px] font-extrabold text-[var(--accent)] md:inline-flex"><Images className="size-3.5" /> Hover preview</span>
         </div>
       </Link>

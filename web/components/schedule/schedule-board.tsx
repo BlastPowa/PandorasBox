@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { CalendarDays, Film, Tv, Sparkles, Bookmark, Rocket, Layers3 } from "lucide-react";
+import { CalendarDays, Film, Tv, Sparkles, Bookmark, Rocket, Layers3, ArrowRight, Clock3 } from "lucide-react";
 import type { ScheduleEntry } from "@/lib/schedule";
 import { useLibrary } from "@/lib/library/use-library";
 import { EmptyState } from "@/components/ui-fx/feedback";
@@ -79,7 +79,35 @@ export function ScheduleBoard({
 
   const [activeDay, setActiveDay] = useState<string>(days[0]?.key ?? "");
 
-  const libraryIds = useMemo(() => new Set(items.map((i) => i.id)), [items]);
+  const libraryIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of items) {
+      ids.add(item.id);
+      if (item.tmdbId !== null) ids.add(`tmdb-${item.tmdbId}`);
+      if (item.anilistId !== null) ids.add(`anilist-${item.anilistId}`);
+    }
+    return ids;
+  }, [items]);
+
+  const trackedEntries = useMemo(() => {
+    const unique = new Map<string, ScheduleEntry>();
+    for (const entry of [...anime, ...movies, ...tv, ...upcoming]) {
+      if (!libraryIds.has(entry.id)) continue;
+      const key = `${entry.id}-${entry.timestamp}-${entry.label}`;
+      if (!unique.has(key)) unique.set(key, entry);
+    }
+    return Array.from(unique.values()).sort((a, b) => a.timestamp - b.timestamp);
+  }, [anime, movies, tv, upcoming, libraryIds]);
+
+  const trackedThisWeek = useMemo(() => {
+    const end = (days[0]?.ts ?? 0) + (7 * 86400);
+    return trackedEntries.filter((entry) => entry.timestamp >= (days[0]?.ts ?? 0) && entry.timestamp < end).length;
+  }, [trackedEntries, days]);
+
+  const nextTracked = useMemo(() => {
+    const current = now > 0 ? Math.floor(now / 1000) : 0;
+    return trackedEntries.find((entry) => entry.timestamp >= current) ?? null;
+  }, [trackedEntries, now]);
 
   const source: ScheduleEntry[] = useMemo(() => {
     if (tab === "all") return [...anime, ...movies, ...tv];
@@ -160,6 +188,31 @@ export function ScheduleBoard({
           </div>
         </div>
       </section>
+
+      {signedIn && (
+        <section className="pb-uiverse-card pb-aura grid gap-3 rounded-[22px] p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:p-4">
+          <div className="flex items-center gap-3">
+            <span className="pb-uiverse-icon grid size-10 shrink-0 place-items-center rounded-xl text-[var(--accent)]"><Bookmark className="size-4" /></span>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--text-muted)]">Your calendar</p>
+              <p className="text-sm font-bold">{trackedThisWeek} tracked {trackedThisWeek === 1 ? "release" : "releases"} this week</p>
+            </div>
+          </div>
+          <div className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--glass)] px-3 py-2.5">
+            {nextTracked ? (
+              <div className="flex min-w-0 items-center gap-2">
+                <Clock3 className="size-4 shrink-0 text-[var(--accent)]" />
+                <p className="min-w-0 truncate text-xs text-[var(--text-secondary)]"><strong className="text-[var(--text)]">Next:</strong> {nextTracked.title} · {nextTracked.label} · {new Date(nextTracked.timestamp * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</p>
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--text-muted)]">No tracked releases are scheduled yet.</p>
+            )}
+          </div>
+          <button type="button" onClick={() => setTab("mylist")} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-3 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+            Open My List <ArrowRight className="size-3.5" />
+          </button>
+        </section>
+      )}
 
       <div className="flex flex-wrap gap-2 rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-2 backdrop-blur-xl">
         {TABS.map((t) => (

@@ -10,6 +10,7 @@ import {
 import { getProfile } from "@/lib/auth";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
 import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-header";
+import { TrackingHubNav } from "@/components/tracking/tracking-hub-nav";
 
 export const revalidate = 1800;
 
@@ -29,6 +30,8 @@ export default async function SchedulePage() {
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
       <DiscoveryPageHeader eyebrow="PBox Schedule" title="Release Calendar" description="Upcoming anime episodes, movie releases, and TV premieres—with a personal calendar for titles you track." actions={<div className="hidden size-12 place-items-center rounded-2xl bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent)] sm:grid"><CalendarDays className="size-6" /></div>} />
+      <div className="h-5" />
+      <TrackingHubNav active="schedule" />
       <div className="h-5" />
       <ScheduleBoard anime={anime} movies={movies} tv={tv} upcoming={upcoming} />
     </div>

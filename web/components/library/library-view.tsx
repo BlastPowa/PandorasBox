@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X, Search, Sparkles, Library, PlayCircle, CircleCheckBig, Clock3 } from "lucide-react";
+import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X, Search, Sparkles, Library, PlayCircle, CircleCheckBig, Clock3, ArrowRight } from "lucide-react";
 import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";
 import { formatProgress } from "@core/utils/formatters";
 import { useLibrary, useLibraryStats } from "@/lib/library/use-library";
@@ -120,6 +120,17 @@ export function LibraryView() {
     return c;
   }, [items]);
 
+  const libraryPulse = useMemo(() => {
+    const inProgress = items
+      .filter((item) => item.progress.percentComplete > 0 && item.progress.percentComplete < 100)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return {
+      resume: inProgress[0] ?? null,
+      nearlyDone: inProgress.filter((item) => item.progress.percentComplete >= 75).length,
+      untouched: items.filter((item) => item.progress.percentComplete <= 0 && item.status !== "completed").length,
+    };
+  }, [items]);
+
   if (!signedIn) {
     return (
       <EmptyState
@@ -144,6 +155,45 @@ export function LibraryView() {
         <StatCard label="Completed" value={stats.completed} icon={<CircleCheckBig className="size-4" />} />
         <StatCard label="Hours" value={Math.round(stats.totalWatchTimeMinutes / 60)} icon={<Clock3 className="size-4" />} />
       </div>
+
+      {items.length > 0 && (
+        <section className="pb-uiverse-card pb-uiverse-card--compact overflow-hidden rounded-[22px] p-3 sm:p-4" aria-label="Library pulse">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent)]"><Sparkles className="size-3.5" /> Library pulse</div>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Quick ways back into what you are tracking.</p>
+            </div>
+            <Link href="/schedule" className="hidden shrink-0 items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--accent)] sm:inline-flex">
+              Release calendar <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {libraryPulse.resume ? (
+              <Link href={libraryItemHref(libraryPulse.resume)} className="group rounded-[16px] border border-[var(--border)] bg-[var(--bg-base)] px-3.5 py-3 transition hover:border-[rgb(var(--accent-rgb)/0.34)] hover:bg-[rgb(var(--accent-rgb)/0.05)]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Continue</span>
+                <strong className="mt-1 block truncate text-sm text-[var(--text)] group-hover:text-[var(--accent)]">{libraryPulse.resume.title}</strong>
+                <span className="mt-1 block text-xs text-[var(--text-secondary)]">{Math.round(libraryPulse.resume.progress.percentComplete)}% complete</span>
+              </Link>
+            ) : (
+              <button type="button" onClick={() => setSmartView("untouched")} className="rounded-[16px] border border-[var(--border)] bg-[var(--bg-base)] px-3.5 py-3 text-left transition hover:border-[rgb(var(--accent-rgb)/0.34)]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Start something</span>
+                <strong className="mt-1 block text-sm">Open your untouched titles</strong>
+                <span className="mt-1 block text-xs text-[var(--text-secondary)]">{libraryPulse.untouched} waiting</span>
+              </button>
+            )}
+            <button type="button" onClick={() => setSmartView("nearly_done")} className="rounded-[16px] border border-[var(--border)] bg-[var(--bg-base)] px-3.5 py-3 text-left transition hover:border-[rgb(var(--accent-rgb)/0.34)] hover:bg-[rgb(var(--accent-rgb)/0.05)]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Finish line</span>
+              <strong className="mt-1 block text-sm">{libraryPulse.nearlyDone} nearly finished</strong>
+              <span className="mt-1 block text-xs text-[var(--text-secondary)]">Jump to titles at 75% or more</span>
+            </button>
+            <button type="button" onClick={() => setSmartView("untouched")} className="rounded-[16px] border border-[var(--border)] bg-[var(--bg-base)] px-3.5 py-3 text-left transition hover:border-[rgb(var(--accent-rgb)/0.34)] hover:bg-[rgb(var(--accent-rgb)/0.05)]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Backlog</span>
+              <strong className="mt-1 block text-sm">{libraryPulse.untouched} untouched</strong>
+              <span className="mt-1 block text-xs text-[var(--text-secondary)]">Pick from titles you have not started</span>
+            </button>
+          </div>
+        </section>
+      )}
 
       <div className="pb-uiverse-card pb-uiverse-card--compact rounded-[22px] p-3 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

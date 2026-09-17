@@ -32,6 +32,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
   const game = await getGameDetail(gameId);
   if (!game) notFound();
+  const releaseLabel = game.releaseDate
+    ? new Intl.DateTimeFormat("en-IE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(game.releaseDate))
+    : game.year?.toString() ?? null;
 
   return (
     <div className="pb-14">
@@ -67,9 +70,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                     <span className="text-white/60">/10</span>
                   </span>
                 )}
-                {game.year !== null && (
+                {releaseLabel && (
                   <span className="inline-flex items-center gap-1.5">
-                    <Calendar className="size-4" /> {game.year}
+                    <Calendar className="size-4" /> {releaseLabel}
                   </span>
                 )}
                 {game.platforms.length > 0 && <span>{game.platforms.slice(0, 6).join(" · ")}</span>}

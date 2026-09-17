@@ -1,6 +1,7 @@
 import { LibraryView } from "@/components/library/library-view";
 import Link from "next/link";
 import { BarChart3, Library } from "lucide-react";
+import { TrackingHubNav } from "@/components/tracking/tracking-hub-nav";
 
 export default function LibraryPage() {
   return (
@@ -9,6 +10,7 @@ export default function LibraryPage() {
         <div><span className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent)]"><Library className="size-4" /> Personal collection</span><h1 className="font-display text-3xl font-extrabold sm:text-4xl">My Library</h1><p className="mt-2 text-sm text-[var(--text-secondary)]">Track progress, ratings, and every title you want to remember.</p></div>
         <Link href="/stats" className="glass inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold hover:border-[var(--accent)]"><BarChart3 className="size-4 text-[var(--accent)]" /> View stats</Link>
       </header>
+      <div className="mb-5"><TrackingHubNav active="library" /></div>
       <LibraryView />
     </div>
   );
