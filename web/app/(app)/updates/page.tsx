@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: ShieldCheck,
+    batch: "Revamp batch 16",
+    date: "17 September 2026",
+    title: "Help centre & first-run onboarding",
+    text: "Help and onboarding now match the current PBox feature set, with faster answers for migration, integrations, discovery, books, providers and social features.",
+    highlights: [
+      "FAQ content is now searchable instead of requiring a full accordion scan.",
+      "Category filters group account, tracking, migration, integrations, discovery and community help into clearer paths.",
+      "Help copy now covers the current import and backup workflow, browser companion, connected services, Books, provider links and review/social features.",
+      "Direct shortcuts make the help centre easier to use when a user already knows which area they need.",
+      "First-run onboarding now introduces the newer discovery, integrations, books, provider and social flows instead of the older reduced feature set.",
+    ],
+  },
+  {
     icon: Globe,
     batch: "Revamp batch 15",
     date: "17 September 2026",
@@ -354,7 +368,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["15 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["16 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
