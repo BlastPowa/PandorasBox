@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getProvider, redirectUri } from "@/lib/integrations/providers";
+import { getProvider, redirectUri, simklApiUrl, simklHeaders } from "@/lib/integrations/providers";
 
 /** OAuth callback: exchanges the code for tokens and stores the connection. */
 export async function GET(
@@ -34,7 +34,7 @@ export async function GET(
     if (cfg.clientSecret) body.set("client_secret", cfg.clientSecret);
     if (cfg.pkce === "plain" && verifier) body.set("code_verifier", verifier);
 
-    const tokenRes = await fetch(cfg.tokenUrl, cfg.id === "trakt"
+    const tokenRes = await fetch(cfg.tokenUrl, cfg.id === "trakt" || cfg.id === "simkl"
       ? {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -88,7 +88,26 @@ export async function GET(
         externalId = j.ids?.trakt != null ? String(j.ids.trakt) : (j.ids?.slug ?? null);
         externalName = j.username ?? j.ids?.slug ?? null;
       }
+    } else if (cfg.id === "simkl") {
+      const me = await fetch(simklApiUrl("/users/settings"), {
+        method: "POST",
+        headers: simklHeaders(tokens.access_token),
+      });
+      if (me.ok) {
+        const j = (await me.json()) as {
+          user?: { name?: string };
+          account?: { id?: number | string };
+        };
+        externalId = j.account?.id != null ? String(j.account.id) : null;
+        externalName = j.user?.name ?? null;
+      }
     }
+
+    const tokenExpiresAt = tokens.expires_in != null
+      ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+      : cfg.id === "simkl"
+        ? null
+        : new Date(Date.now() + 3600 * 1000).toISOString();
 
     await supabase.from("integrations").upsert(
       {
@@ -98,7 +117,7 @@ export async function GET(
         external_username: externalName,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token ?? null,
-        token_expires_at: new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString(),
+        token_expires_at: tokenExpiresAt,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id,provider" }

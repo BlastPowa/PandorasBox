@@ -49,6 +49,11 @@
       "run_at": "document_idle"
     },
     {
+      "matches": ["https://*.cinejoy.to/*"],
+      "js": ["content-scripts/cinejoy.js"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["https://www.crunchyroll.com/*"],
       "js": ["content-scripts/crunchyroll.js"],
       "run_at": "document_idle"
@@ -69,6 +74,7 @@
         "https://www.netflix.com/*",
         "https://www.disneyplus.com/*",
         "https://*.cinemaos.live/*",
+        "https://*.cinejoy.to/*",
         "https://www.crunchyroll.com/*",
         "https://mangadex.org/*",
         "https://www.webtoons.com/*",
@@ -83,7 +89,8 @@
         "https://*.twitch.tv/*"
       ],
       "js": ["content-scripts/universal.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "content_security_policy": {

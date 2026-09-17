@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Link2, Unlink, RefreshCw, AlertTriangle, CheckCircle2, Clock, History, GitMerge,
-  Download, Puzzle, ShieldCheck,
+  Download, Puzzle, ShieldCheck, ExternalLink,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
@@ -62,6 +62,7 @@ function providerLabel(id: string): string {
   if (id === "mal") return "MyAnimeList";
   if (id === "anilist") return "AniList";
   if (id === "trakt") return "Trakt";
+  if (id === "simkl") return "Simkl";
   return id;
 }
 
@@ -69,6 +70,7 @@ function providerBadge(id: string): string {
   if (id === "mal") return "MAL";
   if (id === "anilist") return "AL";
   if (id === "trakt") return "TRAKT";
+  if (id === "simkl") return "SIMKL";
   return id.slice(0, 5).toUpperCase();
 }
 
@@ -233,7 +235,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
         {loading && <p className="text-sm text-[var(--text-muted)]">Loading integrations…</p>}
 
         <div className="grid gap-3 md:grid-cols-2">
-        {providers.filter((p) => p.id !== "trakt" || p.configured || p.connected).map((p) => (
+        {providers.map((p) => (
           <div key={p.id} className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
             <div className="flex flex-wrap items-center gap-3">
               <span
@@ -250,6 +252,16 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                   )}
                 </p>
                 <p className="truncate text-xs text-[var(--text-muted)]">{p.description}</p>
+                {p.id === "simkl" && (
+                  <a
+                    href="https://simkl.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent)] hover:underline"
+                  >
+                    Open Simkl <ExternalLink className="size-3" />
+                  </a>
+                )}
               </div>
               {p.connected ? (
                 <div className="flex items-center gap-2">

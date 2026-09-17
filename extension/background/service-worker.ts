@@ -5,13 +5,157 @@ import { EpisodeChecker } from "../../core/notifications/episodeChecker";
 import { ChapterChecker } from "../../core/notifications/chapterChecker";
 import { SupabaseSync } from "../../core/sync/supabase";
 import { getAiringSchedule } from "../../core/api/anilist";
-import { getSeriesDetails, getMovieWatchProviders, getSeriesWatchProviders } from "../../core/api/tmdb";
+import {
+  getBackdropUrl,
+  getMovieDetails,
+  getMovieWatchProviders,
+  getPosterUrl,
+  getSeriesDetails,
+  getSeriesWatchProviders,
+} from "../../core/api/tmdb";
 import { getLatestChapter } from "../../core/api/mangadex";
 import { getAllWatchOptions } from "../../core/api/watchProviders";
 import { unifiedSearch } from "../../core/utils/search";
-import type { ReelItem } from "../../core/storage/schema";
+import { createDefaultProgress, type ReelItem } from "../../core/storage/schema";
+import type { ProgressEvent } from "../../core/storage/progressManager";
 
 const { listManager, progressManager, cacheManager } = initManagers();
+
+interface CinejoyPlaybackRoute {
+  mediaType: "movie" | "tv";
+  tmdbId: number;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+}
+
+function parseCinejoyPlayback(url: string | undefined): CinejoyPlaybackRoute | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (!(parsed.hostname === "cinejoy.to" || parsed.hostname.endsWith(".cinejoy.to"))) return null;
+    const match = parsed.pathname.match(/\/watch\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/i);
+    if (!match) return null;
+    const tmdbId = Number.parseInt(match[2] ?? "", 10);
+    if (!Number.isFinite(tmdbId)) return null;
+    return {
+      mediaType: match[1]?.toLowerCase() === "movie" ? "movie" : "tv",
+      tmdbId,
+      seasonNumber: match[3] ? Number.parseInt(match[3], 10) : null,
+      episodeNumber: match[4] ? Number.parseInt(match[4], 10) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function cleanPlaybackTitle(value: string): string {
+  return value
+    .replace(/^watch\s+/i, "")
+    .replace(/\s*[-|–—]\s*(?:cinejoy|watch online).*$/i, "")
+    .trim();
+}
+
+function parseYear(value: string): number | null {
+  if (!value) return null;
+  const year = Number.parseInt(value.slice(0, 4), 10);
+  return Number.isFinite(year) ? year : null;
+}
+
+async function createAutoTrackedItem(event: ProgressEvent, apiKey: string): Promise<ReelItem | null> {
+  const tmdbId = event.tmdbId ?? null;
+  const mediaType = event.mediaType ?? null;
+  if (tmdbId === null || mediaType === null) return null;
+
+  const progress = createDefaultProgress();
+  try {
+    if (apiKey && mediaType === "movie") {
+      const details = await getMovieDetails(tmdbId, apiKey);
+      return await listManager.add({
+        id: `tmdb-${tmdbId}`,
+        source: "tmdb",
+        type: "movie",
+        title: details.title || cleanPlaybackTitle(event.title),
+        posterUrl: details.poster_path ? getPosterUrl(details.poster_path) : null,
+        backdropUrl: details.backdrop_path ? getBackdropUrl(details.backdrop_path) : null,
+        synopsis: details.overview || null,
+        status: "watching",
+        progress,
+        rating: details.vote_average > 0 ? details.vote_average : null,
+        genres: details.genres?.map((genre) => genre.name) ?? [],
+        totalEpisodes: null,
+        totalChapters: null,
+        totalSeasons: null,
+        year: parseYear(details.release_date),
+        anilistId: null,
+        tmdbId,
+        mangadexId: null,
+        malId: null,
+        completedAt: null,
+        lastWatchedSite: null,
+      });
+    }
+    if (apiKey && mediaType === "tv") {
+      const details = await getSeriesDetails(tmdbId, apiKey);
+      const isAnime = details.original_language === "ja" && details.genres?.some((genre) => genre.name === "Animation");
+      progress.totalEpisodes = details.number_of_episodes ?? null;
+      progress.totalSeasons = details.number_of_seasons ?? null;
+      return await listManager.add({
+        id: `tmdb-${tmdbId}`,
+        source: "tmdb",
+        type: isAnime ? "anime" : "series",
+        title: details.name || cleanPlaybackTitle(event.title),
+        posterUrl: details.poster_path ? getPosterUrl(details.poster_path) : null,
+        backdropUrl: details.backdrop_path ? getBackdropUrl(details.backdrop_path) : null,
+        synopsis: details.overview || null,
+        status: "watching",
+        progress,
+        rating: details.vote_average > 0 ? details.vote_average : null,
+        genres: details.genres?.map((genre) => genre.name) ?? [],
+        totalEpisodes: details.number_of_episodes ?? null,
+        totalChapters: null,
+        totalSeasons: details.number_of_seasons ?? null,
+        year: parseYear(details.first_air_date),
+        anilistId: null,
+        tmdbId,
+        mangadexId: null,
+        malId: null,
+        completedAt: null,
+        lastWatchedSite: null,
+      });
+    }
+  } catch (error) {
+    console.warn("Pandora's Box could not enrich auto-tracked TMDB item", error);
+  }
+
+  const fallbackTitle = cleanPlaybackTitle(event.title) || `${mediaType === "movie" ? "Movie" : "Series"} ${tmdbId}`;
+  try {
+    return await listManager.add({
+      id: `tmdb-${tmdbId}`,
+      source: "tmdb",
+      type: mediaType === "movie" ? "movie" : "series",
+      title: fallbackTitle,
+      posterUrl: null,
+      backdropUrl: null,
+      synopsis: null,
+      status: "watching",
+      progress,
+      rating: null,
+      genres: [],
+      totalEpisodes: null,
+      totalChapters: null,
+      totalSeasons: null,
+      year: null,
+      anilistId: null,
+      tmdbId,
+      mangadexId: null,
+      malId: null,
+      completedAt: null,
+      lastWatchedSite: null,
+    });
+  } catch {
+    return (await listManager.getAll()).find((candidate) => candidate.tmdbId === tmdbId) ?? null;
+  }
+}
 
 async function ensureAlarm(name: string, periodInMinutes: number): Promise<void> {
   const existing = await chrome.alarms.get(name);
@@ -212,21 +356,40 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   })();
 });
 
-async function handleMessage(message: ReelMessage): Promise<unknown> {
+async function handleMessage(message: ReelMessage, sender?: chrome.runtime.MessageSender): Promise<unknown> {
   switch (message.type) {
     case "saveProgress": {
       const event = { ...message.event };
+      const cinejoyRoute = parseCinejoyPlayback(sender?.tab?.url);
+      if (cinejoyRoute) {
+        event.site = "cinejoy";
+        event.url = sender?.tab?.url ?? event.url;
+        event.tmdbId = cinejoyRoute.tmdbId;
+        event.mediaType = cinejoyRoute.mediaType;
+        event.seasonNumber = cinejoyRoute.seasonNumber;
+        event.episodeNumber = cinejoyRoute.episodeNumber;
+        const tabTitle = sender?.tab?.title ? cleanPlaybackTitle(sender.tab.title) : "";
+        if (tabTitle) event.title = tabTitle;
+      }
       if (event.itemId === null) {
         const settings = await getSettings();
         if (!settings.autoTrack) {
           return { success: false };
         }
         const list = await listManager.getAll();
-        const match = progressManager.findMatchingItem(event.title, list);
+        const match = progressManager.findMatchingItem(
+          event.title,
+          list,
+          event.tmdbId ?? null,
+          event.mediaType ?? null
+        );
         if (!match) {
-          return { success: false };
+          const created = await createAutoTrackedItem(event, settings.tmdbApiKey);
+          if (!created) return { success: false };
+          event.itemId = created.id;
+        } else {
+          event.itemId = match.id;
         }
-        event.itemId = match.id;
       }
       await progressManager.handleProgressEvent(event);
       void scheduleProgressSyncSoon().catch((error) => {
@@ -325,7 +488,7 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
       if (sender.id !== chrome.runtime.id || !isAllowedMessage(message)) {
         throw new Error("Rejected untrusted extension message");
       }
-      const result = await handleMessage(message);
+      const result = await handleMessage(message, sender);
       sendResponse(result);
     } catch (error) {
       const errorResponse: ReelResponseError = {

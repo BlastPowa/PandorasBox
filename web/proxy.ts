@@ -23,7 +23,7 @@ function createContentSecurityPolicy(nonce: string) {
     scriptSrc,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://comicvine.gamespot.com https://static.comicvine.com https://images.igdb.com https://img.youtube.com https://*.supabase.co https://*.giphy.com",
+    "img-src 'self' data: blob: https://image.tmdb.org https://s4.anilist.co https://uploads.mangadex.org https://mangadex.org https://cdn.myanimelist.net https://comicvine.gamespot.com https://static.comicvine.com https://images.igdb.com https://covers.openlibrary.org https://img.youtube.com https://*.supabase.co https://*.giphy.com",
     "media-src 'self' https:",
     "connect-src 'self' https: wss://*.supabase.co",
     "frame-src https://www.youtube-nocookie.com https://www.youtube.com",

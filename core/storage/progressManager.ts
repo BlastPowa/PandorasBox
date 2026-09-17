@@ -7,6 +7,8 @@ export interface ProgressEvent {
   site: string;
   url: string;
   title: string;
+  tmdbId?: number | null;
+  mediaType?: "movie" | "tv" | null;
   episodeNumber: number | null;
   seasonNumber: number | null;
   chapterNumber: number | null;
@@ -36,7 +38,9 @@ export class ProgressManager {
     const isReadingType = item.type === "manga" || item.type === "manhwa";
 
     if (event.percentComplete > COMPLETION_THRESHOLD_PERCENT) {
-      if (isReadingType && event.chapterNumber !== null) {
+      if (item.type === "movie") {
+        await this.listManager.markComplete(item.id);
+      } else if (isReadingType && event.chapterNumber !== null) {
         await this.listManager.markChapterRead(item.id, event.chapterNumber);
       } else if (!isReadingType && event.episodeNumber !== null) {
         await this.listManager.markEpisodeWatched(
@@ -62,6 +66,7 @@ export class ProgressManager {
           progressUpdates.currentSeason = event.seasonNumber;
         }
         progressUpdates.episodeTimestamp = event.timestamp;
+        progressUpdates.currentEpisodePercent = event.percentComplete;
       }
       await this.listManager.updateProgress(item.id, progressUpdates);
     }
@@ -69,7 +74,24 @@ export class ProgressManager {
     await this.listManager.update(item.id, { lastWatchedSite: event.site });
   }
 
-  findMatchingItem(title: string, list: ReelItem[]): ReelItem | null {
+  findMatchingItem(
+    title: string,
+    list: ReelItem[],
+    tmdbId: number | null = null,
+    mediaType: "movie" | "tv" | null = null
+  ): ReelItem | null {
+    if (tmdbId !== null) {
+      const exactIdMatch = list.find((item) => {
+        if (item.tmdbId !== tmdbId) return false;
+        if (mediaType === "movie") return item.type === "movie";
+        if (mediaType === "tv") return item.type === "series" || item.type === "anime";
+        return true;
+      });
+      if (exactIdMatch) {
+        return exactIdMatch;
+      }
+    }
+
     const normalisedTarget = normaliseTitle(title);
     if (normalisedTarget.length === 0) {
       return null;

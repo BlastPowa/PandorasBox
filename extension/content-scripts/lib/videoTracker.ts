@@ -5,6 +5,8 @@ export interface VideoTrackerConfig {
   getTitle: () => string;
   getEpisodeNumber: () => number | null;
   getSeasonNumber: () => number | null;
+  getTmdbId?: () => number | null;
+  getMediaType?: () => "movie" | "tv" | null;
   minDurationSeconds?: number;
   shouldTrack?: (video: HTMLVideoElement) => boolean;
 }
@@ -47,6 +49,8 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
       site: config.site,
       url: window.location.href,
       title: config.getTitle(),
+      tmdbId: config.getTmdbId?.() ?? null,
+      mediaType: config.getMediaType?.() ?? null,
       episodeNumber: config.getEpisodeNumber(),
       seasonNumber: config.getSeasonNumber(),
       chapterNumber: null,

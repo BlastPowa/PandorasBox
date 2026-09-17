@@ -90,6 +90,8 @@ export interface TMDBEpisode {
   air_date: string;
   runtime: number | null;
   still_path: string | null;
+  vote_average?: number;
+  vote_count?: number;
 }
 
 export interface TMDBSeason {

@@ -38,6 +38,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "comicvine.gamespot.com" },
       { protocol: "https", hostname: "static.comicvine.com" },
       { protocol: "https", hostname: "images.igdb.com" },
+      { protocol: "https", hostname: "covers.openlibrary.org" },
       { protocol: "https", hostname: "*.supabase.co" },
       { protocol: "https", hostname: "*.giphy.com" },
     ],

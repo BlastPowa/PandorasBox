@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { PROVIDERS, type ProviderId } from "@/lib/integrations/providers";
+import { PROVIDERS, providerIsConfigured, type ProviderId } from "@/lib/integrations/providers";
 
 /** GET → connection state for every provider (never exposes tokens). */
 export async function GET() {
@@ -34,7 +34,7 @@ export async function GET() {
       name: cfg.name,
       description: cfg.description,
       color: cfg.color,
-      configured: Boolean(cfg.clientId),
+      configured: providerIsConfigured(cfg),
       connected: Boolean(row),
       username: row?.external_username ?? null,
       autoSync: row?.auto_sync ?? true,

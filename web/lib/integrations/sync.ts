@@ -1,5 +1,5 @@
 /**
- * Two-way sync engine for external list providers (MyAnimeList, AniList, Trakt).
+ * Two-way sync engine for external list providers (MyAnimeList, AniList, Trakt, Simkl).
  *
  * Strategy:
  *  - PULL: fetch the remote list, map to Reel shapes, diff against the local
@@ -18,6 +18,8 @@ import {
   reelRatingToRemote,
   reelStatusToRemote,
   remoteStatusToReel,
+  simklApiUrl,
+  simklHeaders,
   type ProviderId,
 } from "./providers";
 
@@ -60,6 +62,8 @@ export async function ensureFreshToken(
   supabase: SupabaseClient,
   row: IntegrationRow
 ): Promise<IntegrationRow> {
+  // Simkl access tokens are long-lived and the OAuth flow does not issue refresh tokens.
+  if (row.provider === "simkl") return row;
   const cfg = getProvider(row.provider);
   if (!cfg || !row.refresh_token) return row;
   const expiresAt = row.token_expires_at ? new Date(row.token_expires_at).getTime() : 0;
@@ -284,8 +288,113 @@ async function fetchTraktList(token: string): Promise<RemoteEntry[]> {
   return [...out.values()];
 }
 
-export async function fetchRemoteList(provider: ProviderId, token: string): Promise<RemoteEntry[]> {
+function simklStatusToReel(status: string | null | undefined): ReelItemStatus {
+  switch (status) {
+    case "watching": return "watching";
+    case "completed": return "completed";
+    case "hold": return "on_hold";
+    case "dropped": return "dropped";
+    case "plantowatch": return "planned";
+    default: return "planned";
+  }
+}
+
+function simklTmdbId(value: string | number | null | undefined): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function simklTimestamp(...values: Array<string | null | undefined>): number {
+  return values.reduce((latest, value) => {
+    if (!value) return latest;
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? Math.max(latest, parsed) : latest;
+  }, 0);
+}
+
+async function fetchSimklList(token: string, sinceMs = 0): Promise<RemoteEntry[]> {
+  if (sinceMs > 0) {
+    const activityRes = await fetch(simklApiUrl("/sync/activities"), { headers: simklHeaders(token) });
+    if (!activityRes.ok) throw new Error(`Simkl activities error ${activityRes.status}`);
+    const activity = (await activityRes.json()) as { all?: string | null };
+    if (activity.all && new Date(activity.all).getTime() <= sinceMs) return [];
+  }
+
+  type SimklMedia = {
+    title?: string;
+    ids?: { tmdb?: string | number | null };
+  };
+  type SimklRecord = {
+    added_to_watchlist_at?: string | null;
+    last_watched_at?: string | null;
+    user_rated_at?: string | null;
+    user_rating?: number | null;
+    status?: string | null;
+    last_watched?: string | null;
+    watched_episodes_count?: number | null;
+    total_episodes_count?: number | null;
+    movie?: SimklMedia;
+    show?: SimklMedia;
+  };
+  type SimklStatus = "plantowatch" | "watching" | "hold" | "dropped" | "completed";
+  const statuses: SimklStatus[] = ["plantowatch", "watching", "hold", "dropped", "completed"];
+  const dateFrom = sinceMs > 0 ? new Date(sinceMs).toISOString() : null;
+
+  async function fetchBucket(type: "movies" | "shows", status: SimklStatus) {
+    const url = new URL(simklApiUrl(`/sync/all-items/${type}/${status}`));
+    url.searchParams.set("extended", "full");
+    url.searchParams.set("episode_watched_at", "yes");
+    if (dateFrom) url.searchParams.set("date_from", dateFrom);
+    const res = await fetch(url, { headers: simklHeaders(token) });
+    if (!res.ok) throw new Error(`Simkl ${type}/${status} error ${res.status}`);
+    const json = (await res.json()) as { movies?: SimklRecord[]; shows?: SimklRecord[] };
+    return { type, status, entries: type === "movies" ? (json.movies ?? []) : (json.shows ?? []) };
+  }
+
+  const buckets = await Promise.all([
+    ...statuses.map((status) => fetchBucket("movies", status)),
+    ...statuses.map((status) => fetchBucket("shows", status)),
+  ]);
+  const out = new Map<string, RemoteEntry>();
+
+  for (const bucket of buckets) {
+    for (const entry of bucket.entries) {
+      const media = bucket.type === "movies" ? entry.movie : entry.show;
+      const tmdbId = simklTmdbId(media?.ids?.tmdb);
+      if (tmdbId == null) continue;
+      const kind = bucket.type === "movies" ? "movie" : "series";
+      const match = kind === "series" ? entry.last_watched?.match(/^S(\d+)E(\d+)$/i) : null;
+      const season = match ? Number.parseInt(match[1], 10) : null;
+      const episode = match ? Number.parseInt(match[2], 10) : (entry.watched_episodes_count ?? 0);
+      const remoteUpdatedAt = simklTimestamp(entry.last_watched_at, entry.user_rated_at, entry.added_to_watchlist_at);
+      const candidate: RemoteEntry = {
+        kind,
+        malId: null,
+        anilistId: null,
+        tmdbId,
+        title: media?.title ?? `${kind === "movie" ? "Movie" : "Series"} ${tmdbId}`,
+        posterUrl: null,
+        status: simklStatusToReel(entry.status ?? bucket.status),
+        progress: kind === "movie" ? ((entry.status ?? bucket.status) === "completed" ? 1 : 0) : episode,
+        rating: remoteRatingToReel(entry.user_rating),
+        remoteUpdatedAt,
+        totalUnits: kind === "movie" ? 1 : (entry.total_episodes_count ?? null),
+        season: kind === "series" ? season : null,
+      };
+      const key = `${kind}:${tmdbId}`;
+      const existing = out.get(key);
+      if (!existing || candidate.remoteUpdatedAt >= existing.remoteUpdatedAt) out.set(key, candidate);
+    }
+  }
+
+  return [...out.values()];
+}
+
+export async function fetchRemoteList(provider: ProviderId, token: string, sinceMs = 0): Promise<RemoteEntry[]> {
   if (provider === "trakt") return fetchTraktList(token);
+  if (provider === "simkl") return fetchSimklList(token, sinceMs);
   const fetcher = provider === "mal" ? fetchMalList : fetchAnilistList;
   const [anime, manga] = await Promise.all([fetcher(token, "anime"), fetcher(token, "manga")]);
   return [...anime, ...manga];
@@ -343,7 +452,7 @@ export async function pushEntry(
     });
     const json = (await res.json().catch(() => null)) as { errors?: unknown[] } | null;
     if (!res.ok || json?.errors?.length) throw new Error(`AniList update failed (${res.status})`);
-  } else {
+  } else if (provider === "trakt") {
     if (!payload.tmdbId) throw new Error("Missing TMDB id");
     const isMovie = payload.mediaType === "movie";
     const mediaBody = isMovie
@@ -383,6 +492,51 @@ export async function pushEntry(
         method: "POST", headers: traktHeaders(token), body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(`Trakt rating update failed (${res.status})`);
+    }
+  } else {
+    if (!payload.tmdbId) throw new Error("Missing TMDB id");
+    const isMovie = payload.mediaType === "movie";
+    if (!isMovie && payload.mediaType !== "series") throw new Error("Simkl only syncs movies and TV series");
+
+    const post = async (path: string, body: Record<string, unknown>) => {
+      const res = await fetch(simklApiUrl(path), {
+        method: "POST",
+        headers: simklHeaders(token),
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`Simkl update failed (${res.status})`);
+    };
+    const key = isMovie ? "movies" : "shows";
+    const ids = { tmdb: payload.tmdbId };
+    const status = payload.status;
+    const to = status === "planned"
+      ? "plantowatch"
+      : status === "on_hold"
+        ? "hold"
+        : status === "dropped"
+          ? "dropped"
+          : "watching";
+
+    if (status && (status === "planned" || status === "on_hold" || status === "dropped" || ((status === "watching" || status === "rewatching") && !(payload.progress && payload.progress > 0)))) {
+      await post("/sync/add-to-list", { [key]: [{ ids, to }] });
+    } else if (isMovie && status === "completed") {
+      await post("/sync/history", { movies: [{ ids, status: "completed" }] });
+    } else if (!isMovie && status === "completed" && !(payload.progress && payload.progress > 0)) {
+      await post("/sync/history", { shows: [{ ids, status: "completed" }] });
+    } else if (!isMovie && payload.progress != null && payload.progress > 0) {
+      const season = Math.max(1, payload.season ?? 1);
+      await post("/sync/history", {
+        shows: [{
+          ids,
+          ...(status === "completed" ? { status: "completed" } : {}),
+          seasons: [{ number: season, episodes: [{ number: payload.progress, watched_at: new Date().toISOString() }] }],
+        }],
+      });
+    }
+
+    if (payload.rating !== undefined && payload.rating !== null) {
+      const rating = reelRatingToRemote(payload.rating);
+      if (rating != null) await post("/sync/ratings", { [key]: [{ ids, rating }] });
     }
   }
 }
@@ -452,7 +606,7 @@ export async function runTwoWaySync(
   if (!row.access_token) throw new Error("Not connected");
   const lastSync = row.last_synced_at ? new Date(row.last_synced_at).getTime() : 0;
 
-  const remote = await fetchRemoteList(row.provider, row.access_token);
+  const remote = await fetchRemoteList(row.provider, row.access_token, lastSync);
 
   const { data: libRow } = await supabase
     .from("library").select("data").eq("user_id", row.user_id).maybeSingle<LibraryRow>();

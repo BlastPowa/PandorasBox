@@ -5,7 +5,7 @@
  */
 import type { ReelItemStatus } from "@core/storage/schema";
 
-export type ProviderId = "mal" | "anilist" | "trakt";
+export type ProviderId = "mal" | "anilist" | "trakt" | "simkl";
 
 export interface ProviderConfig {
   id: ProviderId;
@@ -63,10 +63,52 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     pkce: "none",
     syncTypes: ["movie", "series"],
   },
+  simkl: {
+    id: "simkl",
+    name: "Simkl",
+    description: "Two-way sync movies and TV shows with your Simkl watchlists, history and ratings",
+    color: "#0e5dab",
+    authorizeUrl: "https://simkl.com/oauth/authorize",
+    tokenUrl: "https://api.simkl.com/oauth/token",
+    clientId: process.env.SIMKL_CLIENT_ID,
+    clientSecret: process.env.SIMKL_CLIENT_SECRET,
+    scopes: "",
+    pkce: "none",
+    syncTypes: ["movie", "series"],
+  },
 };
 
 export function getProvider(id: string): ProviderConfig | null {
-  return id === "mal" || id === "anilist" || id === "trakt" ? PROVIDERS[id] : null;
+  return id === "mal" || id === "anilist" || id === "trakt" || id === "simkl" ? PROVIDERS[id] : null;
+}
+
+export function providerIsConfigured(cfg: ProviderConfig): boolean {
+  if (!cfg.clientId) return false;
+  if (cfg.id === "trakt" || cfg.id === "simkl") return Boolean(cfg.clientSecret);
+  return true;
+}
+
+export const SIMKL_APP_NAME = "pandoras-box";
+export const SIMKL_APP_VERSION = "1.0";
+
+export function simklApiUrl(path: string): string {
+  const url = new URL(`https://api.simkl.com${path}`);
+  const clientId = PROVIDERS.simkl.clientId;
+  if (clientId) url.searchParams.set("client_id", clientId);
+  url.searchParams.set("app-name", SIMKL_APP_NAME);
+  url.searchParams.set("app-version", SIMKL_APP_VERSION);
+  return url.toString();
+}
+
+export function simklHeaders(token?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    "User-Agent": `PandorasBox/${SIMKL_APP_VERSION}`,
+    "Content-Type": "application/json",
+  };
+  const clientId = PROVIDERS.simkl.clientId;
+  if (clientId) headers["simkl-api-key"] = clientId;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
 }
 
 export function redirectUri(origin: string, provider: ProviderId): string {

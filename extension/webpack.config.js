@@ -10,6 +10,7 @@ module.exports = {
     "content-scripts/netflix": "./content-scripts/netflix.ts",
     "content-scripts/disneyplus": "./content-scripts/disneyplus.ts",
     "content-scripts/cinemaos": "./content-scripts/cinemaos.ts",
+    "content-scripts/cinejoy": "./content-scripts/cinejoy.ts",
     "content-scripts/crunchyroll": "./content-scripts/crunchyroll.ts",
     "content-scripts/mangadex": "./content-scripts/mangadex.ts",
     "content-scripts/webtoon": "./content-scripts/webtoon.ts",
