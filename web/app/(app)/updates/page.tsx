@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Smartphone,
+    batch: "Revamp batch 30",
+    date: "17 September 2026",
+    title: "Cinejoy & CinemaOS companion coverage",
+    text: "Integration settings now show the playback sources the Pandora browser companion actually supports, including Cinejoy and CinemaOS, without presenting unsupported account connections.",
+    highlights: [
+      "Cinejoy is now called out as a dedicated movie and TV tracking source with TMDB title mapping plus season and episode parsing.",
+      "CinemaOS is surfaced as a supported companion source for title, season and episode progress tracking.",
+      "Crunchyroll, Netflix and Disney+ coverage is visible in the same compact source grid so browser tracking is easier to understand at a glance.",
+      "Account sync remains clearly separated below for MyAnimeList, AniList, Trakt and Simkl, where supported OAuth/API connections exist.",
+      "The production build continues to pass all 61 routes after the integrations UI update.",
+    ],
+  },
+  {
     icon: Sparkles,
     batch: "Revamp batch 29",
     date: "17 September 2026",
@@ -553,7 +567,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["29 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["30 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
