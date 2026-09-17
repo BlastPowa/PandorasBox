@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: BarChart3,
+    batch: "Revamp batch 17",
+    date: "17 September 2026",
+    title: "Episode ratings season analysis",
+    text: "Episode Ratings now works like a proper season scorecard, with faster season navigation and clearer context around peaks, dips and overall consistency.",
+    highlights: [
+      "Selected titles now open into a richer season summary with season count, average score, rated-episode coverage and score spread.",
+      "Season chips replace the slower dropdown-only flow and remain usable on smaller screens through horizontal scrolling.",
+      "The strongest and lowest-rated episodes are surfaced immediately before the full episode list.",
+      "Episode rows now include stronger date context, responsive mobile cards and visual rating bars on larger screens.",
+      "Search and Explore use denser title cards with clearer media type, year and result counts while keeping the existing IMDb/OMDb data path.",
+    ],
+  },
+  {
     icon: ShieldCheck,
     batch: "Revamp batch 16",
     date: "17 September 2026",
@@ -368,7 +382,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["16 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["17 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
