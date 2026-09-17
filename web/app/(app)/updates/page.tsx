@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Activity,
+    batch: "Revamp batch 28",
+    date: "17 September 2026",
+    title: "More reliable anime episode counts",
+    text: "Anime trackers now load complete episode lists more consistently for long-running and currently airing shows instead of stopping after the first Jikan results page.",
+    highlights: [
+      "Jikan episode loading now follows its pagination metadata and aggregates every available episode page.",
+      "Episode rows are deduplicated by episode number and returned in stable ascending order.",
+      "If a later Jikan page fails after earlier pages succeeded, the available episode data is kept instead of discarding the whole list.",
+      "AniList airing data now fills only confirmed released episode gaps while preserving richer Jikan titles, dates, filler and recap metadata.",
+      "Finished series can recover missing released episode rows from trusted total episode counts without creating unaired future entries.",
+    ],
+  },
+  {
     icon: Library,
     batch: "Revamp batch 27",
     date: "17 September 2026",
@@ -524,7 +538,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["27 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["28 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
