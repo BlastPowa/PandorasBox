@@ -15,15 +15,21 @@ const TABS: { key: SettingsTabKey; label: string; description: string; icon: typ
   { key: "backup", label: "Backup", description: "Export & restore", icon: Database },
 ];
 
+function requestedTab(): SettingsTabKey {
+  if (typeof window === "undefined") return "account";
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("connected") || params.has("integration_error")) return "integrations";
+  const hash = window.location.hash.slice(1) as SettingsTabKey;
+  return TABS.some((tab) => tab.key === hash) ? hash : "account";
+}
+
 export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, ReactNode> }) {
-  const [active, setActive] = useState<SettingsTabKey>("account");
+  const [active, setActive] = useState<SettingsTabKey>(() => requestedTab());
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const requested = window.location.hash.slice(1) as SettingsTabKey;
-      if (TABS.some((tab) => tab.key === requested)) setActive(requested);
-    });
-    return () => window.cancelAnimationFrame(frame);
+    const syncFromLocation = () => setActive(requestedTab());
+    window.addEventListener("hashchange", syncFromLocation);
+    return () => window.removeEventListener("hashchange", syncFromLocation);
   }, []);
 
   function selectTab(key: SettingsTabKey) {

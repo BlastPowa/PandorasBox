@@ -53,6 +53,15 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+function timeUntil(iso: string | null): string {
+  if (!iso) return "soon";
+  const seconds = (new Date(iso).getTime() - Date.now()) / 1000;
+  if (seconds <= 0) return "now";
+  if (seconds < 3600) return `in ${Math.max(1, Math.ceil(seconds / 60))}m`;
+  if (seconds < 86400) return `in ${Math.ceil(seconds / 3600)}h`;
+  return `in ${Math.ceil(seconds / 86400)}d`;
+}
+
 function expiringSoon(iso: string | null): boolean {
   if (!iso) return false;
   return new Date(iso).getTime() - Date.now() < 7 * 24 * 3600 * 1000;
@@ -72,6 +81,20 @@ function providerBadge(id: string): string {
   if (id === "trakt") return "TRAKT";
   if (id === "simkl") return "SIMKL";
   return id.slice(0, 5).toUpperCase();
+}
+
+function providerUrl(id: string): string {
+  if (id === "mal") return "https://myanimelist.net/";
+  if (id === "anilist") return "https://anilist.co/";
+  if (id === "trakt") return "https://trakt.tv/";
+  if (id === "simkl") return "https://simkl.com/";
+  return "#";
+}
+
+function providerScope(id: string): string[] {
+  if (id === "mal" || id === "anilist") return ["Anime", "Manga", "Manhwa"];
+  if (id === "trakt" || id === "simkl") return ["Movies", "TV series"];
+  return [];
 }
 
 function BrowserCompanionCard() {
@@ -129,6 +152,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(signedIn);
 
@@ -159,23 +183,31 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
     const error = params.get("integration_error");
     if (connected) toast.success(`${providerLabel(connected)} connected`);
     if (error) toast.error(error);
-    if (connected || error) window.history.replaceState({}, "", "/settings");
+    if (connected || error) window.history.replaceState({}, "", "/settings#integrations");
   }, [signedIn, load]);
 
   async function disconnect(id: string, name: string) {
     if (!window.confirm(`Disconnect ${name}? Sync history and queued updates for it will be removed.`)) return;
-    await fetch(`/api/integrations?provider=${id}`, { method: "DELETE" });
+    const response = await fetch(`/api/integrations?provider=${id}`, { method: "DELETE" });
+    if (!response.ok) {
+      toast.error(`Could not disconnect ${name}`);
+      return;
+    }
     toast.success(`${name} disconnected`);
     void load();
   }
 
   async function toggleAutoSync(id: string, autoSync: boolean) {
     setProviders((p) => p.map((x) => (x.id === id ? { ...x, autoSync } : x)));
-    await fetch("/api/integrations", {
+    const response = await fetch("/api/integrations", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ provider: id, autoSync }),
     });
+    if (!response.ok) {
+      setProviders((p) => p.map((x) => (x.id === id ? { ...x, autoSync: !autoSync } : x)));
+      toast.error("Could not update Auto Sync");
+    }
   }
 
   async function syncNow(id: string, name: string) {
@@ -198,6 +230,36 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
     }
   }
 
+  async function syncAllConnected() {
+    const connected = providers.filter((provider) => provider.connected);
+    if (!connected.length) return;
+    setSyncingAll(true);
+    let successful = 0;
+    let conflictsFound = 0;
+    try {
+      for (const provider of connected) {
+        setSyncing(provider.id);
+        const response = await fetch(`/api/integrations/${provider.id}/sync`, { method: "POST" });
+        const payload = (await response.json().catch(() => null)) as { conflicts?: number } | null;
+        if (response.ok) {
+          successful += 1;
+          conflictsFound += payload?.conflicts ?? 0;
+        }
+      }
+      if (successful === connected.length && conflictsFound === 0) {
+        toast.success(`Synced all ${successful} connected services`);
+      } else if (successful > 0) {
+        toast.warning(`Synced ${successful} of ${connected.length} services${conflictsFound ? ` with ${conflictsFound} conflict(s)` : ""}`);
+      } else {
+        toast.error("Connected services could not be synced");
+      }
+    } finally {
+      setSyncing(null);
+      setSyncingAll(false);
+      void load();
+    }
+  }
+
   async function resolveConflict(id: string, keep: "local" | "remote") {
     setConflicts((c) => c.filter((x) => x.id !== id));
     const res = await fetch("/api/integrations/conflicts", {
@@ -208,6 +270,14 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
     if (res.ok) toast.success(`Kept the ${keep === "local" ? "PBox" : "external"} version`);
     else toast.error("Could not resolve conflict");
   }
+
+  const connectedProviders = providers.filter((provider) => provider.connected);
+  const autoSyncCount = connectedProviders.filter((provider) => provider.autoSync).length;
+  const providerWarnings = connectedProviders.filter(
+    (provider) => provider.lastSyncOk === false || expiringSoon(provider.tokenExpiresAt)
+  ).length;
+  const attentionCount = providerWarnings + conflicts.length;
+  const lastSuccessfulSync = history.find((entry) => entry.ok)?.created_at ?? null;
 
   if (!signedIn) {
     return (
@@ -225,14 +295,46 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
       <BrowserCompanionCard />
       <GlassCard macDots title="Integrations">
       <div className="space-y-5 p-4 sm:p-5">
-        <div>
-          <p className="text-sm font-semibold">Connected services</p>
-          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-            Keep lists, ratings and progress aligned with the services you already use. PBox itself stays focused on tracking and discovery.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold">Connected services</p>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)]">
+              Keep lists, ratings and progress aligned across PBox, anime trackers and movie / TV services from one control centre.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="glass"
+            loading={syncingAll}
+            disabled={loading || connectedProviders.length === 0 || syncing !== null}
+            onClick={() => void syncAllConnected()}
+          >
+            <RefreshCw className="size-4" /> Sync all connected
+          </Button>
         </div>
 
         {loading && <p className="text-sm text-[var(--text-muted)]">Loading integrations…</p>}
+
+        {!loading && (
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Connected</p>
+              <p className="mt-1 font-display text-2xl font-bold">{connectedProviders.length}<span className="ml-1 text-sm font-medium text-[var(--text-muted)]">/ {providers.length}</span></p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Auto Sync</p>
+              <p className="mt-1 font-display text-2xl font-bold">{autoSyncCount}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Last healthy sync</p>
+              <p className="mt-2 text-sm font-semibold">{timeAgo(lastSuccessfulSync)}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Needs attention</p>
+              <p className={`mt-1 font-display text-2xl font-bold ${attentionCount ? "text-[var(--gold)]" : "text-emerald-400"}`}>{attentionCount}</p>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-3 md:grid-cols-2">
         {providers.map((p) => (
@@ -245,30 +347,50 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                 {providerBadge(p.id)}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-semibold">
-                  {p.name}
-                  {p.connected && p.username && (
-                    <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">as {p.username}</span>
-                  )}
-                </p>
-                <p className="truncate text-xs text-[var(--text-muted)]">{p.description}</p>
-                {p.id === "simkl" && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold">{p.name}</p>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    p.connected
+                      ? "bg-emerald-500/12 text-emerald-400"
+                      : p.configured
+                        ? "bg-[var(--glass-strong)] text-[var(--text-muted)]"
+                        : "bg-[rgb(var(--gold-rgb)/0.12)] text-[var(--gold)]"
+                  }`}>
+                    {p.connected ? "Connected" : p.configured ? "Ready" : "Setup needed"}
+                  </span>
+                </div>
+                {p.connected && p.username && (
+                  <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Signed in as {p.username}</p>
+                )}
+                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{p.description}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {providerScope(p.id).map((scope) => (
+                    <span key={scope} className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
+                      {scope}
+                    </span>
+                  ))}
                   <a
-                    href="https://simkl.com/"
+                    href={providerUrl(p.id)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent)] hover:underline"
+                    className="ml-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent)] hover:underline"
                   >
-                    Open Simkl <ExternalLink className="size-3" />
+                    Open {p.name} <ExternalLink className="size-3" />
                   </a>
-                )}
+                </div>
               </div>
               {p.connected ? (
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="glass" loading={syncing === p.id} onClick={() => void syncNow(p.id, p.name)}>
+                  <Button
+                    size="sm"
+                    variant="glass"
+                    loading={syncing === p.id}
+                    disabled={syncingAll || (syncing !== null && syncing !== p.id)}
+                    onClick={() => void syncNow(p.id, p.name)}
+                  >
                     <RefreshCw className="size-4" /> Sync now
                   </Button>
-                  <Button size="sm" variant="danger" onClick={() => void disconnect(p.id, p.name)}>
+                  <Button size="sm" variant="danger" disabled={syncingAll || syncing !== null} onClick={() => void disconnect(p.id, p.name)}>
                     <Unlink className="size-4" /> Disconnect
                   </Button>
                 </div>
@@ -311,7 +433,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
                 )}
                 {expiringSoon(p.tokenExpiresAt) && p.lastSyncOk !== false && (
                   <p className="text-[var(--gold)]">
-                    Connection expires {timeAgo(p.tokenExpiresAt)?.replace(" ago", "")} — it will auto-refresh, or{" "}
+                    Connection expires {timeUntil(p.tokenExpiresAt)} — it will auto-refresh, or{" "}
                     <button className="underline" onClick={() => router.push(`/api/integrations/${p.id}/connect`)}>
                       reconnect now
                     </button>.
