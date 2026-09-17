@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Clapperboard,
+    batch: "Revamp batch 19",
+    date: "17 September 2026",
+    title: "Trailer feed controls & mobile navigation",
+    text: "Shorts now gives the vertical trailer feed clearer position, playback and navigation context while keeping the existing trending trailer source intact.",
+    highlights: [
+      "A persistent feed header now shows the active trailer, total count and progress through the current set.",
+      "Play or pause and mute or unmute are explicit actions instead of relying on hidden player behaviour.",
+      "Phone layouts now include dedicated previous, next and title-detail controls with larger touch targets.",
+      "Active title metadata keeps type, year, score and synopsis readable without competing with the trailer itself.",
+      "An improved empty state sends users back into Browse when no playable trending trailers are available.",
+    ],
+  },
+  {
     icon: ShieldCheck,
     batch: "Revamp batch 18",
     date: "17 September 2026",
@@ -396,7 +410,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["18 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["19 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
