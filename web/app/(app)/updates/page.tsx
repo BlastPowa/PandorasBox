@@ -118,6 +118,22 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Users,
+    batch: "Revamp batch 33",
+    date: "17 September 2026",
+    title: "A cleaner social inbox",
+    text: "Messages now makes unread activity and conversation choices easier to scan while keeping the existing realtime chat, replies, media and group tools intact.",
+    highlights: [
+      "The inbox now has a clearer Social Inbox hierarchy with an immediate unread-thread summary and a more prominent compose action.",
+      "Conversation search has stronger focus feedback and filters stay compact, touch friendly and easy to scan on narrow screens.",
+      "Conversation rows now use compact card styling, clearer selected and pinned states, and relative timestamps such as today, yesterday and weekday labels.",
+      "Empty inbox, filter and search states now explain what happened and offer a direct next action instead of leaving a blank utility panel.",
+      "The desktop conversation pane now includes a deliberate start-conversation state while the mobile full-screen chat flow remains unchanged.",
+      "Direct-message headers make the profile relationship clearer without adding more chrome around the conversation.",
+      "Focused lint, nonincremental TypeScript and the full 61-route production build pass after the social inbox refresh.",
+    ],
+  },
+  {
     icon: BarChart3,
     batch: "Revamp batch 32",
     date: "17 September 2026",
@@ -598,7 +614,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["32 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["33 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
