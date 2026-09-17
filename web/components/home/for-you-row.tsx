@@ -185,10 +185,12 @@ export function ForYouRow() {
       {connections.slice(0, 1).map((connection) => (
         <PosterRow key={connection.title} title={connection.title} subtitle={connection.subtitle} items={connection.items} viewAllHref={connection.href} quickLook />
       ))}
-      {preferredMedia.includes("movies") && <RecommendationRows media="Movies" fallbackTitle="Movies for you" fallbackSubtitle={labels.movies.length ? `Because you’ve been into ${labels.movies.join(", ")}` : "Based on your recently watched and saved movies"} groups={genreGroups.movies} items={groups.movies} viewAllHref="/movies" />}
-      {preferredMedia.includes("series") && <RecommendationRows media="TV" fallbackTitle="TV shows for you" fallbackSubtitle={labels.series.length ? `More ${labels.series.join(", ")} from your TV history` : "Based on the series you watch and save"} groups={genreGroups.series} items={groups.series} viewAllHref="/tv" />}
-      {preferredMedia.includes("anime") && <RecommendationRows media="Anime" fallbackTitle="Anime for you" fallbackSubtitle={labels.anime.length ? `Matched to ${labels.anime.join(", ")} in your anime list` : "Based on your anime history"} groups={genreGroups.anime} items={groups.anime} viewAllHref="/anime" />}
-      {preferredMedia.includes("manga") && <RecommendationRows media="Manga" fallbackTitle="Manga for you" fallbackSubtitle={labels.manga.length ? `Matched to ${labels.manga.join(", ")} in your reading history` : "Based on your manga and reading history"} groups={genreGroups.manga} items={groups.manga} viewAllHref="/browse/trending-manga" />}
+      {because.length === 0 && connections.length === 0 && preferredMedia.slice(0, 1).map((media) => {
+        if (media === "movies") return <RecommendationRows key={media} media="Movies" fallbackTitle="Movies for you" fallbackSubtitle={labels.movies.length ? `Because you’ve been into ${labels.movies.join(", ")}` : "Based on your recently watched and saved movies"} groups={genreGroups.movies} items={groups.movies} viewAllHref="/movies" />;
+        if (media === "series") return <RecommendationRows key={media} media="TV" fallbackTitle="TV shows for you" fallbackSubtitle={labels.series.length ? `More ${labels.series.join(", ")} from your TV history` : "Based on the series you watch and save"} groups={genreGroups.series} items={groups.series} viewAllHref="/tv" />;
+        if (media === "anime") return <RecommendationRows key={media} media="Anime" fallbackTitle="Anime for you" fallbackSubtitle={labels.anime.length ? `Matched to ${labels.anime.join(", ")} in your anime list` : "Based on your anime history"} groups={genreGroups.anime} items={groups.anime} viewAllHref="/anime" />;
+        return <RecommendationRows key={media} media="Manga" fallbackTitle="Manga for you" fallbackSubtitle={labels.manga.length ? `Matched to ${labels.manga.join(", ")} in your reading history` : "Based on your manga and reading history"} groups={genreGroups.manga} items={groups.manga} viewAllHref="/browse/trending-manga" />;
+      })}
       <div className="flex justify-end px-1">
         <Link href="/browse" className="text-xs font-bold text-[var(--accent)] hover:underline">More recommendations in Discover</Link>
       </div>

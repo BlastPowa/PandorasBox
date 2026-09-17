@@ -21,8 +21,6 @@ import { PosterRow } from "@/components/discovery/poster-row";
 
 type DashboardProps = {
   trending: UnifiedSearchResult[];
-  trendingMovies: UnifiedSearchResult[];
-  trendingSeries: UnifiedSearchResult[];
   generatedAt: number;
 };
 
@@ -75,21 +73,6 @@ function updatedTime(value: string, generatedAt: number) {
   return `Updated ${days} days ago`;
 }
 
-function Poster({ title, posterUrl }: { title: string; posterUrl: string | null }) {
-  return posterUrl ? (
-    <div
-      className="h-full w-full bg-[var(--bg-elevated)] bg-cover bg-center"
-      role="img"
-      aria-label={`${title} poster`}
-      style={{ backgroundImage: `url("${posterUrl}")` }}
-    />
-  ) : (
-    <div className="grid h-full w-full place-items-center bg-[var(--bg-elevated)] px-3 text-center text-xs font-semibold text-[var(--text-muted)]">
-      {title}
-    </div>
-  );
-}
-
 function SectionHeading({
   eyebrow,
   title,
@@ -119,8 +102,8 @@ function SectionHeading({
   );
 }
 
-export function HomeDashboard({ trending, trendingMovies, trendingSeries, generatedAt }: DashboardProps) {
-  const { items, loading, signedIn, setStatus } = useLibrary();
+export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
+  const { items, loading, signedIn } = useLibrary();
   const stats = useLibraryStats(items);
   const spotlightSlides = useMemo(
     () => trending.filter((item) => Boolean(item.backdropUrl ?? item.posterUrl)).slice(0, 6),
@@ -135,9 +118,6 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, genera
   const planned = items
     .filter((item) => item.status === "planned")
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  const staleItems = active
-    .filter((item) => generatedAt - new Date(item.updatedAt).getTime() > 21 * 86_400_000)
-    .sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
   const safeSpotlightIndex = spotlightSlides.length > 0 ? spotlightIndex % spotlightSlides.length : 0;
   const spotlight = spotlightSlides[safeSpotlightIndex] ?? trending[0] ?? null;
   const heroArtwork = spotlight?.backdropUrl ?? spotlight?.posterUrl ?? null;
@@ -227,6 +207,36 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, genera
         </div>
       </section>
 
+      {signedIn && (
+        <section className="pb-uiverse-card rounded-[22px] p-4 sm:p-5" aria-label="Library summary">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="pb-uiverse-icon grid size-10 shrink-0 place-items-center rounded-xl text-[var(--accent)]"><Library className="size-4" /></div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Your library</p>
+                <h2 className="mt-0.5 font-display text-base font-bold text-[var(--text)] sm:text-lg">Progress at a glance</h2>
+              </div>
+            </div>
+            <div className="grid flex-1 grid-cols-4 gap-2 sm:max-w-2xl">
+              {[
+                { label: "Active", value: stats.watching },
+                { label: "Planned", value: stats.planned },
+                { label: "Done", value: stats.completed },
+                { label: "Saved", value: stats.totalItems },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-xl bg-[var(--glass)] px-2 py-2.5 text-center">
+                  <div className="font-display text-lg font-bold tabular-nums text-[var(--text)] sm:text-xl">{loading ? "—" : value}</div>
+                  <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)] sm:text-[10px]">{label}</div>
+                </div>
+              ))}
+            </div>
+            <Link href="/stats" className="pb-uiverse-action-link inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-xl px-3 text-xs font-bold text-[var(--accent)]">
+              Full stats <ChevronRight className="size-4" />
+            </Link>
+          </div>
+        </section>
+      )}
+
       <section>
         <SectionHeading eyebrow="Back to your stories" title="Continue watching" action="Your library" href="/library" />
         {!signedIn ? (
@@ -273,106 +283,10 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, genera
         )}
       </section>
 
-      {signedIn && (
-        <section className="pb-uiverse-card rounded-[22px] p-4 sm:p-5" aria-label="Library summary">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="pb-uiverse-icon grid size-10 shrink-0 place-items-center rounded-xl text-[var(--accent)]"><Library className="size-4" /></div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Your library</p>
-                <h2 className="mt-0.5 font-display text-base font-bold text-[var(--text)] sm:text-lg">Progress at a glance</h2>
-              </div>
-            </div>
-            <div className="grid flex-1 grid-cols-4 gap-2 sm:max-w-2xl">
-              {[
-                { label: "Active", value: stats.watching },
-                { label: "Planned", value: stats.planned },
-                { label: "Done", value: stats.completed },
-                { label: "Saved", value: stats.totalItems },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded-xl bg-[var(--glass)] px-2 py-2.5 text-center">
-                  <div className="font-display text-lg font-bold tabular-nums text-[var(--text)] sm:text-xl">{loading ? "—" : value}</div>
-                  <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)] sm:text-[10px]">{label}</div>
-                </div>
-              ))}
-            </div>
-            <Link href="/stats" className="pb-uiverse-action-link inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-xl px-3 text-xs font-bold text-[var(--accent)]">
-              Full stats <ChevronRight className="size-4" />
-            </Link>
-          </div>
-        </section>
-      )}
-
-      <ProviderFeed />
-
-      <ForYouRow />
-
-      <section className="space-y-6">
-        <SectionHeading eyebrow="Now showing" title="What everyone is watching" action="Explore all" href="/browse" />
-        <PosterRow
-          title="Trending movies"
-          subtitle="Popular films moving fastest this week"
-          items={trendingMovies}
-          viewAllHref="/movies"
-          quickLook
-        />
-        <PosterRow
-          title="Trending TV"
-          subtitle="Series people are watching right now"
-          items={trendingSeries}
-          viewAllHref="/tv"
-          quickLook
-        />
-      </section>
-
-      {signedIn && staleItems.length > 0 && (
-        <section>
-          <SectionHeading eyebrow="A gentle reminder" title="Want to pick one of these back up?" action="Open library" href="/library" />
-          <div className="-mx-1 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex gap-3">
-              {staleItems.slice(0, 8).map((item) => (
-                <article key={item.id} className="pb-uiverse-media-card group relative w-[270px] shrink-0 overflow-hidden rounded-[22px] p-3 sm:w-[320px]">
-                  {item.backdropUrl && (
-                    <div
-                      aria-hidden="true"
-                      className="absolute inset-0 -z-20 bg-cover bg-center opacity-[0.16] transition duration-500 group-hover:scale-[1.03] group-hover:opacity-[0.22]"
-                      style={{ backgroundImage: `url(\"${item.backdropUrl}\")` }}
-                    />
-                  )}
-                  <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(110deg,var(--bg-surface)_18%,color-mix(in_srgb,var(--bg-surface)_88%,transparent)_68%,color-mix(in_srgb,var(--bg-surface)_68%,transparent))]" />
-                  <div className="flex gap-3">
-                    <Link href={libraryItemHref(item)} className="h-[118px] w-[78px] shrink-0 overflow-hidden rounded-[14px] bg-[var(--bg-elevated)]">
-                      <Poster title={item.title} posterUrl={item.posterUrl} />
-                    </Link>
-                    <div className="min-w-0 flex-1 py-1">
-                      <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--accent)]">{mediaTypeLabel(item.type)} · {Math.round(progressPercent(item))}%</div>
-                      <Link href={libraryItemHref(item)} className="mt-1.5 line-clamp-2 block font-display text-base font-bold leading-5 text-[var(--text)] transition group-hover:text-[var(--accent)]">{item.title}</Link>
-                      <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{updatedTime(item.updatedAt, generatedAt)} · {progressLabel(item)}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 border-t border-[var(--border)] pt-3">
-                    <Link href={libraryItemHref(item)} className="pb-uiverse-button pb-uiverse-button--accent inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-bold text-white">
-                      <CirclePlay className="size-3.5" /> Resume
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => void setStatus(item.id, "on_hold")}
-                      className="pb-uiverse-button pb-uiverse-button--glass inline-flex h-9 items-center justify-center rounded-xl px-3 text-xs font-bold text-[var(--text-secondary)]"
-                    >
-                      Pause for now
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       <section className="pb-uiverse-card pb-uiverse-card--feature pb-aura rounded-[24px] p-5 sm:p-6">
         <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
           <div>
-          <SectionHeading eyebrow="What fits tonight?" title="Pick something for tonight" action="Open the Box" href="/randomize" />
+            <SectionHeading eyebrow="What fits tonight?" title="Pick something for tonight" action="Open the Box" href="/randomize" />
             <p className="-mt-2 text-sm leading-6 text-[var(--text-secondary)]">A short list from what you already saved, prioritising things you have started and are closest to finishing.</p>
           </div>
           <div className="space-y-2">
@@ -388,6 +302,18 @@ export function HomeDashboard({ trending, trendingMovies, trendingSeries, genera
           </div>
         </div>
       </section>
+
+      <ProviderFeed />
+
+      <ForYouRow />
+
+      <PosterRow
+        title="Trending now"
+        subtitle="A mixed snapshot of movies, TV, anime and manga people are into right now"
+        items={trending}
+        viewAllHref="/browse"
+        quickLook
+      />
 
     </div>
   );

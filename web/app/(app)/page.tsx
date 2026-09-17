@@ -27,8 +27,6 @@ async function HomeContent() {
   return (
     <HomeDashboard
       trending={trending}
-      trendingMovies={movies}
-      trendingSeries={series}
       generatedAt={getGeneratedAt()}
     />
   );
