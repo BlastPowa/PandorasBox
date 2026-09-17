@@ -5,13 +5,12 @@ import { useEffect, useRef, useState } from "react";
 export const HERO_SLIDE_EVENT = "pb:hero-slide";
 
 /**
- * Fixed, blurred backdrop of the current hero image (lordflix-style). Blur and
- * darkness ramp up as the user scrolls off the hero, so the poster rows appear
- * to float over a softening cinematic backdrop.
+ * Fixed backdrop of the current hero image. Darkness ramps up as the user
+ * scrolls off the hero so poster rows remain readable while artwork stays crisp.
  *
  * The scroll listener only writes a CSS custom property (--pb-scroll, 0..1) and
  * is rAF-throttled, so scrolling never triggers a React re-render. All the
- * actual blur/opacity math lives in globals.css (.pb-ambient__image).
+ * actual opacity/scale math lives in globals.css (.pb-ambient__image).
  *
  * --pb-scroll is written to the *container*, not the image, and inherits down.
  * Writing it to the image would be clobbered every time React re-renders that
@@ -70,10 +69,9 @@ export function AmbientBackground({
     const el = containerRef.current;
     if (!el) return;
 
-    // Ramp to full blur over roughly one hero's worth of scrolling — matches
-    // the hero's own height (78vh mobile / 86vh desktop, see hero.tsx) so the
-    // image is fully sharp while the hero is on screen and blurs in step with
-    // it scrolling away, rather than an arbitrary fixed distance.
+    // Ramp the backdrop treatment over roughly one hero's worth of scrolling.
+    // This keeps the transition aligned with the hero without repainting a
+    // viewport-sized blur on every scroll frame.
     let rampPx = window.innerHeight * 0.8;
     let frame = 0;
 

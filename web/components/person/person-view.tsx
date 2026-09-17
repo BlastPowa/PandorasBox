@@ -90,8 +90,8 @@ export function PersonView({ person }: { person: PersonDetail }) {
       <section className="relative overflow-hidden border-b border-[var(--border)]">
         {person.photoUrl ? (
           <>
-            <Image src={person.photoUrl} alt="" fill priority sizes="100vw" className="scale-125 object-cover object-[center_28%] opacity-35 blur-3xl saturate-[.9]" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_72%,transparent)_42%,rgba(8,8,12,.2)_100%)]" />
+            <Image src={person.photoUrl} alt="" fill priority sizes="100vw" className="object-cover object-[center_24%] opacity-30 saturate-[.82]" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_72%,transparent)_42%,rgba(8,8,12,.3)_100%),linear-gradient(90deg,rgba(8,8,12,.38),transparent_58%)]" />
           </>
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_24%,rgb(var(--accent-rgb)/0.22),transparent_40%),linear-gradient(145deg,var(--bg-elevated),var(--bg-base))]" />

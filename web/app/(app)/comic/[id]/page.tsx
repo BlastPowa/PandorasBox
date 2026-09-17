@@ -61,19 +61,7 @@ export default async function ComicDetailPage({ params }: { params: Promise<{ id
       <AmbientBackground imageUrl={comic.coverUrl} />
 
       <section className="relative overflow-hidden">
-        {comic.coverUrl && (
-          <>
-            <Image
-              src={comic.coverUrl}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="scale-125 object-cover object-center opacity-30 blur-3xl saturate-[1.1]"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_76%,transparent)_35%,rgba(8,8,12,.18)_100%)]" />
-          </>
-        )}
+        {comic.coverUrl && <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_62%,transparent)_42%,transparent_100%)]" />}
 
         <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-8 pt-5 md:px-8 sm:pb-10 lg:pb-12">
           <BackButton fallbackHref="/comics" />

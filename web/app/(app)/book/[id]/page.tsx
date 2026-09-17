@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { CalendarDays, ExternalLink, LibraryBig, Star, UserRound } from "lucide-react";
 import { getBookDetail } from "@/lib/books";
@@ -33,12 +32,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
     <div className="pb-14">
       <AmbientBackground imageUrl={book.coverUrl} />
       <section className="relative overflow-hidden">
-        {book.coverUrl && (
-          <>
-            <Image src={book.coverUrl} alt="" fill priority sizes="100vw" className="scale-125 object-cover object-center opacity-25 blur-3xl saturate-[1.1]" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_76%,transparent)_35%,rgba(8,8,12,.18)_100%)]" />
-          </>
-        )}
+        {book.coverUrl && <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-base)_0%,color-mix(in_srgb,var(--bg-base)_62%,transparent)_42%,transparent_100%)]" />}
 
         <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-10 pt-5 md:px-8 lg:pb-14">
           <BackButton fallbackHref="/books" />

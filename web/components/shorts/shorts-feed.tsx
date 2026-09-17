@@ -156,10 +156,11 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
             }}
             className="relative flex h-full w-full snap-start snap-always items-center justify-center gap-4 px-3 sm:gap-8"
           >
-            {/* Keep the cinematic artwork atmosphere around the trailer card. */}
+            {/* Keep the cinematic artwork atmosphere around the trailer card
+                without a viewport-sized blur repaint on every slide. */}
             {s.posterUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-125 object-cover opacity-35 blur-3xl" />
+              <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover opacity-20 saturate-75" />
             )}
             <div className="pointer-events-none absolute inset-0 bg-[var(--cinematic-scrim)] opacity-80" />
 
@@ -168,10 +169,10 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
                 Sized responsively: near-square-tall on desktop, full-width on
                 phones so the player fills the screen like a real short. */}
             <div className="relative z-10 h-full max-h-[94dvh] w-full max-w-[min(94vw,460px)] overflow-hidden rounded-[var(--radius-xl)] border border-white/10 bg-black/45 shadow-2xl backdrop-blur-sm">
-              {/* Blurred poster fills the card's letterbox area */}
+              {/* Poster fills the card's letterbox area while staying cheap to composite. */}
               {s.posterUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-110 object-cover opacity-30 blur-2xl" />
+                <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover opacity-18 saturate-75" />
               )}
 
               {/* Video, centered 16:9 (click to play/pause) */}

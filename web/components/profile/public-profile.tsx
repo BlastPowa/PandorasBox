@@ -103,8 +103,7 @@ export function PublicProfile({ profile, isOwner, signedIn, relationship, visibl
   return (
     <div className={`relative isolate min-h-[calc(100dvh-68px)] overflow-hidden ${hasBackground ? "profile-has-background" : ""}`}>
       {profile.profile_background_url && <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <div className="absolute inset-x-0 top-0 h-[72vh] bg-cover bg-no-repeat" style={{ backgroundImage: `url(${JSON.stringify(profile.profile_background_url)})`, backgroundPosition: `center ${profile.profile_background_position}` }} />
-        <div className="absolute inset-x-[-4%] top-[38vh] h-[95vh] scale-105 bg-cover bg-no-repeat opacity-45 blur-2xl" style={{ backgroundImage: `url(${JSON.stringify(profile.profile_background_url)})`, backgroundPosition: `center ${profile.profile_background_position}` }} />
+        <div className="absolute inset-0 min-h-[110vh] bg-cover bg-no-repeat opacity-90" style={{ backgroundImage: `url(${JSON.stringify(profile.profile_background_url)})`, backgroundPosition: `center ${profile.profile_background_position}` }} />
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgb(7_7_12/0.2)_0%,rgb(7_7_12/0.72)_32%,var(--bg-base)_78%),linear-gradient(90deg,rgb(7_7_12/0.48),transparent_48%,rgb(7_7_12/0.45))]" />
       </div>}
       <div className="mx-auto max-w-[1200px] px-4 pb-12 pt-4 md:px-8">

@@ -94,7 +94,7 @@ export default async function TitlePage({
             fill
             priority
             sizes="100vw"
-            className={detail.backdropUrl ? "object-cover object-center saturate-[0.96]" : "scale-110 object-cover opacity-55 blur-2xl"}
+            className={detail.backdropUrl ? "object-cover object-center saturate-[0.96]" : "object-cover object-[center_26%] opacity-[0.42] saturate-[0.84]"}
           />
         ) : (
           <div className="size-full bg-[radial-gradient(circle_at_22%_18%,rgb(var(--accent-rgb)/0.24),transparent_42%),linear-gradient(145deg,var(--bg-elevated),var(--bg-base)_68%)]" />

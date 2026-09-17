@@ -590,9 +590,9 @@ html.pb-compact {
 }
 
 /* ---------- Phase 2: ambient background ---------- */
-/* A fixed backdrop of the current hero image that blurs/darkens further as the
-   user scrolls into the poster rows. --pb-scroll is written by a rAF-throttled
-   scroll listener (components/home/ambient-background.tsx) and stays 0..1. */
+/* A fixed backdrop of the current hero image that dims as the user scrolls into
+   the poster rows. --pb-scroll is written by a rAF-throttled scroll listener
+   (components/home/ambient-background.tsx) and stays 0..1. */
 .pb-ambient {
   position: fixed;
   inset: 0;
@@ -600,18 +600,16 @@ html.pb-compact {
   pointer-events: none;
   overflow: hidden;
 }
-/* Wrapper carries the scroll-driven blur/fade/scale for ALL slide layers. */
+/* Wrapper carries the compositor-friendly scroll-driven fade/scale for all
+   slide layers. Avoiding a viewport-sized blur here keeps scrolling smooth. */
 .pb-ambient__image {
   position: absolute;
   inset: 0;
-  /* Keep the artwork visible throughout the page. Scrolling softens it enough
-     to protect text contrast without collapsing into a plain dark canvas. */
+  /* Keep the artwork visible throughout the page. Scrims handle contrast so
+     the image can stay sharp instead of repainting a large blur every frame. */
   opacity: calc(0.9 - (var(--pb-scroll, 0) * 0.24));
-  filter: saturate(calc(1.08 - (var(--pb-scroll, 0) * 0.08))) blur(calc(var(--pb-scroll, 0) * 2.4px));
-  /* Scale up only as far as the blur needs, so blurred edges don't reveal the
-     page background. At rest (--pb-scroll: 0) the image is pixel-exact, not
-     zoomed — stacking a constant inset + scale is what made it look enlarged. */
-  transform: scale(calc(1 + (var(--pb-scroll, 0) * 0.025)));
+  filter: saturate(calc(1.06 - (var(--pb-scroll, 0) * 0.06)));
+  transform: scale(calc(1 + (var(--pb-scroll, 0) * 0.012)));
   will-change: opacity, transform;
 }
 
