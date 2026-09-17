@@ -9,20 +9,20 @@ export function SearchModeTabs({ children }: { children: ReactNode }) {
 
   return (
     <div>
-      <div className="mb-5 grid gap-2 sm:grid-cols-2">
+      <div className="mb-5 inline-flex w-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-1 sm:w-auto">
         <button
           onClick={() => setMode("search")}
-          className={`rounded-2xl border p-3 text-left transition ${mode === "search" ? "border-[rgb(var(--accent-rgb)/0.45)] bg-[rgb(var(--accent-rgb)/0.12)] shadow-[0_12px_36px_rgb(var(--accent-rgb)/0.08)]" : "border-[var(--border)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]"}`}
+          aria-pressed={mode === "search"}
+          className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition sm:flex-none ${mode === "search" ? "bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"}`}
         >
-          <span className="flex items-center gap-2 text-sm font-bold"><SearchIcon className="size-4 text-[var(--accent)]" /> Search by title</span>
-          <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">Find exact titles and compare media types, scores and release years.</span>
+          <SearchIcon className="size-4 text-[var(--accent)]" /> Search titles
         </button>
         <button
           onClick={() => setMode("describe")}
-          className={`rounded-2xl border p-3 text-left transition ${mode === "describe" ? "border-[rgb(var(--accent-rgb)/0.45)] bg-[rgb(var(--accent-rgb)/0.12)] shadow-[0_12px_36px_rgb(var(--accent-rgb)/0.08)]" : "border-[var(--border)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]"}`}
+          aria-pressed={mode === "describe"}
+          className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition sm:flex-none ${mode === "describe" ? "bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"}`}
         >
-          <span className="flex items-center gap-2 text-sm font-bold"><Sparkles className="size-4 text-[var(--accent)]" /> Describe it</span>
-          <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">Use plot details, a scene or a half-remembered premise when the title is missing.</span>
+          <Sparkles className="size-4 text-[var(--accent)]" /> Describe it
         </button>
       </div>
       {mode === "search" ? children : <MemorySearchPanel />}

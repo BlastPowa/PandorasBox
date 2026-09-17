@@ -20,9 +20,6 @@ function memoryResultHref(result: MemorySearchResult) {
   return `/search?q=${encodeURIComponent(result.title)}`;
 }
 
-/** Client-side throttle between searches — the shared free Gemini quota is
- * only ~20 requests/day for the whole app, so this exists purely to stop a
- * single person from rapid-fire clicking through that budget in seconds. */
 const COOLDOWN_SECONDS = 20;
 
 export function MemorySearchPanel() {
@@ -68,23 +65,29 @@ export function MemorySearchPanel() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[rgb(var(--accent-rgb)/0.1)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-        <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
-        <span>
-          Half-remember something? Describe the plot, a character, or a scene — &ldquo;a dystopian world where time
-          is life and currency&rdquo; — and AI-assisted recognition plus our own index will try to find it.
-        </span>
+      <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]">
+            <Sparkles className="size-4" />
+          </span>
+          <div>
+            <h2 className="text-sm font-bold text-[var(--text-primary)]">Can&apos;t remember the title?</h2>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-secondary)]">
+              Describe the plot, a character, a scene, or any detail you remember. More specific clues usually give better matches.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 sm:flex-row sm:items-end">
         <textarea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="A group of strangers wake up trapped in a rotating cube filled with deadly traps..."
           rows={3}
-          className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] p-3 text-sm outline-none focus:border-[var(--accent)]"
+          className="min-h-24 w-full resize-y rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-sm outline-none transition focus:border-[var(--accent)]"
         />
-        <Button onClick={() => void search()} loading={searching} disabled={cooldown > 0} className="sm:self-end">
+        <Button onClick={() => void search()} loading={searching} disabled={cooldown > 0} className="min-h-11 sm:self-end">
           {cooldown > 0 ? (
             <>
               <Clock className="size-4" /> Wait {cooldown}s
@@ -96,12 +99,6 @@ export function MemorySearchPanel() {
           )}
         </Button>
       </div>
-
-      <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-        <Sparkles className="size-3 shrink-0" />
-        This uses a free-tier AI search with a limited number of lookups per day — if it’s temporarily
-        unavailable, you’ll still get results from our own index.
-      </p>
 
       {notice && <p className="text-sm text-[var(--text-muted)]">{notice}</p>}
 
