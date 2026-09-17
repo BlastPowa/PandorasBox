@@ -119,11 +119,6 @@ export function ScheduleBoard({
     return [...anime, ...movies, ...tv, ...upcoming].filter((e) => libraryIds.has(e.id));
   }, [tab, anime, movies, tv, upcoming, libraryIds]);
 
-  const weekPreview = useMemo(
-    () => [...anime, ...movies, ...tv].filter((entry) => entry.timestamp >= (days[0]?.ts ?? 0)).sort((a, b) => a.timestamp - b.timestamp).slice(0, 7),
-    [anime, movies, tv, days],
-  );
-
   const counts = useMemo(() => ({ anime: anime.length, movie: movies.length, series: tv.length }), [anime.length, movies.length, tv.length]);
 
   // Upcoming view: group by month (far-future, no day picker)
@@ -165,21 +160,13 @@ export function ScheduleBoard({
   }, [dayEntries]);
 
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[calc(var(--radius-xl)+4px)] border border-[var(--border)] bg-[var(--bg-surface)] shadow-xl">
-        <div className="absolute inset-0 grid grid-cols-4 opacity-35 sm:grid-cols-7" aria-hidden="true">
-          {weekPreview.map((entry) => (
-            <div key={`${entry.id}-backdrop`} className="relative min-h-48">
-              {entry.posterUrl && <Image src={entry.posterUrl} alt="" fill sizes="180px" className="object-cover" />}
-            </div>
-          ))}
-        </div>
-        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--bg-base) 0%, color-mix(in srgb, var(--bg-base) 92%, transparent) 38%, color-mix(in srgb, var(--bg-base) 58%, transparent) 100%)" }} />
-        <div className="relative z-[1] grid gap-5 p-5 sm:p-7 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent)] backdrop-blur-xl"><CalendarDays className="size-3.5" /> This week</span>
-            <h2 className="mt-4 font-display text-2xl font-bold sm:text-3xl">Your release week, at a glance</h2>
-            <p className="mt-2 max-w-xl text-sm text-[var(--text-secondary)]">Jump between anime, movies and TV without losing the calendar view. Your tracked titles stay collected under My List.</p>
+    <div className="space-y-5 sm:space-y-6">
+      <section className="pb-uiverse-card pb-uiverse-card--compact rounded-[22px] p-3 sm:p-4">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--accent)]"><CalendarDays className="size-3.5" /> This week</div>
+            <h2 className="mt-1 font-display text-xl font-extrabold sm:text-2xl">Release overview</h2>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)] sm:text-sm">Jump between anime, movies and TV, then narrow the calendar to titles already in your library.</p>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <ScheduleStat label="Anime" value={counts.anime} icon={<Sparkles className="size-4" />} />
@@ -311,10 +298,12 @@ export function ScheduleBoard({
 
 function ScheduleStat({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="min-w-20 rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-3 text-center backdrop-blur-xl">
-      <span className="mx-auto grid size-8 place-items-center rounded-full bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]">{icon}</span>
-      <strong className="mt-1 block font-display text-xl">{value}</strong>
-      <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
+    <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--glass)] px-2.5 py-2.5 backdrop-blur-xl sm:min-w-24 sm:px-3">
+      <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]">{icon}</span>
+      <span className="min-w-0">
+        <strong className="block font-display text-base leading-none sm:text-lg">{value}</strong>
+        <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
+      </span>
     </div>
   );
 }

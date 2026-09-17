@@ -62,6 +62,13 @@ export function StatsView({ username, avatarUrl }: { username: string | null; av
 
   return (
     <div className="space-y-5 pb-4 sm:space-y-6">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard icon={<LibraryBig className="size-4" />} label="Tracked" value={String(stats.total)} detail={`${stats.active} active now`} />
+        <KpiCard icon={<CheckCircle2 className="size-4" />} label="Completed" value={String(stats.completed)} detail={`${stats.completionRate.toFixed(0)}% completion`} />
+        <KpiCard icon={<Star className="size-4" />} label="Average rating" value={stats.meanRating ? stats.meanRating.toFixed(1) : "—"} detail={stats.ratedCount ? `${stats.ratedCount} rated titles` : "No ratings yet"} />
+        <KpiCard icon={<Clock3 className="size-4" />} label="Watch time" value={formatWatchTime(stats.watchMinutes)} detail={`${stats.episodesSeen.toLocaleString()} episodes logged`} />
+      </section>
+
       <RankCard
         username={username}
         avatarUrl={avatarUrl ?? null}
@@ -69,13 +76,6 @@ export function StatsView({ username, avatarUrl }: { username: string | null; av
         completed={stats.completed}
         progress={stats.completionRate}
       />
-
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard icon={<LibraryBig className="size-4" />} label="Tracked" value={String(stats.total)} detail={`${stats.active} active now`} />
-        <KpiCard icon={<CheckCircle2 className="size-4" />} label="Completed" value={String(stats.completed)} detail={`${stats.completionRate.toFixed(0)}% completion`} />
-        <KpiCard icon={<Star className="size-4" />} label="Average rating" value={stats.meanRating ? stats.meanRating.toFixed(1) : "—"} detail={stats.ratedCount ? `${stats.ratedCount} rated titles` : "No ratings yet"} />
-        <KpiCard icon={<Clock3 className="size-4" />} label="Watch time" value={formatWatchTime(stats.watchMinutes)} detail={`${stats.episodesSeen.toLocaleString()} episodes logged`} />
-      </section>
 
       <section className="pb-uiverse-card pb-aura rounded-[24px] p-4 sm:p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -308,26 +308,26 @@ function RankCard({ username, avatarUrl, total, completed, progress }: { usernam
   const rankProgress = next ? Math.min(100, ((total - current.min) / (next.min - current.min)) * 100) : 100;
 
   return (
-    <section className="fx-rank-card pb-uiverse-card pb-uiverse-card--hero pb-aura relative overflow-hidden rounded-[28px] p-4 sm:p-5 lg:p-6">
-      <div className="pointer-events-none absolute -right-12 -top-20 size-56 rounded-full bg-[rgb(var(--accent-rgb)/0.12)] blur-3xl" />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
+    <section className="fx-rank-card pb-uiverse-card pb-aura relative overflow-hidden rounded-[22px] p-3.5 sm:p-4">
+      <div className="pointer-events-none absolute -right-12 -top-20 size-44 rounded-full bg-[rgb(var(--accent-rgb)/0.10)] blur-3xl" />
+      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center">
         {avatarUrl ? (
-          <div className="size-16 shrink-0 overflow-hidden rounded-full border border-[var(--border)] shadow-lg sm:size-20">
+          <div className="size-14 shrink-0 overflow-hidden rounded-full border border-[var(--border)] shadow-lg sm:size-16">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={avatarUrl} alt="" className="size-full object-cover" />
           </div>
         ) : (
-          <div className="grid size-16 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,var(--accent),var(--accent-2))] font-display text-2xl font-bold text-white shadow-lg sm:size-20 sm:text-3xl">
+          <div className="grid size-14 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,var(--accent),var(--accent-2))] font-display text-xl font-bold text-white shadow-lg sm:size-16 sm:text-2xl">
             {(username ?? "U").charAt(0).toUpperCase()}
           </div>
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-            <h1 className="truncate font-display text-2xl font-extrabold sm:text-3xl">{username ?? "Your profile"}</h1>
+            <h2 className="truncate font-display text-lg font-extrabold sm:text-xl">{username ?? "Your profile"}</h2>
             <span className="mb-0.5 rounded-full border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.1)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">{current.name}</span>
           </div>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">{total} tracked · {completed} completed · {progress.toFixed(0)}% completion</p>
-          <div className="mt-4 max-w-2xl">
+          <p className="mt-1 text-xs text-[var(--text-muted)] sm:text-sm">{total} tracked · {completed} completed · {progress.toFixed(0)}% completion</p>
+          <div className="mt-3 max-w-2xl">
             <div className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
               <span>{current.name}</span>
               <span>{next ? `${Math.max(0, next.min - total)} to ${next.name}` : "Top rank"}</span>

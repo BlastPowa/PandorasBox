@@ -9,7 +9,7 @@ export default async function StatsPage() {
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
       <div className="space-y-6">
         <DiscoveryPageHeader
-          eyebrow="Your story"
+          eyebrow="Tracking hub · Stats"
           title="Stats"
           description="See what you have finished, what you return to most, your favourite genres and how your library has grown over time."
         />

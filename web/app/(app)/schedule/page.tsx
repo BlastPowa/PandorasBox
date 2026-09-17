@@ -29,11 +29,11 @@ export default async function SchedulePage() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">
-      <DiscoveryPageHeader eyebrow="PBox Schedule" title="Release Calendar" description="Upcoming anime episodes, movie releases, and TV premieres—with a personal calendar for titles you track." actions={<div className="hidden size-12 place-items-center rounded-2xl bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent)] sm:grid"><CalendarDays className="size-6" /></div>} />
-      <div className="h-5" />
-      <TrackingHubNav active="schedule" />
-      <div className="h-5" />
-      <ScheduleBoard anime={anime} movies={movies} tv={tv} upcoming={upcoming} />
+      <div className="space-y-5">
+        <DiscoveryPageHeader eyebrow="Tracking hub · Schedule" title="Release Calendar" description="Upcoming anime episodes, movie releases and TV premieres, with a personal calendar for the titles you track." actions={<div className="hidden size-12 place-items-center rounded-2xl bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent)] sm:grid"><CalendarDays className="size-6" /></div>} />
+        <TrackingHubNav active="schedule" />
+        <ScheduleBoard anime={anime} movies={movies} tv={tv} upcoming={upcoming} />
+      </div>
     </div>
   );
 }
