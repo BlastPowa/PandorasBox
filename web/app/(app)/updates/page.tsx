@@ -115,6 +115,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Activity,
+    batch: "Revamp batch 12",
+    date: "17 September 2026",
+    title: "Settings & integrations control centre",
+    text: "Connected services now read like one tracking dashboard, with clearer sync health, coverage and actions across Simkl, Trakt, MyAnimeList and AniList.",
+    highlights: [
+      "Extension & Apps now opens automatically after an integration OAuth callback, so connection success and errors stay visible instead of dropping users back on Account.",
+      "A new integration summary shows connected services, Auto Sync coverage, the latest healthy sync and anything that needs attention.",
+      "Sync all connected runs every linked service from one control while keeping individual provider sync controls available.",
+      "Provider cards now show connection state, supported media coverage, external service links, account identity and clearer sync health context.",
+      "Auto Sync and disconnect actions now report failed updates safely, and expiring connections show useful future timing before reconnecting.",
+    ],
+  },
+  {
     icon: Dices,
     batch: "Revamp batch 11",
     date: "17 September 2026",
@@ -295,7 +309,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["11 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["12 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
