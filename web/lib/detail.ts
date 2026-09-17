@@ -12,7 +12,7 @@ import {
 } from "@core/api/tmdb";
 import type { TMDBEpisode, TMDBWatchProviders } from "@core/api/tmdb";
 import { getAniListMedia, formatAniListDescription } from "@core/api/anilist";
-import { getJikanAnime, getJikanAnimeEpisodes, searchJikanAnime } from "@core/api/jikan";
+import { getAllJikanAnimeEpisodes, getJikanAnime, searchJikanAnime } from "@core/api/jikan";
 import type { JikanAnime, JikanEpisode } from "@core/api/jikan";
 import { getMangaDexManga, getMangaDexChapters, getMangaDexCoverUrl } from "@core/api/mangadex";
 import type { MangaDexChapter } from "@core/api/mangadex";
@@ -287,6 +287,32 @@ function jikanTitleMatches(anime: JikanAnime, title: string): boolean {
   return candidates.some((candidate) => normaliseLookupTitle(candidate) === wanted);
 }
 
+function fillReleasedEpisodeGaps(episodes: JikanEpisode[], releasedCount: number): JikanEpisode[] {
+  const count = Math.max(0, Math.floor(releasedCount));
+  if (count === 0) return episodes;
+
+  const byNumber = new Map<number, JikanEpisode>();
+  for (const episode of episodes) {
+    if (Number.isFinite(episode.mal_id) && episode.mal_id > 0) {
+      byNumber.set(episode.mal_id, episode);
+    }
+  }
+
+  for (let episodeNumber = 1; episodeNumber <= count; episodeNumber += 1) {
+    if (!byNumber.has(episodeNumber)) {
+      byNumber.set(episodeNumber, {
+        mal_id: episodeNumber,
+        title: `Episode ${episodeNumber}`,
+        aired: "",
+        filler: false,
+        recap: false,
+      });
+    }
+  }
+
+  return Array.from(byNumber.values()).sort((a, b) => a.mal_id - b.mal_id);
+}
+
 function getAnimeMetadataFallback(anilistId: number, title: string, year?: number | null): DetailData {
   return {
     id: `anilist-${anilistId}`,
@@ -337,9 +363,13 @@ async function getJikanAnimeFallback(
 
   let animeEpisodes: JikanEpisode[] = [];
   try {
-    animeEpisodes = await getJikanAnimeEpisodes(anime.mal_id, 1);
+    animeEpisodes = await getAllJikanAnimeEpisodes(anime.mal_id);
   } catch {
     animeEpisodes = [];
+  }
+
+  if (anime.status === "Finished Airing" && anime.episodes) {
+    animeEpisodes = fillReleasedEpisodeGaps(animeEpisodes, anime.episodes);
   }
 
   const resolvedTitle = anime.title_english?.trim() || title;
@@ -395,9 +425,14 @@ async function getJikanAnimeDetail(malId: number): Promise<DetailData | null> {
 
   let animeEpisodes: JikanEpisode[] = [];
   try {
-    animeEpisodes = await getJikanAnimeEpisodes(malId, 1);
+    animeEpisodes = await getAllJikanAnimeEpisodes(malId);
   } catch {
     animeEpisodes = [];
+  }
+
+
+  if (anime.status === "Finished Airing" && anime.episodes) {
+    animeEpisodes = fillReleasedEpisodeGaps(animeEpisodes, anime.episodes);
   }
 
   const resolvedTitle = anime.title_english?.trim() || anime.title;
@@ -675,24 +710,23 @@ export async function getDetail(
       let animeEpisodes: JikanEpisode[] = [];
       if (!isManga && media.idMal !== null) {
         try {
-          animeEpisodes = await getJikanAnimeEpisodes(media.idMal, 1);
+          animeEpisodes = await getAllJikanAnimeEpisodes(media.idMal);
         } catch {
           animeEpisodes = [];
         }
       }
 
-      // Jikan can lag behind AniList for brand-new seasonal shows. AniList's
-      // next-airing record still tells us exactly how many episodes have aired,
-      // so keep the tracker usable until full episode metadata arrives.
-      if (!isManga && animeEpisodes.length === 0 && media.nextAiringEpisode?.episode) {
-        const releasedCount = Math.max(0, media.nextAiringEpisode.episode - 1);
-        animeEpisodes = Array.from({ length: releasedCount }, (_, index) => ({
-          mal_id: index + 1,
-          title: `Episode ${index + 1}`,
-          aired: "",
-          filler: false,
-          recap: false,
-        }));
+      // Jikan can lag behind AniList for new releases. Fill only episode numbers
+      // that AniList confirms have aired, while keeping Jikan's richer metadata.
+      if (!isManga) {
+        const releasedCount = media.status === "FINISHED"
+          ? media.episodes
+          : media.nextAiringEpisode?.episode
+            ? Math.max(0, media.nextAiringEpisode.episode - 1)
+            : null;
+        if (releasedCount) {
+          animeEpisodes = fillReleasedEpisodeGaps(animeEpisodes, releasedCount);
+        }
       }
 
       const anilistTitle = media.title.english ?? media.title.romaji;

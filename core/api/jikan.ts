@@ -55,6 +55,16 @@ export interface JikanEpisodeDetail {
   synopsis: string | null;
 }
 
+interface JikanPagination {
+  last_visible_page: number;
+  has_next_page: boolean;
+}
+
+interface JikanEpisodePage {
+  data: JikanEpisode[];
+  pagination?: JikanPagination;
+}
+
 let queueTail: Promise<void> = Promise.resolve();
 let lastRequestAt = 0;
 
@@ -115,10 +125,42 @@ export async function getJikanAnime(malId: number): Promise<JikanAnime> {
 }
 
 export async function getJikanAnimeEpisodes(malId: number, page?: number): Promise<JikanEpisode[]> {
-  const data = await jikanFetch<{ data: JikanEpisode[] }>(
+  const data = await jikanFetch<JikanEpisodePage>(
     `/anime/${malId}/episodes?page=${page ?? 1}`
   );
   return data.data;
+}
+
+export async function getAllJikanAnimeEpisodes(malId: number): Promise<JikanEpisode[]> {
+  const episodesByNumber = new Map<number, JikanEpisode>();
+  let page = 1;
+  const maxPages = 50;
+
+  while (page <= maxPages) {
+    let payload: JikanEpisodePage;
+    try {
+      payload = await jikanFetch<JikanEpisodePage>(`/anime/${malId}/episodes?page=${page}`);
+    } catch (error) {
+      if (episodesByNumber.size > 0) break;
+      throw error;
+    }
+
+    for (const episode of payload.data) {
+      if (Number.isFinite(episode.mal_id) && episode.mal_id > 0) {
+        episodesByNumber.set(episode.mal_id, episode);
+      }
+    }
+
+    const lastVisiblePage = payload.pagination?.last_visible_page;
+    const hasNextPage = payload.pagination?.has_next_page === true;
+    if (
+      !hasNextPage ||
+      (typeof lastVisiblePage === "number" && Number.isFinite(lastVisiblePage) && page >= lastVisiblePage)
+    ) break;
+    page += 1;
+  }
+
+  return Array.from(episodesByNumber.values()).sort((a, b) => a.mal_id - b.mal_id);
 }
 
 export async function getJikanEpisodeDetail(malId: number, episodeNumber: number): Promise<JikanEpisodeDetail | null> {
