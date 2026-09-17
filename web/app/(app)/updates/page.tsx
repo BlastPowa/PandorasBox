@@ -118,6 +118,20 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Clapperboard,
+    batch: "Revamp batch 22",
+    date: "17 September 2026",
+    title: "Home dashboard declutter & performance",
+    text: "Home now reaches the useful parts faster, with fewer duplicated rails, less startup work and a cleaner balance between discovery and personal progress.",
+    highlights: [
+      "The duplicate full-page hero backdrop was removed so Spotlight artwork is only rendered once on Home.",
+      "Library progress now sits directly below Continue Watching in a compact summary with Active, Planned, Done and Saved totals.",
+      "Personal recommendations are capped to the strongest recent context and top two media categories, with deeper discovery moved to Browse.",
+      "The Home-only upcoming schedule fetch and extra popular-anime bootstrap request were removed to reduce initial page work.",
+      "The lower Saved for later summary was consolidated into the Pick something for tonight area to reduce scrolling and repeated information.",
+    ],
+  },
+  {
     icon: Users,
     batch: "Revamp batch 21",
     date: "17 September 2026",
@@ -438,7 +452,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["21 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["22 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
