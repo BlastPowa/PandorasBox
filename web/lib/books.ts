@@ -46,8 +46,24 @@ interface OpenLibraryEdition {
   covers?: number[];
 }
 
-function coverUrl(coverId: number | null | undefined, size: "M" | "L" = "L"): string | null {
-  return coverId ? `https://covers.openlibrary.org/b/id/${coverId}-${size}.jpg` : null;
+function normalizedIsbn(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const clean = value.replace(/[-\s]/g, "").toUpperCase();
+  return /^(?:97[89]\d{10}|\d{9}[\dX])$/.test(clean) ? clean : null;
+}
+
+function coverUrl(
+  coverId: number | null | undefined,
+  isbn: string | null | undefined,
+  size: "M" | "L" = "L"
+): string | null {
+  if (Number.isFinite(coverId) && (coverId ?? 0) > 0) {
+    return `https://covers.openlibrary.org/b/id/${coverId}-${size}.jpg?default=false`;
+  }
+  const cleanIsbn = normalizedIsbn(isbn);
+  return cleanIsbn
+    ? `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-${size}.jpg?default=false`
+    : null;
 }
 
 function normalizeWorkId(key: string | undefined): string | null {
@@ -65,12 +81,12 @@ function mapSearchDoc(doc: OpenLibrarySearchDoc): BookSummary | null {
   const id = normalizeWorkId(doc.key);
   const title = doc.title?.trim();
   if (!id || !title) return null;
-  const isbn = doc.isbn?.find((value) => /^(97[89])?\d{9}[\dX]$/i.test(value.replace(/[-\s]/g, ""))) ?? doc.isbn?.[0] ?? null;
+  const isbn = doc.isbn?.map(normalizedIsbn).find((value): value is string => Boolean(value)) ?? null;
   return {
     id,
     title,
     authors: (doc.author_name ?? []).filter(Boolean).slice(0, 4),
-    coverUrl: coverUrl(doc.cover_i),
+    coverUrl: coverUrl(doc.cover_i, isbn),
     year: Number.isFinite(doc.first_publish_year) ? (doc.first_publish_year ?? null) : null,
     rating: Number.isFinite(doc.ratings_average) ? Math.round((doc.ratings_average ?? 0) * 10) / 10 : null,
     ratingsCount: doc.ratings_count ?? 0,
@@ -122,8 +138,8 @@ export async function searchBooks(query: string): Promise<BookSummary[]> {
 }
 
 export function annaArchiveSearchUrl(book: Pick<BookSummary, "isbn" | "title" | "authors">): string {
-  const query = book.isbn?.replace(/[-\s]/g, "") || [book.title, book.authors[0]].filter(Boolean).join(" ");
-  return `https://annas-archive.cc/search?q=${encodeURIComponent(query)}`;
+  const query = normalizedIsbn(book.isbn) || [book.title.trim(), book.authors[0]?.trim()].filter(Boolean).join(" ");
+  return `https://annas-archive.cc/s/?q=${encodeURIComponent(query)}`;
 }
 
 function descriptionText(value: OpenLibraryWork["description"]): string | null {
@@ -169,8 +185,10 @@ export async function getBookDetail(id: string): Promise<BookDetail | null> {
     }
   }))).filter((name): name is string => Boolean(name));
 
-  const isbn = editions.flatMap((edition) => edition.isbn_13 ?? []).find(Boolean)
-    ?? editions.flatMap((edition) => edition.isbn_10 ?? []).find(Boolean)
+  const isbn = editions
+    .flatMap((edition) => [...(edition.isbn_13 ?? []), ...(edition.isbn_10 ?? [])])
+    .map(normalizedIsbn)
+    .find((value): value is string => Boolean(value))
     ?? null;
   const coverId = work.covers?.find((value) => value > 0)
     ?? editions.flatMap((edition) => edition.covers ?? []).find((value) => value > 0)
@@ -183,7 +201,7 @@ export async function getBookDetail(id: string): Promise<BookDetail | null> {
     id: workId,
     title: work.title?.trim() || "Untitled book",
     authors,
-    coverUrl: coverUrl(coverId),
+    coverUrl: coverUrl(coverId, isbn),
     year: yearMatch ? Number.parseInt(yearMatch[0], 10) : null,
     rating: Number.isFinite(ratingAverage) ? Math.round((ratingAverage ?? 0) * 10) / 10 : null,
     ratingsCount: ratings?.summary?.count ?? 0,

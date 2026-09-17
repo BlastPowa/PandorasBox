@@ -6,6 +6,7 @@ import { getBookDetail } from "@/lib/books";
 import { AmbientBackground } from "@/components/home/ambient-background";
 import { BackButton } from "@/components/shell/back-button";
 import { ExpandableText } from "@/components/detail/expandable-text";
+import { BookCover } from "@/components/books/book-cover";
 
 export const revalidate = 21600;
 
@@ -43,11 +44,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
           <BackButton fallbackHref="/books" />
           <div className="mt-7 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-end sm:gap-8 lg:mt-12 lg:grid-cols-[auto_minmax(0,1fr)_280px]">
             <div className="relative aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-[22px] border border-white/20 bg-[var(--bg-elevated)] shadow-[0_28px_70px_rgba(0,0,0,.28)] sm:w-52 lg:w-56">
-              {book.coverUrl ? (
-                <Image src={book.coverUrl} alt={book.title} fill sizes="224px" className="object-cover" priority />
-              ) : (
-                <div className="grid size-full place-items-center px-5 text-center font-display text-lg font-bold text-[var(--text-muted)]">{book.title}</div>
-              )}
+              <BookCover src={book.coverUrl} title={book.title} sizes="224px" priority fallbackTitleClassName="text-lg" />
             </div>
 
             <div className="min-w-0 max-w-4xl pb-1">
@@ -69,7 +66,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <a href={book.annaArchiveUrl} target="_blank" rel="noopener noreferrer" className="pb-uiverse-button pb-uiverse-button--accent inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white">
-                  <ExternalLink className="size-4" /> Find on Anna&apos;s Archive
+                  <ExternalLink className="size-4" /> Search Anna&apos;s Archive
                 </a>
                 <a href={book.openLibraryUrl} target="_blank" rel="noopener noreferrer" className="pb-uiverse-button pb-uiverse-button--glass inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-[var(--text-secondary)]">
                   <ExternalLink className="size-4" /> Open Library

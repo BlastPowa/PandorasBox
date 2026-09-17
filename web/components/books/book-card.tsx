@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowUpRight, BookOpen, Star } from "lucide-react";
+import { ArrowUpRight, Star } from "lucide-react";
 import type { BookSummary } from "@/lib/books-shared";
+import { BookCover } from "@/components/books/book-cover";
 
 export function BookCard({ book }: { book: BookSummary }) {
   return (
@@ -10,16 +10,12 @@ export function BookCard({ book }: { book: BookSummary }) {
       className="pb-uiverse-card pb-aura group relative block overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--bg-surface)]"
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden">
-        {book.coverUrl ? (
-          <Image src={book.coverUrl} alt={book.title} fill sizes="(max-width: 768px) 40vw, 220px" className="object-cover transition-transform duration-500 group-hover:scale-[1.06]" />
-        ) : (
-          <div className="grid size-full place-items-center bg-[linear-gradient(160deg,var(--bg-elevated),var(--bg-surface))] px-5 text-center">
-            <div>
-              <BookOpen className="mx-auto size-8 text-[var(--accent)]" />
-              <p className="mt-3 line-clamp-3 font-display text-sm font-bold text-[var(--text-secondary)]">{book.title}</p>
-            </div>
-          </div>
-        )}
+        <BookCover
+          src={book.coverUrl}
+          title={book.title}
+          sizes="(max-width: 768px) 40vw, 220px"
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+        />
         <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(5,6,10,.96)_0%,rgba(5,6,10,.6)_30%,transparent_64%)]" />
         {book.rating !== null && (
           <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/55 px-2.5 py-1 text-[10px] font-extrabold text-white backdrop-blur-md">
