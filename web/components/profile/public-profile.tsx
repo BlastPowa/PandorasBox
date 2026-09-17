@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Activity, Award, CalendarDays, ChevronRight, Clock3, FolderHeart, Lock, Settings as SettingsIcon, ShieldCheck, Sparkles, UserPlus, Users } from "lucide-react";
+import { Activity, Award, CalendarDays, ChevronRight, Clock3, FolderHeart, Lock, MessageCircle, Settings as SettingsIcon, ShieldCheck, Sparkles, UserCheck, UserPlus, Users } from "lucide-react";
 import { sendFriendRequest } from "@/lib/friends/friends";
+import { createConversation } from "@/lib/messages/client";
 import { Button } from "@/components/ui-fx/button";
 import { EmptyState } from "@/components/ui-fx/feedback";
 import { BackButton } from "@/components/shell/back-button";
@@ -16,6 +18,24 @@ interface CollectionRow { id: string; name: string; description: string | null; 
 interface ActivityRow { id: string; verb: string; title: string | null; poster_url: string | null; media_type: string | null; media_key: string | null; meta?: Record<string, unknown> | null; created_at: string; }
 
 const VERB_LABEL: Record<string, string> = { started: "started", finished: "completed", rated: "rated", added: "added", progressed: "checked in", created_collection: "created a collection" };
+type ActivityFilter = "all" | "screen" | "anime" | "comics" | "games";
+
+const ACTIVITY_FILTERS: { id: ActivityFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "screen", label: "Movies & TV" },
+  { id: "anime", label: "Anime & Manga" },
+  { id: "comics", label: "Comics" },
+  { id: "games", label: "Games" },
+];
+
+function activityBucket(mediaType: string | null): ActivityFilter | "other" {
+  const type = (mediaType ?? "").toLowerCase();
+  if (type.includes("anime") || type.includes("manga")) return "anime";
+  if (type.includes("comic")) return "comics";
+  if (type.includes("game")) return "games";
+  if (["movie", "tv", "series", "show"].some((value) => type.includes(value))) return "screen";
+  return "other";
+}
 
 function progressDetail(row: ActivityRow) {
   const meta = row.meta;
@@ -35,8 +55,12 @@ function activityHref(row: ActivityRow) {
   return profileActivityHref(row.media_type, row.media_key, row.title);
 }
 
-export function PublicProfile({ profile, isOwner, visible, collections, activity }: { profile: ProfileRow; isOwner: boolean; visible: boolean; collections: CollectionRow[]; activity: ActivityRow[]; }) {
+export function PublicProfile({ profile, isOwner, signedIn, relationship, visible, collections, activity }: { profile: ProfileRow; isOwner: boolean; signedIn: boolean; relationship: "none" | "friends" | "outgoing" | "incoming" | "blocked"; visible: boolean; collections: CollectionRow[]; activity: ActivityRow[]; }) {
+  const router = useRouter();
   const [requested, setRequested] = useState(false);
+  const [relationshipState, setRelationshipState] = useState(relationship);
+  const [messageBusy, setMessageBusy] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const joinedDate = new Date(profile.created_at);
   const joined = joinedDate.toLocaleDateString(undefined, { year: "numeric", month: "long" });
   const accountYears = Math.max(0, Math.floor((Date.now() - joinedDate.getTime()) / 31_557_600_000));
@@ -45,6 +69,11 @@ export function PublicProfile({ profile, isOwner, visible, collections, activity
   const completed = activity.filter((row) => row.verb === "finished").length;
   const featured = collections.slice(0, 3);
   const recentPosters = activity.filter((row) => row.poster_url).slice(0, 8);
+  const filteredActivity = useMemo(
+    () => activityFilter === "all" ? activity : activity.filter((row) => activityBucket(row.media_type) === activityFilter),
+    [activity, activityFilter],
+  );
+  const activityCounts = useMemo(() => Object.fromEntries(ACTIVITY_FILTERS.map(({ id }) => [id, id === "all" ? activity.length : activity.filter((row) => activityBucket(row.media_type) === id).length])) as Record<ActivityFilter, number>, [activity]);
 
   const badges = [
     { label: "Collector", description: `${collections.length} public collection${collections.length === 1 ? "" : "s"}`, icon: FolderHeart, earned: collections.length > 0 },
@@ -54,8 +83,19 @@ export function PublicProfile({ profile, isOwner, visible, collections, activity
   ].filter((badge) => badge.earned);
 
   async function addFriend() {
-    try { await sendFriendRequest(profile.id); setRequested(true); toast.success("Friend request sent"); }
+    try { await sendFriendRequest(profile.id); setRequested(true); setRelationshipState("outgoing"); toast.success("Friend request sent"); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not send request"); }
+  }
+
+  async function openMessage() {
+    setMessageBusy(true);
+    try {
+      const conversation = await createConversation({ type: "direct", friendId: profile.id });
+      router.push(`/messages/${conversation.id}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not open conversation");
+      setMessageBusy(false);
+    }
   }
 
   const hasBackground = Boolean(profile.profile_background_url);
@@ -87,7 +127,24 @@ export function PublicProfile({ profile, isOwner, visible, collections, activity
         </div>
         <div className="flex flex-col gap-4 border-t border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">{profile.bio || "Tracking stories, worlds, and favourites across PBox."}</p>
-          {isOwner ? <Button asChild variant="glass" size="sm"><Link href="/settings"><SettingsIcon className="size-4" /> Edit profile</Link></Button> : <Button size="sm" onClick={() => void addFriend()} disabled={requested}><UserPlus className="size-4" /> {requested ? "Request sent" : "Add friend"}</Button>}
+          <div className="flex flex-wrap items-center gap-2">
+            {isOwner ? (
+              <Button asChild variant="glass" size="sm"><Link href="/settings"><SettingsIcon className="size-4" /> Edit profile</Link></Button>
+            ) : relationshipState === "friends" ? (
+              <>
+                <span className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[rgb(var(--accent-rgb)/0.22)] bg-[rgb(var(--accent-rgb)/0.1)] px-3 text-xs font-bold text-[var(--accent)]"><UserCheck className="size-4" /> Friends</span>
+                <Button size="sm" onClick={() => void openMessage()} loading={messageBusy}><MessageCircle className="size-4" /> Message</Button>
+              </>
+            ) : relationshipState === "incoming" ? (
+              <Button asChild size="sm"><Link href="/friends"><UserPlus className="size-4" /> Respond to request</Link></Button>
+            ) : relationshipState === "outgoing" || requested ? (
+              <Button size="sm" variant="glass" disabled><UserCheck className="size-4" /> Request sent</Button>
+            ) : relationshipState === "blocked" ? null : signedIn ? (
+              <Button size="sm" onClick={() => void addFriend()}><UserPlus className="size-4" /> Add friend</Button>
+            ) : (
+              <Button asChild size="sm"><Link href={`/login?next=/profile/${encodeURIComponent(profile.username ?? "")}`}><UserPlus className="size-4" /> Sign in to connect</Link></Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -102,9 +159,16 @@ export function PublicProfile({ profile, isOwner, visible, collections, activity
 
             <section>
               <div className="mb-3 flex items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Timeline</p><h2 className="font-display text-xl font-bold">Recent activity</h2></div><Clock3 className="size-4 text-[var(--text-muted)]" /></div>
-              {activity.length === 0 ? <p className="pb-uiverse-card rounded-2xl p-6 text-sm text-[var(--text-muted)]">No recent activity.</p> : (
+              {activity.length > 0 && <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {ACTIVITY_FILTERS.map(({ id, label }) => (
+                  <button key={id} type="button" onClick={() => setActivityFilter(id)} className={`min-h-9 shrink-0 rounded-full border px-3 text-xs font-bold transition ${activityFilter === id ? "border-transparent bg-[var(--accent)] text-white" : "border-[var(--border)] bg-[var(--glass)] text-[var(--text-secondary)] hover:text-[var(--text)]"}`}>
+                    {label} <span className="ml-1 opacity-65">{activityCounts[id]}</span>
+                  </button>
+                ))}
+              </div>}
+              {filteredActivity.length === 0 ? <p className="pb-uiverse-card rounded-2xl p-6 text-sm text-[var(--text-muted)]">{activity.length === 0 ? "No recent activity." : "No recent activity in this section."}</p> : (
                 <div className="relative space-y-3 before:absolute before:bottom-6 before:left-[27px] before:top-6 before:w-px before:bg-[linear-gradient(var(--accent),transparent)]">
-                  {activity.map((row, index) => {
+                  {filteredActivity.map((row, index) => {
                     const href = activityHref(row);
                     const detail = progressDetail(row);
                     const content = <><div className="relative z-10 shrink-0"><div className="relative h-[74px] w-[52px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-sm">{row.poster_url ? <Image src={row.poster_url} alt="" fill sizes="52px" className="object-cover" /> : <div className="grid size-full place-items-center"><Activity className="size-4 text-[var(--text-muted)]" /></div>}</div><span className="absolute -left-1 -top-1 grid size-5 place-items-center rounded-full border-2 border-[var(--bg-base)] bg-[var(--accent)] text-[9px] font-black text-white">{index + 1}</span></div><div className="min-w-0 flex-1 py-1"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-[rgb(var(--accent-rgb)/0.16)] bg-[rgb(var(--accent-rgb)/0.08)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--accent)]">{VERB_LABEL[row.verb] ?? row.verb}</span>{row.media_type && <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{row.media_type.replace(/_/g, " ")}</span>}{detail && <span className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-2 py-0.5 text-[9px] font-bold text-[var(--text-secondary)]">{detail}</span>}</div>{row.title && <p className="mt-1.5 line-clamp-1 font-display text-base font-bold">{row.title}</p>}<p className="mt-1 text-xs text-[var(--text-secondary)]">{profile.username} {detail ? `reached ${detail}` : `${VERB_LABEL[row.verb] ?? row.verb} this title`}</p><time className="mt-1.5 block text-[10px] text-[var(--text-muted)]">{new Date(row.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</time></div>{href && <ChevronRight className="mt-7 size-4 shrink-0 text-[var(--text-muted)] transition group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />}</>;

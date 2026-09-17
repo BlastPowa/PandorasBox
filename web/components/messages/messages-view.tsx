@@ -24,6 +24,16 @@ const CHAT_ATMOSPHERES = {
   royal: { label: "Lavender Haze", background: "radial-gradient(circle at 20% 10%, rgba(139,92,246,.26) 0%, transparent 42%), radial-gradient(circle at 85% 75%, rgba(250,204,21,.16) 0%, transparent 42%), var(--bg-base)" },
 } as const;
 
+type InboxFilter = "all" | "unread" | "pinned" | "direct" | "groups";
+
+const INBOX_FILTERS: { id: InboxFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "unread", label: "Unread" },
+  { id: "pinned", label: "Pinned" },
+  { id: "direct", label: "DMs" },
+  { id: "groups", label: "Groups" },
+];
+
 function useMobileChatViewport(active: boolean, containerRef: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     if (!active || !window.matchMedia("(max-width: 767px)").matches) return;
@@ -67,7 +77,7 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [inboxFilter, setInboxFilter] = useState<"all" | "unread" | "pinned">("all");
+  const [inboxFilter, setInboxFilter] = useState<InboxFilter>("all");
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const shellRef = useRef<HTMLDivElement>(null);
   useMobileChatViewport(Boolean(selectedId && !embedded), shellRef);
@@ -113,11 +123,16 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
     const needle = query.trim().toLowerCase();
     return conversations
       .filter((conversation) => {
-        if (!needle) return true;
-        const latest = conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? "";
-        return `${conversation.title} ${latest}`.toLowerCase().includes(needle);
+        if (needle) {
+          const latest = conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? "";
+          if (!`${conversation.title} ${latest}`.toLowerCase().includes(needle)) return false;
+        }
+        if (inboxFilter === "unread") return conversation.unreadCount > 0;
+        if (inboxFilter === "pinned") return pinnedIds.includes(conversation.id);
+        if (inboxFilter === "direct") return conversation.type === "direct";
+        if (inboxFilter === "groups") return conversation.type === "group";
+        return true;
       })
-      .filter((conversation) => inboxFilter === "all" || (inboxFilter === "unread" ? conversation.unreadCount > 0 : pinnedIds.includes(conversation.id)))
       .sort((a, b) => {
         const aPinned = pinnedIds.includes(a.id);
         const bPinned = pinnedIds.includes(b.id);
@@ -126,6 +141,8 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
       });
   }, [conversations, inboxFilter, pinnedIds, query]);
   const unreadThreads = useMemo(() => conversations.filter((conversation) => conversation.unreadCount > 0).length, [conversations]);
+  const directThreads = useMemo(() => conversations.filter((conversation) => conversation.type === "direct").length, [conversations]);
+  const groupThreads = conversations.length - directThreads;
 
   return (
     <div
@@ -147,9 +164,9 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search conversations" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
             </label>
             <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {(["all", "unread", "pinned"] as const).map((filter) => (
-                <button key={filter} type="button" onClick={() => setInboxFilter(filter)} className={cn("min-h-9 shrink-0 rounded-full border px-3 text-xs font-bold capitalize transition", inboxFilter === filter ? "border-transparent bg-[var(--accent)] text-white shadow-sm" : "border-[var(--border)] bg-[var(--glass)] text-[var(--text-secondary)] hover:text-[var(--text)]")}>
-                  {filter}{filter === "unread" && unreadThreads > 0 ? ` ${unreadThreads}` : filter === "pinned" && pinnedIds.length > 0 ? ` ${pinnedIds.length}` : ""}
+              {INBOX_FILTERS.map(({ id: filter, label }) => (
+                <button key={filter} type="button" onClick={() => setInboxFilter(filter)} className={cn("min-h-9 shrink-0 rounded-full border px-3 text-xs font-bold transition", inboxFilter === filter ? "border-transparent bg-[var(--accent)] text-white shadow-sm" : "border-[var(--border)] bg-[var(--glass)] text-[var(--text-secondary)] hover:text-[var(--text)]")}>
+                  {label}{filter === "unread" && unreadThreads > 0 ? ` ${unreadThreads}` : filter === "pinned" && pinnedIds.length > 0 ? ` ${pinnedIds.length}` : filter === "direct" && directThreads > 0 ? ` ${directThreads}` : filter === "groups" && groupThreads > 0 ? ` ${groupThreads}` : ""}
                 </button>
               ))}
             </div>
@@ -507,6 +524,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
     );
   const mine = detail.members.find((member) => member.user_id === myId);
   const activeMembers = detail.members.filter((member) => member.status === "active");
+  const directMember = detail.type === "direct" ? detail.members.find((member) => member.user_id !== myId) : null;
   const typingNames = typingIds.map((userId) => detail.members.find((member) => member.user_id === userId)?.profile?.username ?? "Someone");
   const typingLabel = typingNames.length === 0
     ? null
@@ -541,11 +559,18 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
         <button type="button" onClick={onBack} className="grid size-11 place-items-center rounded-full hover:bg-[var(--glass)] md:hidden" aria-label="Back to conversations">
           <ChevronLeft />
         </button>
-        <Avatar url={detail.type === "direct" ? (detail.members.find((member) => member.user_id !== myId)?.profile?.avatar_url ?? null) : detail.avatar_url} label={detail.title} group={detail.type === "group"} />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate font-display font-bold">{detail.title}</h2>
-          <p className="truncate text-xs text-[var(--text-muted)]">{typingLabel ?? (detail.type === "group" ? `${activeMembers.length} members` : "Direct message")}</p>
-        </div>
+        <Avatar url={detail.type === "direct" ? (directMember?.profile?.avatar_url ?? null) : detail.avatar_url} label={detail.title} group={detail.type === "group"} />
+        {detail.type === "direct" && directMember?.profile?.username ? (
+          <Link href={`/profile/${encodeURIComponent(directMember.profile.username)}`} className="min-w-0 flex-1 rounded-lg outline-none transition hover:text-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-surface)]">
+            <h2 className="truncate font-display font-bold">{detail.title}</h2>
+            <p className="truncate text-xs text-[var(--text-muted)]">{typingLabel ?? "View profile"}</p>
+          </Link>
+        ) : (
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate font-display font-bold">{detail.title}</h2>
+            <p className="truncate text-xs text-[var(--text-muted)]">{typingLabel ?? `${activeMembers.length} members`}</p>
+          </div>
+        )}
         <Link href={`/messages/${id}/settings`} className="grid size-11 place-items-center rounded-full hover:bg-[var(--glass)]" aria-label="Conversation settings"><MoreHorizontal /></Link>
       </header>
       <div ref={messageListRef} className="relative z-[1] min-h-0 flex-1 overscroll-contain overflow-y-auto px-3 py-4 sm:px-5">

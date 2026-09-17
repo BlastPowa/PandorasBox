@@ -21,6 +21,21 @@ export interface Collection {
   updated_at: string | null;
 }
 
+export interface PublicCollection extends Collection {
+  owner_id: string;
+  owner_username: string;
+  owner_avatar_url: string | null;
+}
+
+export type CollectionReactionKind = "like" | "save";
+
+export interface CollectionReactionSummary {
+  likes: number;
+  saves: number;
+  liked: boolean;
+  saved: boolean;
+}
+
 /** A snapshotted collection item — renders without the owner's library. */
 export interface CollectionItem {
   item_id: string;
@@ -59,6 +74,33 @@ function normalize(row: Record<string, unknown>): Collection {
   };
 }
 
+async function normalizePublicRows(rows: Record<string, unknown>[]): Promise<PublicCollection[]> {
+  const supabase = createClient();
+  const ownerIds = [...new Set(rows.map((row) => row.user_id as string).filter(Boolean))];
+  const owners = new Map<string, { username: string; avatar_url: string | null }>();
+
+  if (ownerIds.length > 0) {
+    const { data: profileRows } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .in("id", ownerIds);
+    for (const profile of (profileRows as { id: string; username: string | null; avatar_url: string | null }[] | null) ?? []) {
+      owners.set(profile.id, { username: profile.username ?? "PBox user", avatar_url: profile.avatar_url ?? null });
+    }
+  }
+
+  return rows.map((row) => {
+    const ownerId = row.user_id as string;
+    const owner = owners.get(ownerId);
+    return {
+      ...normalize(row),
+      owner_id: ownerId,
+      owner_username: owner?.username ?? "PBox user",
+      owner_avatar_url: owner?.avatar_url ?? null,
+    };
+  });
+}
+
 export async function listCollections(): Promise<Collection[]> {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -71,6 +113,129 @@ export async function listCollections(): Promise<Collection[]> {
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return ((data as Record<string, unknown>[] | null) ?? []).map(normalize);
+}
+
+export async function listPublicCollections(limit = 24): Promise<PublicCollection[]> {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id ?? null;
+  let result = await supabase
+    .from("collections")
+    .select(COLLECTION_FIELDS)
+    .eq("visibility", "public")
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (result.error && /column .* does not exist|schema cache/i.test(result.error.message)) {
+    result = await supabase
+      .from("collections")
+      .select(COLLECTION_FIELDS)
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+  }
+  if (result.error) throw new Error(result.error.message);
+
+  const rows = ((result.data as Record<string, unknown>[] | null) ?? [])
+    .filter((row) => row.user_id !== uid);
+  return normalizePublicRows(rows);
+}
+
+export async function listSavedCollections(limit = 48): Promise<PublicCollection[]> {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return [];
+
+  const { data: savedRows, error: savedError } = await supabase
+    .from("collection_reactions")
+    .select("collection_id, created_at")
+    .eq("user_id", uid)
+    .eq("reaction", "save")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (savedError) throw new Error(savedError.message);
+
+  const savedIds = ((savedRows as { collection_id: string; created_at: string }[] | null) ?? []).map((row) => row.collection_id);
+  if (savedIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("collections")
+    .select(COLLECTION_FIELDS)
+    .in("id", savedIds)
+    .eq("visibility", "public");
+  if (error) throw new Error(error.message);
+
+  const order = new Map(savedIds.map((id, index) => [id, index]));
+  const rows = ((data as Record<string, unknown>[] | null) ?? [])
+    .filter((row) => row.user_id !== uid)
+    .sort((a, b) => (order.get(a.id as string) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.id as string) ?? Number.MAX_SAFE_INTEGER));
+  return normalizePublicRows(rows);
+}
+
+export async function getCollectionReactionSummaries(collectionIds: string[]): Promise<Record<string, CollectionReactionSummary>> {
+  if (collectionIds.length === 0) return {};
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+
+  const [countsResult, ownResult] = await Promise.all([
+    supabase.rpc("collection_reaction_counts", { p_collection_ids: collectionIds }),
+    uid
+      ? supabase
+          .from("collection_reactions")
+          .select("collection_id, reaction")
+          .eq("user_id", uid)
+          .in("collection_id", collectionIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (countsResult.error) throw new Error(countsResult.error.message);
+  if (ownResult.error) throw new Error(ownResult.error.message);
+
+  const summaries: Record<string, CollectionReactionSummary> = Object.fromEntries(
+    collectionIds.map((id) => [id, { likes: 0, saves: 0, liked: false, saved: false }])
+  );
+  for (const row of (countsResult.data as { collection_id: string; like_count: number | string; save_count: number | string }[] | null) ?? []) {
+    summaries[row.collection_id] = {
+      ...(summaries[row.collection_id] ?? { likes: 0, saves: 0, liked: false, saved: false }),
+      likes: Number(row.like_count ?? 0),
+      saves: Number(row.save_count ?? 0),
+    };
+  }
+  for (const row of (ownResult.data as { collection_id: string; reaction: CollectionReactionKind }[] | null) ?? []) {
+    const current = summaries[row.collection_id] ?? { likes: 0, saves: 0, liked: false, saved: false };
+    summaries[row.collection_id] = {
+      ...current,
+      liked: current.liked || row.reaction === "like",
+      saved: current.saved || row.reaction === "save",
+    };
+  }
+  return summaries;
+}
+
+export async function toggleCollectionReaction(collectionId: string, reaction: CollectionReactionKind, active: boolean): Promise<boolean> {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) throw new Error("Sign in required");
+
+  if (active) {
+    const { error } = await supabase
+      .from("collection_reactions")
+      .delete()
+      .eq("collection_id", collectionId)
+      .eq("user_id", uid)
+      .eq("reaction", reaction);
+    if (error) throw new Error(error.message);
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("collection_reactions")
+    .upsert({ collection_id: collectionId, user_id: uid, reaction }, { onConflict: "collection_id,user_id,reaction" });
+  if (error) throw new Error(error.message);
+  return true;
 }
 
 export async function createCollection(

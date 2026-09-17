@@ -39,6 +39,18 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   };
   const isOwner = viewer?.id === row.id;
 
+  let relationship: "none" | "friends" | "outgoing" | "incoming" | "blocked" = "none";
+  if (!isOwner && viewer) {
+    const { data: friendship } = await supabase
+      .from("friendships")
+      .select("requester, addressee, status")
+      .or(`and(requester.eq.${viewer.id},addressee.eq.${row.id}),and(requester.eq.${row.id},addressee.eq.${viewer.id})`)
+      .maybeSingle();
+    if (friendship?.status === "accepted") relationship = "friends";
+    else if (friendship?.status === "pending") relationship = friendship.requester === viewer.id ? "outgoing" : "incoming";
+    else if (friendship?.status === "blocked") relationship = "blocked";
+  }
+
   let visible = row.privacy === "public" || isOwner;
   if (!visible && row.privacy === "friends" && viewer) {
     const { data } = await supabase.rpc("are_friends", { a: viewer.id, b: row.id });
@@ -68,6 +80,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     <PublicProfile
       profile={row}
       isOwner={isOwner}
+      signedIn={Boolean(viewer)}
+      relationship={relationship}
       visible={visible}
       collections={collections ?? []}
       activity={activity ?? []}
