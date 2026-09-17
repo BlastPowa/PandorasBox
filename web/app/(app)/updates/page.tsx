@@ -118,6 +118,22 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: BarChart3,
+    batch: "Revamp batch 32",
+    date: "17 September 2026",
+    title: "One connected tracking hub",
+    text: "Library, Schedule and Stats now share one clearer hierarchy, with faster access to the information people use most and less visual weight above the actual tracking tools.",
+    highlights: [
+      "Library, Schedule and Stats now use the same tracking-hub header and navigation pattern so moving between progress, releases and analytics feels consistent.",
+      "The tracking navigation is more compact on small screens while preserving large touch targets and clear active states.",
+      "Schedule replaces the heavy poster-collage hero with a compact weekly overview, reducing image work and getting users to the calendar sooner.",
+      "Schedule keeps Anime, Movies and TV release totals visible at a glance while the personal My List calendar stays directly below.",
+      "Stats now surfaces Tracked, Completed, Average Rating and Watch Time before the profile rank panel, making the main numbers faster to scan.",
+      "The Stats rank panel is shorter and lighter while retaining progression, completion and next-rank context.",
+      "Focused lint, nonincremental TypeScript and the full 61-route production build pass after the tracking-hub redesign.",
+    ],
+  },
+  {
     icon: Clapperboard,
     batch: "Revamp batch 31",
     date: "17 September 2026",
@@ -582,7 +598,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["31 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["32 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
