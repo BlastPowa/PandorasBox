@@ -118,6 +118,21 @@ const RELEASES = [
 
 const ROLLING_RELEASES = [
   {
+    icon: Library,
+    batch: "Revamp batch 26",
+    date: "17 September 2026",
+    title: "Collection editing & review polish",
+    text: "Collections are easier to finish and maintain, while review edits now behave and sort like real updates instead of looking like brand-new posts.",
+    highlights: [
+      "Collection owners can now edit the collection name and description directly from the collection page.",
+      "Collections now support editable comma-separated tags, deduplicated and capped for cleaner public shelves.",
+      "Existing visibility, covers, sharing, saves, likes, sorting and item management stay available alongside the new metadata editor.",
+      "Review edit mode now restores the saved review when cancelled instead of keeping abandoned draft changes.",
+      "Edited reviews show an edited marker and use their latest update time for Recent ordering and timestamps.",
+      "Review edit and delete controls now include explicit accessible labels.",
+    ],
+  },
+  {
     icon: Dices,
     batch: "Revamp batch 25",
     date: "17 September 2026",
@@ -494,7 +509,7 @@ export default function UpdatesPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-            {["25 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
+            {["26 shipped batches", "Rolling release log", "Light + Dark", "Mobile ready"].map((label) => (
               <span key={label} className="pb-uiverse-row rounded-xl px-3 py-2 text-center text-xs font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
