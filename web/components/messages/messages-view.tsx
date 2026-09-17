@@ -8,7 +8,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, ImagePlus, Laugh, Loader2, MessageCircle, MoreHorizontal, Pin, Plus, Reply, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui-fx/button";
-import { EmptyState } from "@/components/ui-fx/feedback";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProfilesByIds, listMyFriendships, type ProfileSummary } from "@/lib/friends/friends";
 import { conversationAction, createConversation, getConversation, listConversations, messageAction, sendMessage } from "@/lib/messages/client";
@@ -33,6 +32,18 @@ const INBOX_FILTERS: { id: InboxFilter; label: string }[] = [
   { id: "direct", label: "DMs" },
   { id: "groups", label: "Groups" },
 ];
+
+function formatConversationTimestamp(value: string) {
+  const date = new Date(value);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfMessageDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayDelta = Math.round((startOfToday - startOfMessageDay) / 86_400_000);
+  if (dayDelta === 0) return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (dayDelta === 1) return "Yesterday";
+  if (dayDelta > 1 && dayDelta < 7) return date.toLocaleDateString([], { weekday: "short" });
+  return date.toLocaleDateString([], { day: "numeric", month: "short" });
+}
 
 function useMobileChatViewport(active: boolean, containerRef: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
@@ -150,15 +161,21 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
       className={cn("overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl", embedded ? "min-h-[620px] rounded-[var(--radius-xl)]" : "h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height)-2rem)] min-h-[520px] rounded-[var(--radius-xl)] md:min-h-[620px]", selectedId && !embedded && "max-md:fixed max-md:inset-0 max-md:z-[60] max-md:h-dvh max-md:min-h-0 max-md:rounded-none max-md:border-0 max-md:pt-[var(--safe-top)]")}
     >
       <div className="grid size-full md:grid-cols-[320px_1fr] lg:grid-cols-[360px_1fr]">
-        <aside className={cn("flex min-h-0 flex-col border-r border-[var(--border)]", selectedId && "hidden md:flex")}>
-          <div className="space-y-3 border-b border-[var(--border)] p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl font-bold">Messages</h2>
-              <Button size="icon" variant="glass" aria-label="New conversation" onClick={() => setCreateOpen(true)}>
+        <aside className={cn("flex min-h-0 flex-col border-r border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-surface)_94%,transparent)]", selectedId && "hidden md:flex")}>
+          <div className="space-y-4 border-b border-[var(--border)] p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)]">Social inbox</p>
+                <h2 className="mt-1 font-display text-2xl font-extrabold tracking-tight">Messages</h2>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {loading ? "Loading conversations…" : unreadThreads > 0 ? `${unreadThreads} unread ${unreadThreads === 1 ? "thread" : "threads"}` : conversations.length > 0 ? "You’re caught up" : "Start a conversation with a friend"}
+                </p>
+              </div>
+              <Button size="icon" variant="glass" className="size-11 shrink-0 rounded-full" aria-label="New conversation" onClick={() => setCreateOpen(true)}>
                 <Plus className="size-5" />
               </Button>
             </div>
-            <label className="flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3">
+            <label className="flex h-11 items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-base)] px-3 shadow-sm transition focus-within:border-[rgb(var(--accent-rgb)/0.55)] focus-within:ring-2 focus-within:ring-[rgb(var(--accent-rgb)/0.12)]">
               <Search className="size-4 text-[var(--text-muted)]" />
               <span className="sr-only">Search conversations</span>
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search conversations" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
@@ -171,16 +188,21 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
               ))}
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto py-2">
             {loading ? (
-              <div className="space-y-2 p-3">
+              <div className="space-y-2 px-3">
                 {Array.from({ length: 5 }).map((_, index) => (
                   <div key={index} className="skeleton h-16 rounded-xl" />
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="p-6 text-center text-sm text-[var(--text-muted)]">
-                {query.trim() ? "No conversations match that search." : inboxFilter === "unread" ? "You are all caught up." : inboxFilter === "pinned" ? "Pin a conversation to keep it close." : "No conversations yet."}
+              <div className="mx-3 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--glass)] p-6 text-center">
+                <MessageCircle className="mx-auto size-7 text-[var(--accent)]" />
+                <p className="mt-3 text-sm font-bold text-[var(--text-primary)]">{query.trim() ? "No matches" : inboxFilter === "unread" ? "Inbox cleared" : inboxFilter === "pinned" ? "Nothing pinned yet" : "No conversations yet"}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                  {query.trim() ? "Try a different name or message." : inboxFilter === "unread" ? "New messages will appear here as they arrive." : inboxFilter === "pinned" ? "Pin a conversation to keep it at the top." : "Start a direct message or create a group with friends."}
+                </p>
+                {!query.trim() && inboxFilter === "all" && <Button size="sm" className="mt-4" onClick={() => setCreateOpen(true)}><Plus className="size-4" /> New conversation</Button>}
               </div>
             ) : (
               filtered.map((conversation) => <ConversationRow key={conversation.id} conversation={conversation} myId={myId} active={selectedId === conversation.id} pinned={pinnedIds.includes(conversation.id)} onPin={() => setPinned(conversation.id)} onClick={() => setSelectedId(conversation.id)} />)
@@ -201,7 +223,14 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
               onChanged={() => void load()}
             />
           ) : (
-            <EmptyState icon={<MessageCircle className="size-11" />} title="Choose a conversation" description="Message a friend or create a group to start talking." />
+            <div className="grid size-full place-items-center p-8">
+              <div className="max-w-sm text-center">
+                <span className="mx-auto grid size-16 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--glass)] text-[var(--accent)] shadow-sm"><MessageCircle className="size-7" /></span>
+                <h3 className="mt-5 font-display text-2xl font-extrabold tracking-tight">Pick up a conversation</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">Choose a thread from your inbox or start a new direct message or group.</p>
+                <Button className="mt-5" onClick={() => setCreateOpen(true)}><Plus className="size-4" /> New conversation</Button>
+              </div>
+            </div>
           )}
         </main>
       </div>
@@ -223,13 +252,13 @@ function ConversationRow({ conversation, myId, active, pinned, onPin, onClick }:
   const mine = conversation.members.find((member) => member.user_id === myId);
   const avatar = conversation.type === "direct" ? other?.avatar_url : null;
   return (
-    <div className={cn("group flex min-h-[76px] w-full items-center border-b border-[var(--border)] transition hover:bg-[var(--glass)]", active && "bg-[rgb(var(--accent-rgb)/0.1)]", pinned && "shadow-[inset_3px_0_0_rgb(var(--accent-rgb)/0.7)]")}>
-      <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left">
+    <div className={cn("group mx-2 my-1 flex min-h-[74px] items-center rounded-2xl border border-transparent transition hover:border-[var(--border)] hover:bg-[var(--glass)]", active && "border-[rgb(var(--accent-rgb)/0.22)] bg-[rgb(var(--accent-rgb)/0.1)] shadow-sm", pinned && !active && "bg-[rgb(var(--accent-rgb)/0.04)]")}>
+      <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 text-left sm:px-3.5">
         <Avatar url={conversation.type === "group" ? conversation.avatar_url : (avatar ?? null)} label={conversation.title} group={conversation.type === "group"} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center justify-between gap-2">
             <span className="flex min-w-0 items-center gap-1.5"><strong className="truncate text-sm">{conversation.title}</strong>{pinned && <Pin className="size-3 shrink-0 fill-current text-[var(--accent)]" />}</span>
-            <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{new Date(conversation.updated_at).toLocaleDateString()}</span>
+            <span className={cn("shrink-0 text-[10px] font-medium", conversation.unreadCount > 0 ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{formatConversationTimestamp(conversation.updated_at)}</span>
           </span>
           <span className="mt-1 flex items-center justify-between gap-2">
             <span className="line-clamp-1 text-xs text-[var(--text-muted)]">{mine?.status === "invited" ? "Group invitation" : conversation.latestMessage?.deleted_at ? "Message removed" : (conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? (conversation.latestMessage?.media_attachment?.kind === "sticker" ? "Sticker" : conversation.latestMessage?.media_attachment?.kind === "gif" ? "GIF" : conversation.latestMessage?.media_attachment ? "Image" : "Start the conversation"))}</span>
@@ -563,7 +592,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
         {detail.type === "direct" && directMember?.profile?.username ? (
           <Link href={`/profile/${encodeURIComponent(directMember.profile.username)}`} className="min-w-0 flex-1 rounded-lg outline-none transition hover:text-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-surface)]">
             <h2 className="truncate font-display font-bold">{detail.title}</h2>
-            <p className="truncate text-xs text-[var(--text-muted)]">{typingLabel ?? "View profile"}</p>
+            <p className="truncate text-xs text-[var(--text-muted)]">{typingLabel ?? "Direct message · View profile"}</p>
           </Link>
         ) : (
           <div className="min-w-0 flex-1">
