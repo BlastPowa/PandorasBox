@@ -63,8 +63,6 @@ export function PublicProfile({ profile, isOwner, signedIn, relationship, visibl
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const joinedDate = new Date(profile.created_at);
   const joined = joinedDate.toLocaleDateString(undefined, { year: "numeric", month: "long" });
-  const accountYears = Math.max(0, Math.floor((Date.now() - joinedDate.getTime()) / 31_557_600_000));
-  const level = Math.max(1, Math.min(99, 1 + accountYears * 5 + collections.length * 2 + Math.floor(activity.length / 3)));
   const uniqueTitles = useMemo(() => new Set(activity.map((row) => row.title).filter(Boolean)).size, [activity]);
   const completed = activity.filter((row) => row.verb === "finished").length;
   const featured = collections.slice(0, 3);
@@ -110,23 +108,23 @@ export function PublicProfile({ profile, isOwner, signedIn, relationship, visibl
       <BackButton className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)]" />
 
       <header className={`relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--media-border)] shadow-2xl ${hasBackground ? "bg-[rgb(12_12_18/0.84)] backdrop-blur-xl" : "bg-[var(--bg-surface)]"}`}>
-        <div className="relative h-56 sm:h-72 lg:h-80">
+        <div className="relative h-48 sm:h-56 lg:h-64">
           {profile.banner_url ? <Image src={profile.banner_url} alt={`${profile.username ?? "User"}'s profile banner`} fill priority sizes="(max-width: 1200px) 100vw, 1200px" className="object-cover" /> : <div className="size-full bg-[radial-gradient(circle_at_70%_20%,rgb(var(--accent-2-rgb)/0.5),transparent_38%),radial-gradient(circle_at_20%_80%,rgb(var(--accent-rgb)/0.55),transparent_42%),linear-gradient(145deg,#171724,#08080d)]" />}
           <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--bg-surface)_0%,rgb(10_10_15/0.62)_42%,transparent_76%)]" />
-          <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 sm:gap-6 sm:p-8">
-            <div className="relative size-24 shrink-0 overflow-hidden rounded-full border-4 border-[var(--accent)] bg-[var(--bg-elevated)] shadow-[0_0_0_4px_rgb(10_10_15/0.88),0_0_30px_rgb(var(--accent-rgb)/0.45)] sm:size-32">
-              {profile.avatar_url ? <Image src={profile.avatar_url} alt={`${profile.username ?? "User"}'s avatar`} fill priority sizes="128px" className="object-cover" /> : <div className="grid size-full place-items-center font-display text-4xl font-bold text-[var(--text-muted)]">{profile.username?.[0]?.toUpperCase() ?? "?"}</div>}
+          <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 sm:gap-5 sm:p-7">
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-full border-4 border-[var(--accent)] bg-[var(--bg-elevated)] shadow-[0_0_0_4px_rgb(10_10_15/0.88),0_0_24px_rgb(var(--accent-rgb)/0.36)] sm:size-24">
+              {profile.avatar_url ? <Image src={profile.avatar_url} alt={`${profile.username ?? "User"}'s avatar`} fill priority sizes="96px" className="object-cover" /> : <div className="grid size-full place-items-center font-display text-3xl font-bold text-[var(--text-muted)]">{profile.username?.[0]?.toUpperCase() ?? "?"}</div>}
             </div>
             <div className="min-w-0 flex-1 pb-1">
-              <div className="flex flex-wrap items-center gap-3"><h1 className="truncate font-display text-2xl font-extrabold sm:text-4xl">{profile.username}</h1><span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--accent-rgb)/0.4)] bg-[rgb(var(--accent-rgb)/0.18)] px-3 py-1 text-xs font-bold text-[var(--accent)]"><span className="size-2 rounded-full bg-[var(--completed)] shadow-[0_0_10px_var(--completed)]" /> Collector</span></div>
+              <div className="flex flex-wrap items-center gap-2.5"><h1 className="truncate font-display text-2xl font-extrabold sm:text-3xl">{profile.username}</h1><span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.16)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]"><ShieldCheck className="size-3" /> {profile.privacy === "public" ? "Public" : profile.privacy === "friends" ? "Friends" : "Private"}</span></div>
               <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-secondary)] sm:text-sm"><CalendarDays className="size-3.5" /> PBox member since {joined}</p>
             </div>
-            <div className="hidden rounded-full bg-[rgb(10_10_15/0.7)] p-1.5 sm:block"><div className="grid size-16 place-items-center rounded-full border-2 border-[var(--accent)] bg-[var(--bg-surface)] text-center shadow-[0_0_28px_rgb(var(--accent-rgb)/0.25)]"><span><span className="block text-[9px] uppercase tracking-widest text-[var(--text-muted)]">Level</span><strong className="font-mono text-xl text-[var(--accent)]">{level}</strong></span></div></div>
           </div>
         </div>
-        <div className="flex flex-col gap-4 border-t border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">{profile.bio || "Tracking stories, worlds, and favourites across PBox."}</p>
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="border-t border-[var(--border)] px-5 py-4 sm:px-7">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">{profile.bio || "Tracking stories, worlds, and favourites across PBox."}</p>
+            <div className="flex flex-wrap items-center gap-2">
             {isOwner ? (
               <Button asChild variant="glass" size="sm"><Link href="/settings"><SettingsIcon className="size-4" /> Edit profile</Link></Button>
             ) : relationshipState === "friends" ? (
@@ -143,17 +141,28 @@ export function PublicProfile({ profile, isOwner, signedIn, relationship, visibl
             ) : (
               <Button asChild size="sm"><Link href={`/login?next=/profile/${encodeURIComponent(profile.username ?? "")}`}><UserPlus className="size-4" /> Sign in to connect</Link></Button>
             )}
+            </div>
           </div>
-        </div>
+          {visible && (
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Profile statistics">
+              {[
+                { label: "Collections", value: collections.length, icon: FolderHeart },
+                { label: "Recent titles", value: uniqueTitles, icon: Activity },
+                { label: "Completions", value: completed, icon: Award },
+              ].map(({ label, value, icon: Icon }) => (
+                <div key={label} className="flex min-w-[132px] shrink-0 items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--glass)] px-3 py-2.5">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[rgb(var(--accent-rgb)/0.1)] text-[var(--accent)]"><Icon className="size-4" /></span>
+                  <span><strong className="block font-mono text-sm leading-none">{value}</strong><span className="mt-1 block text-[10px] text-[var(--text-muted)]">{label}</span></span>
+                </div>
+              ))}
+            </div>
+          )}
+          </div>
       </header>
 
       {!visible ? <div className="mt-6"><EmptyState icon={profile.privacy === "friends" ? <Users className="size-10" /> : <Lock className="size-10" />} title={profile.privacy === "friends" ? "Friends only" : "Private profile"} description={profile.privacy === "friends" ? "Add this person as a friend to see their collections and activity." : "This user has set their profile to private."} /></div> : (
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <main className="min-w-0 space-y-6">
-            <section className="grid grid-cols-3 gap-3" aria-label="Profile statistics">
-              {[{ label: "Collections", value: collections.length, icon: FolderHeart }, { label: "Recent titles", value: uniqueTitles, icon: Activity }, { label: "Completions", value: completed, icon: Award }].map(({ label, value, icon: Icon }) => <div key={label} className="pb-uiverse-card pb-uiverse-card--compact rounded-2xl p-4"><div className="mb-5 grid size-9 place-items-center rounded-xl border border-[rgb(var(--accent-rgb)/0.18)] bg-[rgb(var(--accent-rgb)/0.10)] text-[var(--accent)]"><Icon className="size-4.5" /></div><strong className="block font-mono text-2xl">{value}</strong><span className="text-xs text-[var(--text-muted)]">{label}</span></div>)}
-            </section>
-
             {featured.length > 0 && <section><div className="mb-3 flex items-center justify-between"><h2 className="font-display text-xl font-bold">Featured collections</h2><span className="text-xs text-[var(--text-muted)]">Curated by {profile.username}</span></div><div className="grid gap-3 sm:grid-cols-3">{featured.map((collection, index) => <Link key={collection.id} href={`/collections/${collection.id}`} className="group relative min-h-48 overflow-hidden rounded-2xl border border-[var(--media-border)] bg-[var(--bg-surface)]"><>{collection.cover_url ? <Image src={collection.cover_url} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /> : recentPosters[index]?.poster_url ? <Image src={recentPosters[index].poster_url!} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover opacity-60 transition duration-500 group-hover:scale-105" /> : <div className="size-full bg-[linear-gradient(145deg,rgb(var(--accent-rgb)/0.35),rgb(var(--accent-2-rgb)/0.12))]" />}</><div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" /><div className="absolute inset-x-0 bottom-0 p-4"><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Featured</p><h3 className="mt-1 font-display text-lg font-bold">{collection.name}</h3>{collection.description && <p className="mt-1 line-clamp-2 text-xs text-white/65">{collection.description}</p>}</div></Link>)}</div></section>}
 
             <section>
@@ -180,7 +189,6 @@ export function PublicProfile({ profile, isOwner, signedIn, relationship, visibl
           </main>
 
           <aside className="space-y-5">
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-5"><div className="mb-4 flex items-center justify-between"><h2 className="font-display font-bold">Collector level</h2><strong className="font-mono text-xl text-[var(--accent)]">{level}</strong></div><div className="h-2 overflow-hidden rounded-full bg-[var(--bg-elevated)]"><div className="h-full rounded-full bg-[linear-gradient(90deg,var(--accent),var(--accent-2))]" style={{ width: `${Math.max(8, level % 10 * 10)}%` }} /></div><p className="mt-2 text-[10px] text-[var(--text-muted)]">Build collections and activity to shape your profile.</p></section>
             <section><h2 className="mb-3 font-display font-bold">Badges</h2><div className="space-y-2">{badges.map(({ label, description, icon: Icon }) => <div key={label} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--glass)] p-3"><div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[rgb(var(--accent-rgb)/0.16)] text-[var(--accent)]"><Icon className="size-5" /></div><div className="min-w-0"><h3 className="text-sm font-semibold">{label}</h3><p className="truncate text-[10px] text-[var(--text-muted)]">{description}</p></div></div>)}</div></section>
             {recentPosters.length > 0 && <section><div className="mb-3"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">On the shelf</p><h2 className="font-display font-bold">Recent showcase</h2></div><div className="-mr-4 flex snap-x gap-2.5 overflow-x-auto pb-2 pr-4 scrollbar-none lg:mr-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:pr-0">{recentPosters.map((row) => { const href = activityHref(row); const card = <><Image src={row.poster_url!} alt={row.title ?? "Recent title"} fill sizes="(max-width: 1024px) 130px, 150px" className="object-cover transition duration-500 group-hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/10 to-transparent" /><div className="absolute inset-x-0 bottom-0 p-2.5 text-white"><p className="line-clamp-2 text-xs font-bold leading-tight">{row.title ?? "Recent title"}</p><span className="mt-1 block text-[9px] font-bold uppercase tracking-wider text-white/60">{VERB_LABEL[row.verb] ?? row.verb}</span></div></>; const className = "group relative aspect-[2/3] w-[118px] shrink-0 snap-start overflow-hidden rounded-xl border border-[var(--border)] shadow-[0_12px_28px_rgba(0,0,0,.12)] lg:w-auto"; return href ? <Link key={row.id} href={href} className={className}>{card}</Link> : <div key={row.id} className={className}>{card}</div>; })}</div></section>}
           </aside>
