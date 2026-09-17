@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarDays, Dices, RotateCcw, Sparkles, Star, X } from "lucide-react";
+import { CalendarDays, Dices, RefreshCw, RotateCcw, Sparkles, Star, X } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import {
   RANDOM_ERAS,
@@ -48,7 +48,27 @@ const PRESETS: {
   { label: "Anime gem", description: "Top-tier fantasy anime", type: "anime", genres: ["Fantasy"], era: "any", quality: "8" },
   { label: "Comfort watch", description: "2000s comedy series", type: "series", genres: ["Comedy"], era: "2000s", quality: "7" },
   { label: "K-drama romance", description: "Well-rated Korean romance", type: "kdrama", genres: ["Romance"], era: "any", quality: "7" },
+  { label: "Sci-fi rush", description: "Modern sci-fi movies with strong ratings", type: "movie", genres: ["Sci-Fi"], era: "2020s", quality: "7" },
+  { label: "Mystery binge", description: "2010s mystery series worth a weekend", type: "series", genres: ["Mystery"], era: "2010s", quality: "7" },
+  { label: "Anime action", description: "High-energy action anime across every era", type: "anime", genres: ["Action"], era: "any", quality: "7" },
+  { label: "Manga starter", description: "Well-rated adventure manga", type: "manga", genres: ["Adventure"], era: "any", quality: "7" },
+  { label: "Classic cinema", description: "Pre-2000 drama films", type: "movie", genres: ["Drama"], era: "classic", quality: "7" },
+  { label: "K-drama mystery", description: "Korean mystery series with solid ratings", type: "kdrama", genres: ["Mystery"], era: "any", quality: "7" },
+  { label: "Fantasy binge", description: "Fantasy TV from the 2010s", type: "series", genres: ["Fantasy"], era: "2010s", quality: "7" },
+  { label: "Anime comfort", description: "Relaxed slice-of-life anime", type: "anime", genres: ["Slice of Life"], era: "any", quality: "7" },
 ];
+
+const QUICK_PICK_COUNT = 4;
+
+function pickQuickPicks(excludeLabel?: string) {
+  const pool = PRESETS.filter((item) => item.label !== excludeLabel);
+  const shuffled = pool.slice();
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, QUICK_PICK_COUNT);
+}
 
 const VALID_TYPES = new Set(TYPES.map((item) => item.key));
 const VALID_ERAS = new Set(RANDOM_ERAS.map((item) => item.key));
@@ -66,7 +86,12 @@ export function Randomizer({ preset }: { preset?: { type?: string; genres?: stri
   const [mode, setMode] = useState<GenreMode>(preset?.mode === "all" ? "all" : "any");
   const [era, setEra] = useState<RandomEra>(preset?.era && VALID_ERAS.has(preset.era as RandomEra) ? (preset.era as RandomEra) : "any");
   const [quality, setQuality] = useState<RandomQuality>(preset?.quality && VALID_QUALITY.has(preset.quality as RandomQuality) ? (preset.quality as RandomQuality) : "any");
+  const [quickPicks, setQuickPicks] = useState(() => PRESETS.slice(0, QUICK_PICK_COUNT));
   const genreOptions = genresForType(type);
+
+  function randomizeQuickPicks(excludeLabel?: string) {
+    setQuickPicks(pickQuickPicks(excludeLabel));
+  }
 
   function changeType(next: RandomType) {
     setType(next);
@@ -125,6 +150,7 @@ export function Randomizer({ preset }: { preset?: { type?: string; genres?: stri
       if (!res.ok) throw new Error(json.error ?? "Failed");
       setResults(json.results);
       setReveal((value) => value + 1);
+      randomizeQuickPicks();
       if (json.results.length === 0) toast.info("No matches — try a different genre or type.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not open the box");
@@ -136,19 +162,31 @@ export function Randomizer({ preset }: { preset?: { type?: string; genres?: stri
 
   return (
     <div className="min-w-0 space-y-5 overflow-x-clip sm:space-y-6">
-      <section className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {PRESETS.map((preset) => (
+      <section className="space-y-2">
+        <div className="flex items-center justify-end">
           <button
-            key={preset.label}
             type="button"
-            onClick={() => applyPreset(preset)}
-            className="glass group rounded-[var(--radius-lg)] border border-[var(--border)] p-4 text-left transition hover:-translate-y-0.5 hover:border-[rgb(var(--accent-rgb)/0.45)]"
+            onClick={() => randomizeQuickPicks()}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-[var(--text-muted)] transition hover:bg-[var(--glass)] hover:text-[var(--text)]"
+            aria-label="Shuffle quick pick filters"
           >
-            <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent)]">Quick pick</span>
-            <span className="mt-2 block font-display text-base font-bold text-[var(--text)]">{preset.label}</span>
-            <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">{preset.description}</span>
+            <RefreshCw className="size-3.5" /> Shuffle picks
           </button>
-        ))}
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {quickPicks.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => applyPreset(preset)}
+              className="glass group rounded-[var(--radius-lg)] border border-[var(--border)] p-4 text-left transition hover:-translate-y-0.5 hover:border-[rgb(var(--accent-rgb)/0.45)]"
+            >
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent)]">Quick pick</span>
+              <span className="mt-2 block font-display text-base font-bold text-[var(--text)]">{preset.label}</span>
+              <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">{preset.description}</span>
+            </button>
+          ))}
+        </div>
       </section>
 
       <div className="fx-glow-border glass rounded-[var(--radius-xl)] p-3 sm:p-7">

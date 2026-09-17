@@ -115,6 +115,13 @@ interface AniListRandomNode {
   isAdult: boolean;
 }
 
+interface AniListPagePayload {
+  media?: AniListRandomNode[];
+  pageInfo?: {
+    lastPage?: number | null;
+  } | null;
+}
+
 async function anilistRandom(
   mediaType: "ANIME" | "MANGA",
   genres: string[],
@@ -122,10 +129,10 @@ async function anilistRandom(
   era: RandomEra,
   quality: RandomQuality
 ): Promise<UnifiedSearchResult[]> {
-  const page = 1 + Math.floor(Math.random() * 8);
   const query = `
     query ($type: MediaType, $genres: [String], $page: Int, $startMin: FuzzyDateInt, $startMax: FuzzyDateInt, $scoreMin: Int) {
       Page(page: $page, perPage: 30) {
+        pageInfo { lastPage }
         media(type: $type, genre_in: $genres, sort: POPULARITY_DESC, isAdult: false, startDate_greater: $startMin, startDate_lesser: $startMax, averageScore_greater: $scoreMin) {
           id
           title { english romaji }
@@ -145,25 +152,42 @@ async function anilistRandom(
   try {
     const { min: minYear, max: maxYear } = yearRangeForEra(era);
     const scoreFloor = minimumScore(quality);
-    const res = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        query,
-        variables: {
-          type: mediaType,
-          genres: genres.length > 0 ? genres : null,
-          page,
-          startMin: minYear ? minYear * 10_000 + 101 : null,
-          startMax: maxYear ? maxYear * 10_000 + 1231 : null,
-          scoreMin: scoreFloor ? scoreFloor * 10 - 1 : null,
-        },
-      }),
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { data?: { Page?: { media?: AniListRandomNode[] } } };
-    const media = (json.data?.Page?.media ?? []).filter((m) => {
+    const variables = {
+      type: mediaType,
+      genres: genres.length > 0 ? genres : null,
+      startMin: minYear ? minYear * 10_000 + 101 : null,
+      startMax: maxYear ? maxYear * 10_000 + 1231 : null,
+      scoreMin: scoreFloor ? scoreFloor * 10 - 1 : null,
+    };
+
+    async function fetchPage(page: number): Promise<AniListPagePayload | null> {
+      const res = await fetch("https://graphql.anilist.co", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query, variables: { ...variables, page } }),
+        cache: "no-store",
+      });
+      if (!res.ok) return null;
+      const json = (await res.json()) as { data?: { Page?: AniListPagePayload } };
+      return json.data?.Page ?? null;
+    }
+
+    // Read the first page before choosing a random page. Narrow presets can have
+    // only one or two pages, so jumping straight to page 5-8 could return an
+    // empty result even though matching titles exist.
+    const firstPage = await fetchPage(1);
+    if (!firstPage) return [];
+    let pagePayload = firstPage;
+    const lastPage = Math.max(1, Math.min(firstPage.pageInfo?.lastPage ?? 1, 10));
+    if (lastPage > 1) {
+      const randomPage = 1 + Math.floor(Math.random() * lastPage);
+      if (randomPage > 1) {
+        const candidate = await fetchPage(randomPage);
+        if ((candidate?.media ?? []).length > 0) pagePayload = candidate ?? firstPage;
+      }
+    }
+
+    const media = (pagePayload.media ?? []).filter((m) => {
       if (m.isAdult) return false;
       if (mode === "all" && genres.length > 0) {
         return genres.every((g) => m.genres.includes(g));
