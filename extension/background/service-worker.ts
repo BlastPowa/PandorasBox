@@ -16,6 +16,7 @@ import {
 import { getLatestChapter } from "../../core/api/mangadex";
 import { getAllWatchOptions } from "../../core/api/watchProviders";
 import { unifiedSearch } from "../../core/utils/search";
+import { normaliseTitle } from "../../core/utils/formatters";
 import { createDefaultProgress, type ReelItem } from "../../core/storage/schema";
 import type { ProgressEvent } from "../../core/storage/progressManager";
 
@@ -51,8 +52,124 @@ function parseCinejoyPlayback(url: string | undefined): CinejoyPlaybackRoute | n
 function cleanPlaybackTitle(value: string): string {
   return value
     .replace(/^watch\s+/i, "")
-    .replace(/\s*[-|–—]\s*(?:cinejoy|watch online).*$/i, "")
+    .replace(/\s*[-|–—]\s*(?:cinejoy|watch online|stream online).*$/i, "")
     .trim();
+}
+
+function playbackSearchTitle(value: string): string {
+  return cleanPlaybackTitle(value)
+    .replace(/\bS\d{1,2}E\d{1,3}\b.*$/i, "")
+    .replace(/\bSeason\s+\d+\s*(?:(?:Episode|Ep\.?)\s*\d+)?\b.*$/i, "")
+    .replace(/\bEpisode\s+\d+\b.*$/i, "")
+    .replace(/\s+(?:watch|stream)\s+(?:online|free).*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferPlaybackMediaType(event: ProgressEvent): "movie" | "tv" | null {
+  if (event.mediaType) return event.mediaType;
+  if (event.episodeNumber !== null) return "tv";
+  const value = `${event.url} ${event.title}`;
+  if (/(?:^|[/?#&_-])(movie|film)(?:[/?#&=_-]|$)/i.test(value)) return "movie";
+  if (/(?:^|[/?#&_-])(tv|series|show|episode|anime)(?:[/?#&=_-]|$)/i.test(value)) return "tv";
+  return null;
+}
+
+function parsePlaybackNumber(value: string, patterns: RegExp[]): number | null {
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    const parsed = match?.[1] ? Number.parseInt(match[1], 10) : Number.NaN;
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function enrichProgressEventFromTab(event: ProgressEvent, sender?: chrome.runtime.MessageSender): void {
+  const tabUrl = sender?.tab?.url;
+  if (!tabUrl || tabUrl === event.url) return;
+
+  event.url = tabUrl;
+  try {
+    event.site = new URL(tabUrl).hostname.replace(/^www\./, "");
+  } catch {
+    // Keep the frame-provided site if the tab URL cannot be parsed.
+  }
+
+  const tabTitle = cleanPlaybackTitle(sender?.tab?.title ?? "");
+  if (tabTitle.length >= 2) event.title = tabTitle;
+
+  const combined = `${tabUrl} ${tabTitle}`;
+  event.episodeNumber ??= parsePlaybackNumber(combined, [
+    /episode[/-](\d+)/i,
+    /Episode\s+(\d+)/i,
+    /\bS\d{1,2}E(\d{1,3})\b/i,
+    /[?&](?:ep|episode)=(\d+)/i,
+  ]);
+  event.seasonNumber ??= parsePlaybackNumber(combined, [
+    /season[/-](\d+)/i,
+    /Season\s+(\d+)/i,
+    /\bS(\d{1,2})E\d{1,3}\b/i,
+    /[?&]season=(\d+)/i,
+  ]);
+  event.mediaType = inferPlaybackMediaType(event);
+}
+
+const AUTO_TRACK_RESOLUTION_TTL_MS = 60 * 60 * 1000;
+const AUTO_TRACK_FAILURE_TTL_MS = 10 * 60 * 1000;
+const autoTrackResolutionCache = new Map<string, {
+  expiresAt: number;
+  tmdbId: number | null;
+}>();
+
+async function resolveAutoTrackedIdentity(event: ProgressEvent, apiKey: string): Promise<void> {
+  event.mediaType = inferPlaybackMediaType(event);
+  if (event.tmdbId !== null && event.tmdbId !== undefined) return;
+  if (!apiKey || event.mediaType === null) return;
+
+  const query = playbackSearchTitle(event.title);
+  const normalised = normaliseTitle(query);
+  if (normalised.length < 2) return;
+
+  const cacheKey = `${event.mediaType}|${normalised}`;
+  const cached = autoTrackResolutionCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    if (cached.tmdbId !== null) event.tmdbId = cached.tmdbId;
+    return;
+  }
+
+  try {
+    const results = await unifiedSearch(query, apiKey, {
+      includeMovies: event.mediaType === "movie",
+      includeSeries: event.mediaType === "tv",
+      includeAnime: false,
+      includeManga: false,
+      includeManhwa: false,
+    });
+    const exactMatches = results.filter((result) =>
+      result.source === "tmdb"
+      && result.tmdbId !== null
+      && (event.mediaType === "movie" ? result.type === "movie" : result.type === "series")
+      && normaliseTitle(result.title) === normalised
+    );
+
+    const yearMatch = event.title.match(/\b(19|20)\d{2}\b/)?.[0];
+    const candidates = yearMatch
+      ? exactMatches.filter((result) => result.year === Number.parseInt(yearMatch, 10))
+      : exactMatches;
+    const uniqueIds = new Set(candidates.map((result) => result.tmdbId));
+    const resolved = uniqueIds.size === 1 ? candidates[0]?.tmdbId ?? null : null;
+
+    autoTrackResolutionCache.set(cacheKey, {
+      expiresAt: Date.now() + (resolved === null ? AUTO_TRACK_FAILURE_TTL_MS : AUTO_TRACK_RESOLUTION_TTL_MS),
+      tmdbId: resolved,
+    });
+    if (resolved !== null) event.tmdbId = resolved;
+  } catch {
+    autoTrackResolutionCache.set(cacheKey, {
+      expiresAt: Date.now() + AUTO_TRACK_FAILURE_TTL_MS,
+      tmdbId: null,
+    });
+  }
 }
 
 function parseYear(value: string): number | null {
@@ -360,6 +477,7 @@ async function handleMessage(message: ReelMessage, sender?: chrome.runtime.Messa
   switch (message.type) {
     case "saveProgress": {
       const event = { ...message.event };
+      enrichProgressEventFromTab(event, sender);
       const cinejoyRoute = parseCinejoyPlayback(sender?.tab?.url);
       if (cinejoyRoute) {
         event.site = "cinejoy";
@@ -377,12 +495,21 @@ async function handleMessage(message: ReelMessage, sender?: chrome.runtime.Messa
           return { success: false };
         }
         const list = await listManager.getAll();
-        const match = progressManager.findMatchingItem(
+        let match = progressManager.findMatchingItem(
           event.title,
           list,
           event.tmdbId ?? null,
           event.mediaType ?? null
         );
+        if (!match) {
+          await resolveAutoTrackedIdentity(event, settings.tmdbApiKey);
+          match = progressManager.findMatchingItem(
+            event.title,
+            list,
+            event.tmdbId ?? null,
+            event.mediaType ?? null
+          );
+        }
         if (!match) {
           const created = await createAutoTrackedItem(event, settings.tmdbApiKey);
           if (!created) return { success: false };

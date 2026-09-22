@@ -135,7 +135,7 @@ function BrowserCompanionCard() {
             </span>
             <div>
               <p className="font-display text-lg font-bold">Pandora&apos;s Box for Chrome</p>
-              <p className="text-xs font-semibold text-[var(--accent)]">Version 1.3.0</p>
+              <p className="text-xs font-semibold text-[var(--accent)]">Version 1.3.1</p>
             </div>
           </div>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
@@ -151,7 +151,7 @@ function BrowserCompanionCard() {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild>
-              <a href="/downloads/pandoras-box-extension-v1.3.0.zip" download>
+              <a href="/downloads/pandoras-box-extension-v1.3.1.zip" download>
                 <Download className="size-4" /> Download extension
               </a>
             </Button>

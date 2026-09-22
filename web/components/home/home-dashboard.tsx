@@ -111,13 +111,18 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
   );
   const [spotlightIndex, setSpotlightIndex] = useState(0);
 
-  const active = items
-    .filter((item) => item.status === "watching" || item.status === "rewatching" || item.status === "reading")
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  const continueWatching = active.filter((item) => item.type === "movie" || item.type === "series" || item.type === "anime");
-  const planned = items
-    .filter((item) => item.status === "planned")
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  const { active, continueWatching, planned } = useMemo(() => {
+    const activeItems = items
+      .filter((item) => item.status === "watching" || item.status === "rewatching" || item.status === "reading")
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return {
+      active: activeItems,
+      continueWatching: activeItems.filter((item) => item.type === "movie" || item.type === "series" || item.type === "anime"),
+      planned: items
+        .filter((item) => item.status === "planned")
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    };
+  }, [items]);
   const safeSpotlightIndex = spotlightSlides.length > 0 ? spotlightIndex % spotlightSlides.length : 0;
   const spotlight = spotlightSlides[safeSpotlightIndex] ?? trending[0] ?? null;
   const heroArtwork = spotlight?.backdropUrl ?? spotlight?.posterUrl ?? null;
@@ -133,19 +138,38 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
     return () => window.clearInterval(timer);
   }, [spotlightSlides]);
 
+  useEffect(() => {
+    if (spotlightSlides.length < 2) return;
+    const next = spotlightSlides[(safeSpotlightIndex + 1) % spotlightSlides.length];
+    const artwork = next?.backdropUrl ?? next?.posterUrl ?? null;
+    if (!artwork) return;
+
+    const preloadTimer = window.setTimeout(() => {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = artwork;
+    }, 500);
+    return () => window.clearTimeout(preloadTimer);
+  }, [safeSpotlightIndex, spotlightSlides]);
+
   const showSpotlight = (index: number) => {
     setSpotlightIndex(index);
   };
 
-  const activeIds = new Set(active.map((item) => item.id));
-  const nextBest = [...active, ...planned]
-    .sort((a, b) => {
-      const activeA = activeIds.has(a.id) ? 1 : 0;
-      const activeB = activeIds.has(b.id) ? 1 : 0;
-      if (activeA !== activeB) return activeB - activeA;
-      return progressPercent(b) - progressPercent(a);
-    })
-    .slice(0, 5);
+  const { activeIds, nextBest } = useMemo(() => {
+    const ids = new Set(active.map((item) => item.id));
+    return {
+      activeIds: ids,
+      nextBest: [...active, ...planned]
+        .sort((a, b) => {
+          const activeA = ids.has(a.id) ? 1 : 0;
+          const activeB = ids.has(b.id) ? 1 : 0;
+          if (activeA !== activeB) return activeB - activeA;
+          return progressPercent(b) - progressPercent(a);
+        })
+        .slice(0, 5),
+    };
+  }, [active, planned]);
 
   return (
     <div className="pb-home-dashboard space-y-10 pb-8">

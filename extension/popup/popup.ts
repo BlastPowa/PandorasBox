@@ -1,5 +1,5 @@
 import { sendMessage } from "../lib/messages";
-import type { ReelItem, ReelItemStatus } from "../../core/storage/schema";
+import type { ReelItem, ReelItemStatus, ReelSettings } from "../../core/storage/schema";
 import { createDefaultProgress } from "../../core/storage/schema";
 import type { UnifiedSearchResult } from "../../core/utils/search";
 import { formatProgress, getTypeLabel, getStatusLabel, truncateText } from "../../core/utils/formatters";
@@ -480,6 +480,95 @@ document.addEventListener("click", (event) => {
   }
 });
 
+function setSettingsNote(message: string, isError = false): void {
+  const note = byId("settingsNote");
+  note.textContent = message;
+  note.classList.remove("hidden", "error");
+  note.classList.toggle("error", isError);
+}
+
+function settingsFormValue(): Partial<ReelSettings> {
+  const supabaseUrl = byId<HTMLInputElement>("settingsSupabaseUrl").value.trim();
+  const supabaseAnonKey = byId<HTMLInputElement>("settingsSupabaseAnonKey").value.trim();
+  return {
+    autoTrack: byId<HTMLInputElement>("settingsAutoTrack").checked,
+    notificationsEnabled: byId<HTMLInputElement>("settingsNotificationsEnabled").checked,
+    country: byId<HTMLSelectElement>("settingsCountry").value,
+    tmdbApiKey: byId<HTMLInputElement>("settingsTmdbApiKey").value.trim(),
+    syncEnabled: byId<HTMLInputElement>("settingsSyncEnabled").checked,
+    supabaseUrl: supabaseUrl.length > 0 ? supabaseUrl : null,
+    supabaseAnonKey: supabaseAnonKey.length > 0 ? supabaseAnonKey : null,
+  };
+}
+
+async function loadSettingsPanel(): Promise<void> {
+  const settings = await sendMessage({ type: "getSettings" });
+  byId<HTMLInputElement>("settingsAutoTrack").checked = settings.autoTrack;
+  byId<HTMLInputElement>("settingsNotificationsEnabled").checked = settings.notificationsEnabled;
+  byId<HTMLSelectElement>("settingsCountry").value = settings.country;
+  byId<HTMLInputElement>("settingsTmdbApiKey").value = settings.tmdbApiKey;
+  byId<HTMLInputElement>("settingsSyncEnabled").checked = settings.syncEnabled;
+  byId<HTMLInputElement>("settingsSupabaseUrl").value = settings.supabaseUrl ?? "";
+  byId<HTMLInputElement>("settingsSupabaseAnonKey").value = settings.supabaseAnonKey ?? "";
+  byId("settingsSyncFields").classList.toggle("hidden", !settings.syncEnabled);
+}
+
+async function saveSettingsPanel(): Promise<void> {
+  await sendMessage({ type: "updateSettings", settings: settingsFormValue() });
+  setSettingsNote("Settings saved. New watch pages will use them immediately.");
+}
+
+function setupSettingsPanel(): void {
+  const panel = byId("settingsPanel");
+  const close = () => {
+    panel.classList.remove("open");
+    panel.setAttribute("aria-hidden", "true");
+  };
+
+  byId("profileBtn").addEventListener("click", () => {
+    panel.classList.add("open");
+    panel.setAttribute("aria-hidden", "false");
+    byId("settingsNote").classList.add("hidden");
+    void loadSettingsPanel().catch((error) => {
+      setSettingsNote(error instanceof Error ? error.message : "Could not load settings.", true);
+    });
+  });
+
+  byId("settingsCloseBtn").addEventListener("click", close);
+  panel.addEventListener("click", (event) => {
+    if (event.target === panel) close();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && panel.classList.contains("open")) close();
+  });
+
+  byId<HTMLInputElement>("settingsSyncEnabled").addEventListener("change", (event) => {
+    byId("settingsSyncFields").classList.toggle("hidden", !(event.target as HTMLInputElement).checked);
+  });
+
+  byId("settingsSaveBtn").addEventListener("click", () => {
+    void saveSettingsPanel().catch((error) => {
+      setSettingsNote(error instanceof Error ? error.message : "Could not save settings.", true);
+    });
+  });
+
+  byId("settingsSyncNowBtn").addEventListener("click", () => {
+    void (async () => {
+      try {
+        await saveSettingsPanel();
+        const result = await sendMessage({ type: "syncNow" });
+        setSettingsNote(result.message, !result.success);
+      } catch (error) {
+        setSettingsNote(error instanceof Error ? error.message : "Sync failed.", true);
+      }
+    })();
+  });
+
+  byId("settingsAdvancedBtn").addEventListener("click", () => {
+    void chrome.tabs.create({ url: chrome.runtime.getURL("pages/profile.html") });
+  });
+}
+
 function setupChrome(): void {
   byId("tabs").addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
@@ -502,18 +591,10 @@ function setupChrome(): void {
     })();
   });
 
-  byId("profileBtn").addEventListener("click", () => {
-    void (async () => {
-      try {
-        await chrome.tabs.create({ url: chrome.runtime.getURL("pages/profile.html") });
-      } catch (error) {
-        console.error(error);
-      }
-    })();
-  });
 }
 
 setupChrome();
+setupSettingsPanel();
 setupSearch();
 setupListFilters();
 void loadHome();

@@ -93,7 +93,7 @@ const RELEASES = [
   },
   {
     icon: ShieldCheck,
-    title: "Browser companion v1.3.0",
+    title: "Browser companion v1.3.1",
     text: "The tracking extension is packaged, current and easier to reach from Settings.",
     highlights: [
       "A Download extension shortcut is visible on the default Settings screen and full controls remain under Extension & Apps.",
@@ -117,6 +117,35 @@ const RELEASES = [
 ];
 
 const ROLLING_RELEASES = [
+  {
+    icon: ShieldCheck,
+    batch: "Revamp batch 37",
+    date: "22 September 2026",
+    title: "Browser companion test release",
+    text: "The extension is easier to recognise, configure and test while keeping the broader playback tracking work from the previous batch.",
+    highlights: [
+      "Pandora's Box for Chrome is now v1.3.1 with its own open-box/playback icon across Chrome's toolbar, extension list and packaged build.",
+      "The popup now has a dedicated Settings sheet for Auto-track, notifications, country, TMDB matching and optional Supabase sync instead of sending every settings change to a separate page.",
+      "Advanced profile, import and data tools remain available from the Settings sheet, and Chrome's extension Options link opens that full page directly.",
+      "The Settings sheet explains startup behavior: newly opened watch pages work automatically, while tabs that were already open before an install or extension reload need one page refresh.",
+      "The website download links now point at the v1.3.1 package so the build being tested matches the visible extension version.",
+    ],
+  },
+  {
+    icon: Clapperboard,
+    batch: "Revamp batch 36",
+    date: "22 September 2026",
+    title: "Smoother Home & broader playback tracking",
+    text: "Home does less repeated work while the browser companion handles modern movie and TV players more reliably across generic streaming sites and embedded video frames.",
+    highlights: [
+      "Browse by Provider now caches already-loaded movie and TV rails so switching back to a provider avoids another request and feels immediate.",
+      "Home memoizes library-derived sections and preloads the next Spotlight artwork to reduce repeated sorting and carousel image hitching.",
+      "Universal video tracking can follow the active player when sites swap or mount multiple video elements instead of binding permanently to the first video on the page.",
+      "Embedded players can inherit the top page title, season and episode context, and background handling promotes iframe events back to the actual movie-site tab URL.",
+      "Auto-track now attempts TMDB creation only for a unique exact movie/show title match, preserving existing title matching first and avoiding ambiguous auto-created entries.",
+      "Extension webpack, nonincremental TypeScript and the full 61-route production web build pass; lint remains at 0 errors with 4 pre-existing warnings outside this batch.",
+    ],
+  },
   {
     icon: Users,
     batch: "Revamp batch 35",

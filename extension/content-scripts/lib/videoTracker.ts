@@ -34,14 +34,18 @@ function sendProgress(event: ProgressEvent, attempt = 0): void {
 
 export function setupVideoTracking(config: VideoTrackerConfig): void {
   const minDuration = config.minDurationSeconds ?? 0;
-  let trackedVideo: HTMLVideoElement | null = null;
-  let completionSentForSrc: string | null = null;
+  const trackedVideos = new Set<HTMLVideoElement>();
+  const videoState = new WeakMap<HTMLVideoElement, {
+    contextKey: string;
+    completionSentForSrc: string | null;
+    lastSentVideoTime: number;
+    lastSentAt: number;
+  }>();
+  let activeVideo: HTMLVideoElement | null = null;
   let intervalId: number | null = null;
   let contextIntervalId: number | null = null;
   let observer: MutationObserver | null = null;
-  let lastContextKey = "";
-  let lastSentVideoTime = -Infinity;
-  let lastSentAt = 0;
+  let refreshQueued = false;
 
   function buildEvent(video: HTMLVideoElement, percent: number): ProgressEvent {
     return {
@@ -70,15 +74,30 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
     ].join("|");
   }
 
+  function stateFor(video: HTMLVideoElement) {
+    let state = videoState.get(video);
+    if (!state) {
+      state = {
+        contextKey: "",
+        completionSentForSrc: null,
+        lastSentVideoTime: -Infinity,
+        lastSentAt: 0,
+      };
+      videoState.set(video, state);
+    }
+    return state;
+  }
+
   function resetContext(video: HTMLVideoElement): void {
+    const state = stateFor(video);
     const nextKey = getContextKey(video);
-    if (nextKey === lastContextKey) {
+    if (nextKey === state.contextKey) {
       return;
     }
-    lastContextKey = nextKey;
-    completionSentForSrc = null;
-    lastSentVideoTime = -Infinity;
-    lastSentAt = 0;
+    state.contextKey = nextKey;
+    state.completionSentForSrc = null;
+    state.lastSentVideoTime = -Infinity;
+    state.lastSentAt = 0;
   }
 
   function canTrack(video: HTMLVideoElement): boolean {
@@ -93,16 +112,18 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
       return;
     }
     resetContext(video);
+    activeVideo = video;
+    const state = stateFor(video);
 
     const percent = (video.currentTime / video.duration) * 100;
-    const srcKey = `${lastContextKey}|${video.currentSrc}`;
+    const srcKey = `${state.contextKey}|${video.currentSrc}`;
     if (percent >= COMPLETION_PERCENT) {
-      if (completionSentForSrc === srcKey) {
+      if (state.completionSentForSrc === srcKey) {
         return;
       }
-      completionSentForSrc = srcKey;
-      lastSentVideoTime = video.currentTime;
-      lastSentAt = Date.now();
+      state.completionSentForSrc = srcKey;
+      state.lastSentVideoTime = video.currentTime;
+      state.lastSentAt = Date.now();
       sendProgress(buildEvent(video, percent));
       return;
     }
@@ -111,15 +132,15 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
       return;
     }
     if (!force) {
-      const movedEnough = Math.abs(video.currentTime - lastSentVideoTime) >= MIN_PROGRESS_DELTA_SECONDS;
-      const intervalElapsed = Date.now() - lastSentAt >= SAVE_INTERVAL_MS;
+      const movedEnough = Math.abs(video.currentTime - state.lastSentVideoTime) >= MIN_PROGRESS_DELTA_SECONDS;
+      const intervalElapsed = Date.now() - state.lastSentAt >= SAVE_INTERVAL_MS;
       if (!movedEnough || !intervalElapsed) {
         return;
       }
     }
 
-    lastSentVideoTime = video.currentTime;
-    lastSentAt = Date.now();
+    state.lastSentVideoTime = video.currentTime;
+    state.lastSentAt = Date.now();
     sendProgress(buildEvent(video, percent));
   }
 
@@ -140,18 +161,11 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
   }
 
   function attach(video: HTMLVideoElement): void {
-    if (trackedVideo === video) {
+    if (trackedVideos.has(video)) {
       resetContext(video);
       return;
     }
-    if (trackedVideo) {
-      trackedVideo.removeEventListener("timeupdate", onTimeUpdate);
-      trackedVideo.removeEventListener("pause", onPause);
-      trackedVideo.removeEventListener("ended", onEnded);
-      trackedVideo.removeEventListener("loadedmetadata", onLoadedMetadata);
-    }
-    trackedVideo = video;
-    lastContextKey = "";
+    trackedVideos.add(video);
     resetContext(video);
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("pause", onPause);
@@ -159,18 +173,50 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
     video.addEventListener("loadedmetadata", onLoadedMetadata);
   }
 
-  function refreshVideo(): HTMLVideoElement | null {
-    const video = document.querySelector<HTMLVideoElement>("video");
-    if (!video) {
-      return null;
+  function detach(video: HTMLVideoElement): void {
+    trackedVideos.delete(video);
+    video.removeEventListener("timeupdate", onTimeUpdate);
+    video.removeEventListener("pause", onPause);
+    video.removeEventListener("ended", onEnded);
+    video.removeEventListener("loadedmetadata", onLoadedMetadata);
+    if (activeVideo === video) activeVideo = null;
+  }
+
+  function videoScore(video: HTMLVideoElement): number {
+    if (!canTrack(video)) return -Infinity;
+    const rect = video.getBoundingClientRect();
+    const area = Math.max(0, rect.width) * Math.max(0, rect.height);
+    const playbackWeight = !video.paused && !video.ended ? 1_000_000_000 : 0;
+    const pipWeight = document.pictureInPictureElement === video ? 2_000_000_000 : 0;
+    return pipWeight + playbackWeight + area + Math.min(video.currentTime, 86_400);
+  }
+
+  function refreshVideos(): HTMLVideoElement | null {
+    const current = new Set(document.querySelectorAll<HTMLVideoElement>("video"));
+    for (const video of current) attach(video);
+    for (const video of [...trackedVideos]) {
+      if (!video.isConnected || !current.has(video)) detach(video);
     }
-    attach(video);
-    resetContext(video);
-    return video;
+
+    const best = [...trackedVideos]
+      .map((video) => ({ video, score: videoScore(video) }))
+      .filter(({ score }) => Number.isFinite(score))
+      .sort((a, b) => b.score - a.score)[0]?.video ?? null;
+    if (best) activeVideo = best;
+    return best;
+  }
+
+  function scheduleRefresh(): void {
+    if (refreshQueued) return;
+    refreshQueued = true;
+    window.requestAnimationFrame(() => {
+      refreshQueued = false;
+      refreshVideos();
+    });
   }
 
   function tick(): void {
-    const video = refreshVideo();
+    const video = refreshVideos();
     if (!video || video.paused) {
       return;
     }
@@ -178,8 +224,9 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
   }
 
   function flushCurrentVideo(): void {
-    if (trackedVideo && !trackedVideo.ended) {
-      emitProgress(trackedVideo, true);
+    const video = activeVideo ?? refreshVideos();
+    if (video && !video.ended) {
+      emitProgress(video, true);
     }
   }
 
@@ -187,25 +234,24 @@ export function setupVideoTracking(config: VideoTrackerConfig): void {
     if (intervalId !== null) {
       return;
     }
-    refreshVideo();
+    refreshVideos();
     intervalId = window.setInterval(tick, SAVE_INTERVAL_MS);
-    contextIntervalId = window.setInterval(refreshVideo, 1000);
-    observer = new MutationObserver(refreshVideo);
+    contextIntervalId = window.setInterval(refreshVideos, 1000);
+    observer = new MutationObserver(scheduleRefresh);
     observer.observe(document.documentElement, {
       childList: true,
       subtree: true,
-      characterData: true,
     });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         flushCurrentVideo();
       } else {
-        refreshVideo();
+        refreshVideos();
       }
     });
     window.addEventListener("pagehide", flushCurrentVideo);
-    window.addEventListener("popstate", refreshVideo);
-    window.addEventListener("hashchange", refreshVideo);
+    window.addEventListener("popstate", refreshVideos);
+    window.addEventListener("hashchange", refreshVideos);
   }
 
   if (document.readyState === "complete") {

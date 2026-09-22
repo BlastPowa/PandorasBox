@@ -19,22 +19,31 @@ Production output lands in `extension/dist/`. Production source maps are disable
 3. Open `chrome://extensions`.
 4. Enable **Developer mode**.
 5. Click **Load unpacked** and select `extension/dist/` or the extracted release folder.
+6. Pin **Pandora's Box** from Chrome's Extensions menu if you want the custom toolbar icon visible all the time.
+
+After the extension is first installed, updated, or manually reloaded from `chrome://extensions`, refresh watch tabs that were already open. Newly opened pages and later navigation are picked up automatically; you do not need to refresh before every video.
+
+Open the toolbar popup and use the cog button for the main extension settings. Chrome's **Extension options** entry opens the full profile/import/export page.
 
 ## Tracking behaviour
 
-- Netflix, Disney+, CinemaOS and Crunchyroll use dedicated video tracking rules.
+- Netflix, Disney+, CinemaOS, Cinejoy and Crunchyroll use dedicated video tracking rules.
 - Netflix and Crunchyroll only track their watch routes.
 - Dedicated streaming integrations accept legitimate short episodes from 3 minutes upward.
-- The universal fallback requires a prominent long-form player and a minimum 5-minute duration.
+- The universal fallback can follow dynamically mounted or replaced players, including embedded frames when enough page context is available. It requires a prominent long-form player and a minimum 5-minute duration.
 - YouTube, X/Twitter, TikTok, Instagram, Facebook, Reddit and Twitch are excluded from universal tracking.
 - Short-form, trailer, teaser, preview, advert and music-video hints are ignored by the universal tracker.
 - MangaDex and Webtoon use reading-progress tracking.
 
-Progress saves periodically while a supported video plays. Crossing the completion threshold marks watched progress automatically.
+Progress saves periodically while a supported video plays. Crossing the completion threshold marks watched progress automatically. The extension stores its working list in Chrome local extension storage and updates the popup **Home → Continue Watching**, the **List** tab and the side panel from the same data. Those extension views listen for storage changes, so reopening them is enough to see current progress; the watch page itself does not need a refresh for each progress save.
 
 ## TMDB API key
 
-Movie/series search and provider lookups use a user-supplied TMDB API key. Open the Pandora's Box extension profile, add the key under settings and save. The production bundle does not contain a TMDB secret.
+Movie/series search, provider lookups and safe automatic creation of titles that are not already in the local list use a user-supplied TMDB API key. Existing local titles can still be matched before a TMDB lookup is attempted. Open the toolbar popup, click the cog, add the key and save. The production bundle does not contain a TMDB secret.
+
+## Optional Supabase sync
+
+Supabase sync is optional and disabled by default. If you enable it, provide an HTTPS Supabase project URL and public anon key in the popup settings. The extension syncs its `reel_lists` record using a generated per-install identity. This is extension-to-extension storage and is not the same thing as signing into the Pandora's Box website, so do not expect a watched item to appear in the website library unless a separate account-linked integration is added.
 
 ## Security notes
 

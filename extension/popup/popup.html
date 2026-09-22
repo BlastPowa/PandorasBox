@@ -12,15 +12,16 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <span class="brand-mark">REEL</span>
+      <img class="brand-icon" src="../icons/icon32.png" alt="" />
+      <span class="brand-mark">PBOX</span>
     </div>
     <nav class="tabs" id="tabs">
       <button class="tab active" data-tab="home">Home</button>
       <button class="tab" data-tab="search">Search</button>
       <button class="tab" data-tab="list">List</button>
     </nav>
-    <button class="icon-btn" id="profileBtn" title="Profile &amp; settings">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    <button class="icon-btn" id="profileBtn" title="Extension settings" aria-label="Extension settings">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20.3h-3v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.56-1.03H5.3v-3h.14A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.7V4.6h3v.1a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.14v3h-.14A1.7 1.7 0 0 0 19.4 15Z"/></svg>
     </button>
   </header>
 
@@ -76,6 +77,85 @@
 
   <div class="detail-panel" id="detailPanel">
     <div class="detail-inner" id="detailInner"></div>
+  </div>
+
+  <div class="settings-panel" id="settingsPanel" aria-hidden="true">
+    <div class="settings-sheet">
+      <div class="settings-head">
+        <div>
+          <div class="settings-kicker">Pandora's Box</div>
+          <h2>Extension Settings</h2>
+        </div>
+        <button class="icon-btn" id="settingsCloseBtn" title="Close settings" aria-label="Close settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+
+      <div class="settings-info">
+        Tracking starts automatically on matching watch pages. After installing or reloading the extension, reload any watch tab that was already open once.
+      </div>
+
+      <div class="settings-group">
+        <label class="setting-toggle">
+          <span><strong>Auto-track playback</strong><small>Save movie and episode progress while you watch.</small></span>
+          <input type="checkbox" id="settingsAutoTrack" />
+        </label>
+        <label class="setting-toggle">
+          <span><strong>Notifications</strong><small>Allow release and tracking notifications.</small></span>
+          <input type="checkbox" id="settingsNotificationsEnabled" />
+        </label>
+      </div>
+
+      <div class="settings-group settings-fields">
+        <label class="settings-field">
+          <span>Country</span>
+          <select id="settingsCountry">
+            <option value="IE">Ireland (IE)</option>
+            <option value="GB">United Kingdom (GB)</option>
+            <option value="US">United States (US)</option>
+            <option value="CA">Canada (CA)</option>
+            <option value="AU">Australia (AU)</option>
+            <option value="DE">Germany (DE)</option>
+            <option value="FR">France (FR)</option>
+            <option value="ES">Spain (ES)</option>
+            <option value="IT">Italy (IT)</option>
+            <option value="NL">Netherlands (NL)</option>
+            <option value="JP">Japan (JP)</option>
+            <option value="BR">Brazil (BR)</option>
+            <option value="IN">India (IN)</option>
+          </select>
+        </label>
+        <label class="settings-field">
+          <span>TMDB API key</span>
+          <input type="password" id="settingsTmdbApiKey" placeholder="Recommended for movie/TV matching" autocomplete="off" />
+          <small>Used for movie/TV search, metadata and safe auto-creation when a title is not already in your list.</small>
+        </label>
+      </div>
+
+      <div class="settings-group">
+        <label class="setting-toggle">
+          <span><strong>Supabase sync</strong><small>Optional cloud sync between Pandora's Box installs.</small></span>
+          <input type="checkbox" id="settingsSyncEnabled" />
+        </label>
+        <div class="settings-fields hidden" id="settingsSyncFields">
+          <label class="settings-field">
+            <span>Supabase URL</span>
+            <input type="text" id="settingsSupabaseUrl" placeholder="https://your-project.supabase.co" autocomplete="off" />
+          </label>
+          <label class="settings-field">
+            <span>Supabase anon key</span>
+            <input type="password" id="settingsSupabaseAnonKey" placeholder="Public anon key" autocomplete="off" />
+          </label>
+          <button type="button" class="settings-secondary-btn" id="settingsSyncNowBtn">Sync now</button>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button type="button" class="settings-secondary-btn" id="settingsAdvancedBtn">Profile, imports &amp; data</button>
+        <button type="button" class="settings-primary-btn" id="settingsSaveBtn">Save settings</button>
+      </div>
+      <div class="settings-note hidden" id="settingsNote"></div>
+    </div>
   </div>
 
   <footer class="bottombar">

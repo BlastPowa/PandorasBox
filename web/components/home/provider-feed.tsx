@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Film, LoaderCircle, Tv } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { PosterCard } from "@/components/discovery/poster-card";
@@ -15,17 +15,31 @@ export function ProviderFeed() {
   const [kind, setKind] = useState<ProviderKind>("movie");
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const resultCache = useRef(new Map<string, UnifiedSearchResult[]>());
 
   useEffect(() => {
     if (!slug) return;
 
+    const cacheKey = `${slug}:${kind}`;
+    const cached = resultCache.current.get(cacheKey);
+    if (cached) {
+      setResults(cached);
+      setLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
+    setLoading(true);
     fetch(`/api/provider?slug=${encodeURIComponent(slug)}&kind=${kind}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Provider request failed");
         return response.json() as Promise<{ results?: UnifiedSearchResult[] }>;
       })
-      .then((payload) => setResults(Array.isArray(payload.results) ? payload.results : []))
+      .then((payload) => {
+        const nextResults = Array.isArray(payload.results) ? payload.results : [];
+        resultCache.current.set(cacheKey, nextResults);
+        setResults(nextResults);
+      })
       .catch((error) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) setResults([]);
       })
@@ -49,7 +63,6 @@ export function ProviderFeed() {
           <button
             type="button"
             onClick={() => {
-              if (kind !== "movie" && slug) setLoading(true);
               setKind("movie");
             }}
             aria-pressed={kind === "movie"}
@@ -60,7 +73,6 @@ export function ProviderFeed() {
           <button
             type="button"
             onClick={() => {
-              if (kind !== "tv" && slug) setLoading(true);
               setKind("tv");
             }}
             aria-pressed={kind === "tv"}
@@ -87,7 +99,6 @@ export function ProviderFeed() {
                     setLoading(false);
                   } else {
                     setSlug(provider.slug);
-                    setLoading(true);
                   }
                 }}
                 className={`pb-provider-tile group flex w-[78px] shrink-0 flex-col items-center gap-2 rounded-[20px] px-2 py-3 text-center transition sm:w-[88px] sm:px-3 ${selected ? "is-active" : ""}`}
