@@ -28,6 +28,7 @@ Open the toolbar popup and use the cog button for the main extension settings. C
 ## Tracking behaviour
 
 - Netflix, Disney+, CinemaOS, Cinejoy (.pk/.to) and Crunchyroll use dedicated video tracking rules.
+- Anime Nexus watch pages are covered by the universal tracker with Anime Nexus-specific title cleanup, episode detection and parent-page context for embedded players.
 - Netflix and Crunchyroll only track their watch routes.
 - Dedicated streaming integrations accept legitimate short episodes from 3 minutes upward.
 - The universal fallback can follow dynamically mounted or replaced players, including embedded frames when enough page context is available. It requires a prominent long-form player and a minimum 5-minute duration.
@@ -35,7 +36,7 @@ Open the toolbar popup and use the cog button for the main extension settings. C
 - Short-form, trailer, teaser, preview, advert and music-video hints are ignored by the universal tracker.
 - MangaDex and Webtoon use reading-progress tracking.
 
-Progress saves periodically while a supported video plays. Crossing the completion threshold marks watched progress automatically. The extension stores its working list in Chrome local extension storage and updates the popup **Home → Continue Watching**, the **List** tab and the side panel from the same data. Those extension views listen for storage changes, so reopening them is enough to see current progress; the watch page itself does not need a refresh for each progress save.
+Progress saves periodically while a supported video plays. Crossing the completion threshold marks watched progress automatically. The extension stores its working list in Chrome local extension storage and updates the popup **Home → Continue Watching**, the **List** tab and the side panel from the same data. The Pandora's Box website can also read that local extension list through the browser-companion bridge and surface it in **Home → Continue watching**. Those views listen for storage changes, so reopening them is enough to see current progress; the watch page itself does not need a refresh for each progress save.
 
 ## TMDB API key
 
@@ -43,7 +44,7 @@ Movie/series search, provider lookups and safe automatic creation of titles that
 
 ## Optional Supabase sync
 
-Supabase sync is optional and disabled by default. If you enable it, provide an HTTPS Supabase project URL and public anon key in the popup settings. The extension syncs its `reel_lists` record using a generated per-install identity. This is extension-to-extension storage and is not the same thing as signing into the Pandora's Box website, so do not expect a watched item to appear in the website library unless a separate account-linked integration is added.
+Supabase sync is optional and disabled by default. If you enable it, provide an HTTPS Supabase project URL and public anon key in the popup settings. The extension syncs its `reel_lists` record using a generated per-install identity. This is extension-to-extension storage and is not the same thing as signing into the Pandora's Box website. The local browser bridge can show extension progress on the website's Home page, but it does not write that progress into the signed-in cloud library unless a separate account-linked integration is added.
 
 ## Security notes
 

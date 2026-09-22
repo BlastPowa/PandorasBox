@@ -82,9 +82,22 @@ function hostnameMatches(hostname: string, domain: string): boolean {
 function cleanTitle(value: string): string {
   return value
     .replace(/^\s*(?:watch|stream)\s+/i, "")
+    .replace(/\s*[-|–—]\s*Anime Nexus.*$/i, "")
     .replace(/\s*(?:[-|–—]\s*)?(?:watch|stream)\s+(?:online|free)(?:\s+.*)?$/i, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function trackingSite(): string {
+  const current = window.location.hostname.toLowerCase().replace(/^www\./, "");
+  if (window.top === window) return current;
+  const parentOrigin = window.location.ancestorOrigins?.[0];
+  if (!parentOrigin) return current;
+  try {
+    return new URL(parentOrigin).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return current;
+  }
 }
 
 function structuredMetadataText(): string {
@@ -159,6 +172,7 @@ function inferMediaType(text: string, metadata: string, episodeNumber: number | 
   const structured = structuredMediaType(metadata);
   if (structured) return structured;
   if (episodeNumber !== null) return "tv";
+  if (hostnameMatches(window.location.hostname.toLowerCase().replace(/^www\./, ""), "anime.nexus") && window.location.pathname.includes("/watch/")) return "tv";
   if (/(?:^|[/?#&_-])(movie|film)(?:[/?#&=_-]|$)/i.test(text)) return "movie";
   if (/(?:^|[/?#&_-])(tv|series|show|episode|anime)(?:[/?#&=_-]|$)/i.test(text)) return "tv";
   return null;
@@ -265,7 +279,7 @@ setupFrameContextBridge();
 setupExtensionLibraryBridge();
 
 setupVideoTracking({
-  site: window.location.hostname.replace(/^www\./, ""),
+  site: trackingSite(),
   getTitle: () => resolvedContext().title,
   getEpisodeNumber: () => resolvedContext().episodeNumber,
   getSeasonNumber: () => resolvedContext().seasonNumber,

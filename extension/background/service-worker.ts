@@ -52,7 +52,7 @@ function parseCinejoyPlayback(url: string | undefined): CinejoyPlaybackRoute | n
 function cleanPlaybackTitle(value: string): string {
   return value
     .replace(/^watch\s+/i, "")
-    .replace(/\s*[-|–—]\s*(?:cinejoy|watch online|stream online).*$/i, "")
+    .replace(/\s*[-|–—]\s*(?:cinejoy|anime nexus|watch online|stream online).*$/i, "")
     .trim();
 }
 
@@ -272,6 +272,35 @@ async function createAutoTrackedItem(event: ProgressEvent, apiKey: string): Prom
   } catch {
     return (await listManager.getAll()).find((candidate) => candidate.tmdbId === tmdbId) ?? null;
   }
+}
+
+async function enrichAutoTrackedItem(item: ReelItem, apiKey: string): Promise<ReelItem> {
+  if (!apiKey || item.tmdbId === null || (item.posterUrl && item.backdropUrl)) return item;
+  try {
+    if (item.type === "movie") {
+      const details = await getMovieDetails(item.tmdbId, apiKey);
+      return await listManager.update(item.id, {
+        posterUrl: item.posterUrl ?? (details.poster_path ? getPosterUrl(details.poster_path) : null),
+        backdropUrl: item.backdropUrl ?? (details.backdrop_path ? getBackdropUrl(details.backdrop_path) : null),
+        synopsis: item.synopsis ?? details.overview ?? null,
+        year: item.year ?? parseYear(details.release_date),
+      });
+    }
+    if (item.type === "series" || item.type === "anime") {
+      const details = await getSeriesDetails(item.tmdbId, apiKey);
+      return await listManager.update(item.id, {
+        posterUrl: item.posterUrl ?? (details.poster_path ? getPosterUrl(details.poster_path) : null),
+        backdropUrl: item.backdropUrl ?? (details.backdrop_path ? getBackdropUrl(details.backdrop_path) : null),
+        synopsis: item.synopsis ?? details.overview ?? null,
+        totalEpisodes: item.totalEpisodes ?? details.number_of_episodes ?? null,
+        totalSeasons: item.totalSeasons ?? details.number_of_seasons ?? null,
+        year: item.year ?? parseYear(details.first_air_date),
+      });
+    }
+  } catch (error) {
+    console.warn("Pandora's Box could not backfill artwork for an auto-tracked item", error);
+  }
+  return item;
 }
 
 async function ensureAlarm(name: string, periodInMinutes: number): Promise<void> {
@@ -515,6 +544,9 @@ async function handleMessage(message: ReelMessage, sender?: chrome.runtime.Messa
           if (!created) return { success: false };
           event.itemId = created.id;
         } else {
+          if (!match.posterUrl || !match.backdropUrl) {
+            match = await enrichAutoTrackedItem(match, settings.tmdbApiKey);
+          }
           event.itemId = match.id;
         }
       }

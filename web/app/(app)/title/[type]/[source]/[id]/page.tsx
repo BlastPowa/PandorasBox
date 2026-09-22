@@ -302,9 +302,6 @@ export default async function TitlePage({
 
             {detail.related.length > 0 && <PosterRow title="Related" items={detail.related} />}
 
-            <section>
-              <ReviewsPanel mediaKey={detail.id} />
-            </section>
           </div>
 
           {/* Where to watch */}
@@ -344,6 +341,10 @@ export default async function TitlePage({
             initialEpisodes={detail.animeEpisodes ?? []}
           />
         )}
+
+        <section className="mt-8 pb-2 sm:mt-10">
+          <ReviewsPanel mediaKey={detail.id} />
+        </section>
       </div>
     </div>
   );

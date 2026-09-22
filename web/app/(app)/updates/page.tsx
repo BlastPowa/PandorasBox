@@ -25,6 +25,18 @@ export const metadata = { title: "What's New · PBox" };
 const RELEASES = [
   {
     icon: Activity,
+    title: "Playback progress & detail-page polish",
+    text: "Extension progress is easier to verify on PBox, episode browsing gets priority on title pages and playback coverage now handles Anime Nexus more reliably.",
+    highlights: [
+      "Reviews now sit below the episode sections on movie/TV/anime detail pages instead of interrupting the path to episode browsing.",
+      "Continue Watching backfills missing artwork through PBox search data, while the extension also refreshes missing TMDB artwork when its API key is available.",
+      "Anime Nexus watch pages now get site-specific title cleanup and episode/media detection through the universal tracker, including embedded-player parent context.",
+      "Universal iframe tracking records the parent playback site when available, improving source labels for compatible long-form players beyond the dedicated integrations.",
+      "Browser-companion progress remains visible on PBox Home → Continue watching without being mistaken for cloud account-library sync.",
+    ],
+  },
+  {
+    icon: Activity,
     title: "Playback tracking & discovery polish",
     text: "Cinejoy tracking, Continue Watching, movie/TV hover previews and provider browsing now behave as one connected flow.",
     highlights: [

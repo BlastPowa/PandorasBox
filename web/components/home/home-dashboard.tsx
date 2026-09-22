@@ -50,6 +50,10 @@ function itemIdentity(item: ReelItem) {
   return item.tmdbId != null ? `tmdb:${item.tmdbId}` : item.id;
 }
 
+function normalizedTitle(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function resultHref(item: UnifiedSearchResult) {
   if (item.source === "tmdb" && item.tmdbId) return `/title/${item.type}/tmdb/${item.tmdbId}`;
   if (item.source === "anilist" && item.anilistId) return `/title/${item.type}/anilist/${item.anilistId}`;
@@ -142,6 +146,7 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
   );
   const [spotlightIndex, setSpotlightIndex] = useState(0);
   const [extensionItems, setExtensionItems] = useState<ReelItem[]>([]);
+  const [resolvedContinueArtwork, setResolvedContinueArtwork] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     const receive = (event: MessageEvent<unknown>) => {
@@ -190,6 +195,44 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
   }, [continueWatching, extensionContinueWatching]);
 
   const extensionItemKeys = useMemo(() => new Set(extensionContinueWatching.map(itemIdentity)), [extensionContinueWatching]);
+
+  useEffect(() => {
+    const missing = combinedContinueWatching
+      .filter((item) => !item.backdropUrl && !item.posterUrl && !(itemIdentity(item) in resolvedContinueArtwork))
+      .slice(0, 10);
+    if (missing.length === 0) return;
+
+    const controller = new AbortController();
+    void Promise.all(missing.map(async (item) => {
+      const key = itemIdentity(item);
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(item.title)}`, { signal: controller.signal });
+        if (!response.ok) return [key, null] as const;
+        const payload = await response.json() as { results?: UnifiedSearchResult[] };
+        const results = Array.isArray(payload.results) ? payload.results : [];
+        const exactId = item.tmdbId != null ? results.find((candidate) => candidate.tmdbId === item.tmdbId) : null;
+        const titleKey = normalizedTitle(item.title);
+        const exactTitle = results.find((candidate) => {
+          const sameKind = candidate.type === item.type
+            || ((item.type === "series" || item.type === "anime") && (candidate.type === "series" || candidate.type === "anime"));
+          return sameKind && normalizedTitle(candidate.title) === titleKey;
+        });
+        const match = exactId ?? exactTitle;
+        return [key, match?.backdropUrl ?? match?.posterUrl ?? null] as const;
+      } catch {
+        return [key, null] as const;
+      }
+    })).then((entries) => {
+      if (controller.signal.aborted) return;
+      setResolvedContinueArtwork((current) => {
+        const next = { ...current };
+        for (const [key, artwork] of entries) next[key] = artwork;
+        return next;
+      });
+    });
+
+    return () => controller.abort();
+  }, [combinedContinueWatching, resolvedContinueArtwork]);
 
   const safeSpotlightIndex = spotlightSlides.length > 0 ? spotlightIndex % spotlightSlides.length : 0;
   const spotlight = spotlightSlides[safeSpotlightIndex] ?? trending[0] ?? null;
@@ -344,7 +387,7 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
           <div className="-mx-2 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex snap-x snap-mandatory gap-3 sm:gap-4">
               {combinedContinueWatching.slice(0, 10).map((item) => {
-                const artwork = item.backdropUrl ?? item.posterUrl;
+                const artwork = item.backdropUrl ?? item.posterUrl ?? resolvedContinueArtwork[itemIdentity(item)] ?? null;
                 return (
                   <article key={item.id} className="pb-continue-card group relative w-[78vw] max-w-[360px] shrink-0 snap-start overflow-hidden rounded-[22px] sm:w-[340px] md:w-[370px] lg:w-[390px]">
                     <Link href={libraryItemHref(item)} className="block">

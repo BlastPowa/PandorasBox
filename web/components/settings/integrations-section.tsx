@@ -117,10 +117,22 @@ const companionSources = [
     coverage: "Dedicated episode tracking",
   },
   {
+    name: "Anime Nexus",
+    href: "https://anime.nexus/",
+    detail: "Anime",
+    coverage: "Watch-page episodes + embedded player context",
+  },
+  {
     name: "Netflix + Disney+",
     href: null,
     detail: "Movies + TV",
     coverage: "Dedicated playback tracking",
+  },
+  {
+    name: "Other compatible sites",
+    href: null,
+    detail: "Long-form video",
+    coverage: "Universal prominent-player tracking where media context is detectable",
   },
 ] as const;
 
@@ -135,12 +147,12 @@ function BrowserCompanionCard() {
             </span>
             <div>
               <p className="font-display text-lg font-bold">Pandora&apos;s Box for Chrome</p>
-              <p className="text-xs font-semibold text-[var(--accent)]">Version 1.3.1</p>
+              <p className="text-xs font-semibold text-[var(--accent)]">Version 1.3.3</p>
             </div>
           </div>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-            Track movies, series, anime, manga and manhwa while you browse. Cinejoy and CinemaOS are covered by the
-            browser companion alongside Netflix, Disney+ and Crunchyroll, with dedicated playback parsing where the site exposes it.
+            Track movies, series, anime, manga and manhwa while you browse. Cinejoy, CinemaOS and Anime Nexus are covered by the
+            browser companion alongside Netflix, Disney+ and Crunchyroll, with a universal fallback for compatible long-form players.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--text-muted)]">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--glass)] px-3 py-1.5">
@@ -151,7 +163,7 @@ function BrowserCompanionCard() {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild>
-              <a href="/downloads/pandoras-box-extension-v1.3.2.zip" download>
+              <a href="/downloads/pandoras-box-extension-v1.3.3.zip" download>
                 <Download className="size-4" /> Download extension
               </a>
             </Button>
@@ -194,7 +206,7 @@ function BrowserCompanionCard() {
               })}
             </div>
             <p className="mt-3 text-[11px] leading-5 text-[var(--text-muted)]">
-              Account syncing is managed separately below. Cinejoy and CinemaOS currently use companion tracking rather than a third-party account connection.
+              Account syncing is managed separately below. Browser-companion playback progress is exposed locally to PBox Home while the extension is installed.
             </p>
           </div>
 
