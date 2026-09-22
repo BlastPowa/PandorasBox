@@ -23,6 +23,8 @@ export interface ProviderConfig {
   syncTypes: readonly ("movie" | "series" | "anime" | "manga" | "manhwa")[];
 }
 
+export const ACTIVE_PROVIDER_IDS: readonly ProviderId[] = ["mal", "anilist"];
+
 export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   mal: {
     id: "mal",
@@ -80,6 +82,10 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
 
 export function getProvider(id: string): ProviderConfig | null {
   return id === "mal" || id === "anilist" || id === "trakt" || id === "simkl" ? PROVIDERS[id] : null;
+}
+
+export function providerIsActive(id: string): id is ProviderId {
+  return ACTIVE_PROVIDER_IDS.includes(id as ProviderId);
 }
 
 export function providerIsConfigured(cfg: ProviderConfig): boolean {

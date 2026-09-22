@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getProvider, providerIsConfigured, redirectUri } from "@/lib/integrations/providers";
+import { getProvider, providerIsActive, providerIsConfigured, redirectUri } from "@/lib/integrations/providers";
 
 function randomString(len = 64): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
@@ -14,6 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ provider: string }> }
 ) {
   const { provider: providerId } = await params;
+  if (!providerIsActive(providerId)) return NextResponse.json({ error: "Provider not available" }, { status: 404 });
   const cfg = getProvider(providerId);
   if (!cfg) return NextResponse.json({ error: "Unknown provider" }, { status: 404 });
   const clientId = cfg.clientId;

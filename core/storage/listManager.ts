@@ -179,12 +179,20 @@ export class ListManager {
   async getInProgress(): Promise<ReelItem[]> {
     const list = await this.getAll();
     return list
-      .filter(
-        (item) =>
-          (item.status === "watching" || item.status === "rewatching" || item.status === "reading") &&
-          item.progress.percentComplete > 0 &&
-          item.progress.percentComplete < 100
-      )
+      .filter((item) => {
+        const active = item.status === "watching" || item.status === "rewatching" || item.status === "reading";
+        if (!active || item.progress.percentComplete >= 100) return false;
+        if (item.type === "movie") {
+          return (item.progress.movieTimestamp ?? 0) > 0 || item.progress.percentComplete > 0;
+        }
+        if (item.type === "series" || item.type === "anime") {
+          return (item.progress.currentEpisode ?? 0) > 0
+            || (item.progress.currentEpisodePercent ?? 0) > 0
+            || (item.progress.episodeTimestamp ?? 0) > 0
+            || item.progress.percentComplete > 0;
+        }
+        return (item.progress.currentChapter ?? 0) > 0 || item.progress.percentComplete > 0;
+      })
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 

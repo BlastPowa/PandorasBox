@@ -98,7 +98,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
           <span className="mx-auto grid size-12 place-items-center rounded-full bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]">
             <Sparkles className="size-5" />
           </span>
-          <h1 className="mt-4 font-display text-2xl font-bold text-[var(--text)]">Trailer feed is reloading</h1>
+          <h1 className="mt-4 font-display text-2xl font-bold text-[var(--text)]">Reels are reloading</h1>
           <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
             There are no playable trending trailers in the feed right now. Browse titles while the next set becomes available.
           </p>
@@ -116,17 +116,17 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
   return (
     <div
       ref={containerRef}
-      className="relative h-[calc(100dvh-2px)] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-[var(--bg-base)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="relative h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height))] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-black text-white [scrollbar-width:none] md:h-[calc(100dvh-var(--app-header-height))] [&::-webkit-scrollbar]:hidden"
     >
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-5 sm:pt-5">
+      <div className="pointer-events-none sticky left-0 top-0 z-40 h-0 px-3 pt-3 sm:px-5 sm:pt-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 rounded-full border border-white/10 bg-black/35 px-3.5 py-2 text-white shadow-lg backdrop-blur-xl sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10">
               <Sparkles className="size-4" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-xs font-bold uppercase tracking-[0.15em] text-white/90">Trailer feed</p>
-              <p className="hidden truncate text-[11px] text-white/55 sm:block">Trending movies and series, one trailer at a time</p>
+              <p className="truncate text-xs font-bold uppercase tracking-[0.15em] text-white/90">Reels</p>
+              <p className="hidden truncate text-[11px] text-white/55 sm:block">Trending trailers in a vertical feed</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 text-xs font-semibold tabular-nums text-white/80">
@@ -154,13 +154,13 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
             ref={(el) => {
               slideRefs.current[i] = el;
             }}
-            className="relative flex h-full w-full snap-start snap-always items-center justify-center gap-4 px-3 sm:gap-8"
+            className="relative flex h-full w-full snap-start snap-always items-center justify-center gap-4 px-2 py-2 sm:gap-6 md:py-4"
           >
             {/* Keep the cinematic artwork atmosphere around the trailer card
                 without a viewport-sized blur repaint on every slide. */}
             {s.posterUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover opacity-20 saturate-75" />
+              <img src={s.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover opacity-0" />
             )}
             <div className="pointer-events-none absolute inset-0 bg-[var(--cinematic-scrim)] opacity-80" />
 
@@ -168,7 +168,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
                 rounded card, title/meta pinned to its bottom, rail outside it.
                 Sized responsively: near-square-tall on desktop, full-width on
                 phones so the player fills the screen like a real short. */}
-            <div className="relative z-10 h-full max-h-[94dvh] w-full max-w-[min(94vw,460px)] overflow-hidden rounded-[var(--radius-xl)] border border-white/10 bg-black/45 shadow-2xl backdrop-blur-sm">
+            <div className="relative z-10 h-[calc(100%-0.5rem)] max-h-[820px] aspect-[9/16] w-auto max-w-[calc(100vw-1rem)] overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-2xl md:h-[calc(100%-1.5rem)] md:max-w-[calc(100vw-22rem)]">
               {/* Poster fills the card's letterbox area while staying cheap to composite. */}
               {s.posterUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -179,7 +179,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
               <button
                 onClick={togglePlay}
                 aria-label={paused ? "Play" : "Pause"}
-                className="group absolute inset-x-0 top-1/2 z-10 flex aspect-video w-full -translate-y-1/2 items-center justify-center"
+                className="group absolute inset-0 z-10 overflow-hidden bg-black"
               >
                 {near ? (
                   <iframe
@@ -190,12 +190,12 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
                     src={`https://www.youtube-nocookie.com/embed/${s.trailerKey}?enablejsapi=1&autoplay=${isActive ? 1 : 0}&mute=${muted ? 1 : 0}&controls=0&rel=0&playsinline=1&modestbranding=1&loop=1&playlist=${s.trailerKey}`}
                     title={s.title}
                     allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
-                    className="pointer-events-none size-full"
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-full w-[316%] max-w-none -translate-x-1/2 -translate-y-1/2"
                   />
                 ) : (
                   s.posterUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={s.posterUrl} alt={s.title} className="size-full object-contain" />
+                    <img src={s.posterUrl} alt={s.title} className="size-full object-cover" />
                   )
                 )}
 
@@ -212,7 +212,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
               </button>
 
               {/* Title / year / rating / summary — bottom of the card */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 space-y-1.5 bg-[linear-gradient(to_top,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.58)_60%,transparent)] p-5 pb-24 pt-16 sm:pb-20 md:pb-5">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 space-y-1.5 bg-[linear-gradient(to_top,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.58)_60%,transparent)] p-5 pb-6 pr-16 pt-16 md:pr-5">
                 <div className="flex items-center gap-3 text-xs font-medium text-white/75">
                   <span className="rounded-full bg-white/15 px-2.5 py-0.5 uppercase tracking-wide">{s.type}</span>
                   {s.year !== null && <span>{s.year}</span>}
@@ -227,8 +227,8 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
 
             {/* Action rail — overlays the card on phones (so the player stays
                 full-width like a real short) and sits outside it on desktop. */}
-            <div className="absolute bottom-24 right-3 z-20 flex shrink-0 flex-col items-center gap-3 md:static md:bottom-auto md:right-auto md:z-10 md:gap-4 md:pb-0">
-              <Link href={href} className="relative block h-24 w-16 overflow-hidden rounded-[var(--radius-md)] border border-white/20 shadow-lg transition hover:scale-105">
+            <div className="absolute bottom-28 right-3 z-20 flex shrink-0 flex-col items-center gap-3 md:static md:bottom-auto md:right-auto md:z-10 md:gap-4 md:pb-0">
+              <Link href={href} className="relative block size-12 overflow-hidden rounded-full border border-white/20 shadow-lg transition hover:scale-105">
                 {s.posterUrl ? (
                   <Image src={s.posterUrl} alt={s.title} fill sizes="64px" className="object-cover" />
                 ) : (
@@ -241,59 +241,29 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
               <button
                 onClick={togglePlay}
                 aria-label={paused ? `Play ${s.title}` : `Pause ${s.title}`}
-                className="flex flex-col items-center gap-1.5 text-[var(--text)]"
+                className="flex flex-col items-center gap-1.5 text-white"
               >
-                <span className="grid size-12 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)] md:size-14">
+                <span className="grid size-12 place-items-center rounded-full border border-white/10 bg-white/10 shadow-lg backdrop-blur transition hover:bg-white/20 md:size-14">
                   {paused ? <Play className="size-5 fill-current md:size-6" /> : <Pause className="size-5 fill-current md:size-6" />}
                 </span>
                 <span className="text-[11px] font-semibold md:text-xs">{paused ? "Play" : "Pause"}</span>
               </button>
 
-              <Link href={href} className="flex flex-col items-center gap-1.5 text-[var(--text)]" aria-label={`View details for ${s.title}`}>
-                <span className="grid size-12 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)] md:size-14">
+              <Link href={href} className="flex flex-col items-center gap-1.5 text-white" aria-label={`View details for ${s.title}`}>
+                <span className="grid size-12 place-items-center rounded-full border border-white/10 bg-white/10 shadow-lg backdrop-blur transition hover:bg-white/20 md:size-14">
                   <Info className="size-5 md:size-6" />
                 </span>
                 <span className="text-[11px] font-semibold md:text-xs">Details</span>
               </Link>
 
-              <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="flex flex-col items-center gap-1.5 text-[var(--text)]">
-                <span className="grid size-12 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)] md:size-14">
+              <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="flex flex-col items-center gap-1.5 text-white">
+                <span className="grid size-12 place-items-center rounded-full border border-white/10 bg-white/10 shadow-lg backdrop-blur transition hover:bg-white/20 md:size-14">
                   {muted ? <VolumeX className="size-5 md:size-6" /> : <Volume2 className="size-5 md:size-6" />}
                 </span>
                 <span className="text-[11px] font-semibold md:text-xs">{muted ? "Unmute" : "Mute"}</span>
               </button>
             </div>
 
-            <div className="absolute inset-x-4 bottom-4 z-30 flex items-center justify-between gap-3 md:hidden">
-              <button
-                onClick={() => scrollToSlide(Math.max(active - 1, 0))}
-                disabled={active === 0}
-                aria-label="Previous trailer"
-                className={cn(
-                  "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white shadow-lg backdrop-blur transition active:scale-95",
-                  active === 0 && "opacity-30"
-                )}
-              >
-                <ChevronUp className="size-5" />
-              </button>
-              <Link
-                href={href}
-                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-white/15 bg-black/45 px-4 text-sm font-semibold text-white shadow-lg backdrop-blur"
-              >
-                View {s.type === "movie" ? "movie" : "series"}
-              </Link>
-              <button
-                onClick={() => scrollToSlide(Math.min(active + 1, items.length - 1))}
-                disabled={active === items.length - 1}
-                aria-label="Next trailer"
-                className={cn(
-                  "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white shadow-lg backdrop-blur transition active:scale-95",
-                  active === items.length - 1 && "opacity-30"
-                )}
-              >
-                <ChevronDown className="size-5" />
-              </button>
-            </div>
           </section>
         );
       })}
@@ -305,7 +275,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
           disabled={active === 0}
           aria-label="Previous"
           className={cn(
-            "grid size-10 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] text-[var(--text)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)]",
+            "grid size-10 place-items-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg backdrop-blur transition hover:bg-white/20",
             active === 0 && "opacity-30"
           )}
         >
@@ -316,7 +286,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
           disabled={active === items.length - 1}
           aria-label="Next"
           className={cn(
-            "grid size-10 place-items-center rounded-full border border-[var(--border)] bg-[var(--glass-strong)] text-[var(--text)] shadow-lg backdrop-blur transition hover:border-[rgb(var(--accent-rgb)/0.35)] hover:text-[var(--accent)]",
+            "grid size-10 place-items-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg backdrop-blur transition hover:bg-white/20",
             active === items.length - 1 && "opacity-30"
           )}
         >

@@ -100,7 +100,7 @@ function providerScope(id: string): string[] {
 const companionSources = [
   {
     name: "Cinejoy",
-    href: "https://cinejoy.to/",
+    href: "https://cinejoy.pk/",
     detail: "Movies + TV",
     coverage: "TMDB title mapping, seasons and episodes",
   },
@@ -151,7 +151,7 @@ function BrowserCompanionCard() {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild>
-              <a href="/downloads/pandoras-box-extension-v1.3.1.zip" download>
+              <a href="/downloads/pandoras-box-extension-v1.3.2.zip" download>
                 <Download className="size-4" /> Download extension
               </a>
             </Button>
@@ -366,7 +366,7 @@ export function IntegrationsSection({ signedIn }: { signedIn: boolean }) {
           <div>
             <p className="text-sm font-semibold">Connected services</p>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)]">
-              Keep lists, ratings and progress aligned across PBox, anime trackers and movie / TV services from one control centre.
+              Keep anime and manga lists, ratings and progress aligned across PBox and supported trackers from one control centre.
             </p>
           </div>
           <Button

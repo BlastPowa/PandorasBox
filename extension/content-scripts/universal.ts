@@ -4,6 +4,41 @@ const MIN_VIDEO_DURATION_SECONDS = 300;
 const VERY_LONG_VIDEO_SECONDS = 45 * 60;
 const CONTEXT_CHANNEL = "__pandora_box_media_context_v1__";
 
+const EXTENSION_LIBRARY_CHANNEL = "__pbox_extension_library_v1__";
+const PBOX_WEB_HOSTS = new Set(["pandoras-box-tau.vercel.app", "localhost", "127.0.0.1"]);
+
+type ExtensionLibraryBridgeMessage =
+  | { channel: typeof EXTENSION_LIBRARY_CHANNEL; type: "request" }
+  | { channel: typeof EXTENSION_LIBRARY_CHANNEL; type: "response"; items: unknown[] };
+
+function setupExtensionLibraryBridge(): void {
+  if (window.top !== window || !PBOX_WEB_HOSTS.has(window.location.hostname.toLowerCase())) return;
+  let requested = false;
+
+  const publish = () => {
+    chrome.runtime.sendMessage({ type: "getList" }, (items: unknown) => {
+      if (chrome.runtime.lastError) return;
+      window.postMessage({
+        channel: EXTENSION_LIBRARY_CHANNEL,
+        type: "response",
+        items: Array.isArray(items) ? items : [],
+      } satisfies ExtensionLibraryBridgeMessage, window.location.origin);
+    });
+  };
+
+  window.addEventListener("message", (event: MessageEvent<unknown>) => {
+    if (event.source !== window || event.origin !== window.location.origin) return;
+    const message = event.data as Partial<ExtensionLibraryBridgeMessage> | null;
+    if (!message || message.channel !== EXTENSION_LIBRARY_CHANNEL || message.type !== "request") return;
+    requested = true;
+    publish();
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (requested && area === "local" && changes.reel_list) publish();
+  });
+}
+
 const BLOCKED_HOSTS = [
   "youtube.com",
   "youtu.be",
@@ -14,6 +49,8 @@ const BLOCKED_HOSTS = [
   "facebook.com",
   "reddit.com",
   "twitch.tv",
+  "cinejoy.to",
+  "cinejoy.pk",
 ];
 
 const SHORT_FORM_HINT = /\b(shorts?|reels?|clips?|trailer|teaser|preview|promo|advert|advertisement|music video|livestream|live stream)\b/i;
@@ -83,7 +120,7 @@ function getEpisodeNumber(text: string): number | null {
     /Episode\s+(\d+)/i,
     /Ep\.?\s*(\d+)/i,
     /[?&](?:ep|episode)=(\d+)/i,
-    /\bS\d{1,2}E(\d{1,3})\b/i,
+    /\bS\d{1,2}\s*[:.-]?\s*E(\d{1,3})\b/i,
     /\bE(\d+)\b/i,
   ]);
 }
@@ -93,7 +130,7 @@ function getSeasonNumber(text: string): number | null {
     /season[/-](\d+)/i,
     /Season\s+(\d+)/i,
     /[?&]season=(\d+)/i,
-    /\bS(\d{1,2})E\d{1,3}\b/i,
+    /\bS(\d{1,2})\s*[:.-]?\s*E\d{1,3}\b/i,
     /\bS(\d+)\b/i,
   ]);
 }
@@ -225,6 +262,7 @@ function shouldTrackUniversal(video: HTMLVideoElement): boolean {
 }
 
 setupFrameContextBridge();
+setupExtensionLibraryBridge();
 
 setupVideoTracking({
   site: window.location.hostname.replace(/^www\./, ""),

@@ -24,6 +24,32 @@ type DashboardProps = {
   generatedAt: number;
 };
 
+const EXTENSION_LIBRARY_CHANNEL = "__pbox_extension_library_v1__";
+
+function isExtensionReelItem(value: unknown): value is ReelItem {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<ReelItem>;
+  return typeof item.id === "string"
+    && typeof item.title === "string"
+    && typeof item.status === "string"
+    && Boolean(item.progress && typeof item.progress === "object");
+}
+
+function hasResumeProgress(item: ReelItem) {
+  if (item.type === "movie") return (item.progress.movieTimestamp ?? 0) > 0 || item.progress.percentComplete > 0;
+  if (item.type === "series" || item.type === "anime") {
+    return (item.progress.currentEpisode ?? 0) > 0
+      || (item.progress.currentEpisodePercent ?? 0) > 0
+      || (item.progress.episodeTimestamp ?? 0) > 0
+      || item.progress.percentComplete > 0;
+  }
+  return false;
+}
+
+function itemIdentity(item: ReelItem) {
+  return item.tmdbId != null ? `tmdb:${item.tmdbId}` : item.id;
+}
+
 function resultHref(item: UnifiedSearchResult) {
   if (item.source === "tmdb" && item.tmdbId) return `/title/${item.type}/tmdb/${item.tmdbId}`;
   if (item.source === "anilist" && item.anilistId) return `/title/${item.type}/anilist/${item.anilistId}`;
@@ -34,19 +60,24 @@ function resultHref(item: UnifiedSearchResult) {
 
 function progressLabel(item: ReelItem) {
   if (item.type === "movie") {
-    const minute = item.progress.movieTimestamp ?? 0;
-    return minute > 0 ? `${minute} min` : "Ready to start";
+    const seconds = item.progress.movieTimestamp ?? 0;
+    return seconds > 0 ? `${Math.max(1, Math.floor(seconds / 60))} min in` : "Ready to start";
   }
   if (item.type === "series" || item.type === "anime") {
     const episode = item.progress.currentEpisode ?? 0;
     const season = item.progress.currentSeason;
-    return season ? `S${season} · E${episode}` : `Episode ${episode}`;
+    const episodePercent = item.progress.currentEpisodePercent ?? 0;
+    const position = season ? `S${season} · E${episode}` : `Episode ${episode}`;
+    return episodePercent > 0 ? `${position} · ${Math.round(episodePercent)}%` : position;
   }
   if (item.type === "comic") return `Issue ${item.progress.currentIssueNumber ?? "—"}`;
   return `Chapter ${item.progress.currentChapter ?? 0}`;
 }
 
 function progressPercent(item: ReelItem) {
+  if ((item.type === "series" || item.type === "anime") && (item.progress.currentEpisodePercent ?? 0) > 0) {
+    return Math.max(0, Math.min(100, item.progress.currentEpisodePercent ?? 0));
+  }
   if (Number.isFinite(item.progress.percentComplete)) {
     return Math.max(0, Math.min(100, item.progress.percentComplete));
   }
@@ -110,6 +141,24 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
     [trending],
   );
   const [spotlightIndex, setSpotlightIndex] = useState(0);
+  const [extensionItems, setExtensionItems] = useState<ReelItem[]>([]);
+
+  useEffect(() => {
+    const receive = (event: MessageEvent<unknown>) => {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const message = event.data as { channel?: string; type?: string; items?: unknown[] } | null;
+      if (!message || message.channel !== EXTENSION_LIBRARY_CHANNEL || message.type !== "response" || !Array.isArray(message.items)) return;
+      setExtensionItems(message.items.filter(isExtensionReelItem));
+    };
+    const request = () => window.postMessage({ channel: EXTENSION_LIBRARY_CHANNEL, type: "request" }, window.location.origin);
+    window.addEventListener("message", receive);
+    request();
+    const retry = window.setTimeout(request, 1200);
+    return () => {
+      window.removeEventListener("message", receive);
+      window.clearTimeout(retry);
+    };
+  }, []);
 
   const { active, continueWatching, planned } = useMemo(() => {
     const activeItems = items
@@ -123,6 +172,25 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
     };
   }, [items]);
+  const extensionContinueWatching = useMemo(() => extensionItems
+    .filter((item) => (item.status === "watching" || item.status === "rewatching")
+      && (item.type === "movie" || item.type === "series" || item.type === "anime")
+      && hasResumeProgress(item))
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()), [extensionItems]);
+
+  const combinedContinueWatching = useMemo(() => {
+    const merged = new Map<string, ReelItem>();
+    for (const item of continueWatching) merged.set(itemIdentity(item), item);
+    for (const item of extensionContinueWatching) {
+      const key = itemIdentity(item);
+      const existing = merged.get(key);
+      if (!existing || new Date(item.updatedAt).getTime() >= new Date(existing.updatedAt).getTime()) merged.set(key, item);
+    }
+    return [...merged.values()].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [continueWatching, extensionContinueWatching]);
+
+  const extensionItemKeys = useMemo(() => new Set(extensionContinueWatching.map(itemIdentity)), [extensionContinueWatching]);
+
   const safeSpotlightIndex = spotlightSlides.length > 0 ? spotlightIndex % spotlightSlides.length : 0;
   const spotlight = spotlightSlides[safeSpotlightIndex] ?? trending[0] ?? null;
   const heroArtwork = spotlight?.backdropUrl ?? spotlight?.posterUrl ?? null;
@@ -263,11 +331,11 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
 
       <section>
         <SectionHeading eyebrow="Back to your stories" title="Continue watching" action="Your library" href="/library" />
-        {!signedIn ? (
+        {!signedIn && combinedContinueWatching.length === 0 ? (
           <div className="pb-uiverse-card pb-uiverse-card--notice rounded-2xl p-6 text-sm text-[var(--text-secondary)]">
             Sign in to sync exact progress across your library. You can still explore everything below.
           </div>
-        ) : continueWatching.length === 0 ? (
+        ) : combinedContinueWatching.length === 0 ? (
           <div className="pb-uiverse-card pb-uiverse-card--notice grid gap-4 rounded-2xl p-6 sm:grid-cols-[1fr_auto] sm:items-center">
             <div><p className="font-semibold text-[var(--text)]">Nothing waiting to resume yet.</p><p className="mt-1 text-sm text-[var(--text-secondary)]">Start a movie or show and Pandora’s Box will keep the exact point here.</p></div>
             <Link href="/search" className="pb-uiverse-button pb-uiverse-button--accent inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white"><Plus className="size-4" /> Add your first title</Link>
@@ -275,7 +343,7 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
         ) : (
           <div className="-mx-2 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex snap-x snap-mandatory gap-3 sm:gap-4">
-              {continueWatching.slice(0, 10).map((item) => {
+              {combinedContinueWatching.slice(0, 10).map((item) => {
                 const artwork = item.backdropUrl ?? item.posterUrl;
                 return (
                   <article key={item.id} className="pb-continue-card group relative w-[78vw] max-w-[360px] shrink-0 snap-start overflow-hidden rounded-[22px] sm:w-[340px] md:w-[370px] lg:w-[390px]">
@@ -289,7 +357,7 @@ export function HomeDashboard({ trending, generatedAt }: DashboardProps) {
                         <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(7,8,13,.92)_0%,rgba(7,8,13,.24)_58%,rgba(7,8,13,.04)_100%)]" />
                         <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
                           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/70">
-                            <span>{mediaTypeLabel(item.type)}</span><span>•</span><span>{progressLabel(item)}</span>
+                            <span>{mediaTypeLabel(item.type)}</span><span>•</span><span>{progressLabel(item)}</span>{extensionItemKeys.has(itemIdentity(item)) && <><span>•</span><span>Extension</span></>}
                           </div>
                           <h3 className="mt-1.5 line-clamp-1 font-display text-lg font-bold text-white sm:text-xl">{item.title}</h3>
                           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/20">

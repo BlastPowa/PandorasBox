@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getProvider } from "@/lib/integrations/providers";
+import { getProvider, providerIsActive } from "@/lib/integrations/providers";
 import { runTwoWaySync, type IntegrationRow } from "@/lib/integrations/sync";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
@@ -13,6 +13,7 @@ export async function POST(
   if (!limit.ok) return tooManyRequests(limit);
 
   const { provider: providerId } = await params;
+  if (!providerIsActive(providerId)) return NextResponse.json({ error: "Provider not available" }, { status: 404 });
   if (!getProvider(providerId)) return NextResponse.json({ error: "Unknown provider" }, { status: 404 });
 
   const supabase = await createClient();

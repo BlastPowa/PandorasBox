@@ -27,7 +27,7 @@ Open the toolbar popup and use the cog button for the main extension settings. C
 
 ## Tracking behaviour
 
-- Netflix, Disney+, CinemaOS, Cinejoy and Crunchyroll use dedicated video tracking rules.
+- Netflix, Disney+, CinemaOS, Cinejoy (.pk/.to) and Crunchyroll use dedicated video tracking rules.
 - Netflix and Crunchyroll only track their watch routes.
 - Dedicated streaming integrations accept legitimate short episodes from 3 minutes upward.
 - The universal fallback can follow dynamically mounted or replaced players, including embedded frames when enough page context is available. It requires a prominent long-form player and a minimum 5-minute duration.

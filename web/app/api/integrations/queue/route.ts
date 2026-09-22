@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import type { PushPayload } from "@/lib/integrations/sync";
+import { providerIsActive } from "@/lib/integrations/providers";
 
 /**
  * POST { mediaKey, payload } → enqueue a push to every connected auto-sync
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
 
   let queued = 0;
   for (const { provider } of integrations) {
+    if (!providerIsActive(provider)) continue;
     if (provider === "mal" && body.payload.malId == null) continue;
     if (provider === "anilist" && body.payload.anilistId == null) continue;
     if (

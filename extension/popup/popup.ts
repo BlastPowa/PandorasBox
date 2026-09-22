@@ -153,7 +153,10 @@ function buildContinueCard(item: ReelItem): HTMLElement {
   meta.appendChild(el("div", "continue-progress-text", formatProgress(item.progress, item.type)));
   const track = el("div", "progress-track");
   const fill = el("div", "progress-fill");
-  fill.style.width = `${Math.round(item.progress.percentComplete)}%`;
+  const resumePercent = item.type === "series" || item.type === "anime"
+    ? item.progress.currentEpisodePercent ?? item.progress.percentComplete
+    : item.progress.percentComplete;
+  fill.style.width = `${Math.round(resumePercent)}%`;
   track.appendChild(fill);
   meta.appendChild(track);
   card.appendChild(meta);
@@ -195,6 +198,9 @@ function buildResumeUrlFromItem(item: ReelItem): string | null {
       return `https://www.crunchyroll.com/search?q=${encoded}`;
     case "cinemaos":
       return `https://cinemaos.live/search?q=${encoded}`;
+    case "cinejoy":
+    case "cinejoy.pk":
+      return `https://cinejoy.pk/search?q=${encoded}`;
     case "nepu":
       return `https://nepu.to/search?q=${encoded}`;
     case "aniwave":

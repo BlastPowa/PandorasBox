@@ -24,6 +24,40 @@ export const metadata = { title: "What's New · PBox" };
 
 const RELEASES = [
   {
+    icon: Activity,
+    title: "Playback tracking & discovery polish",
+    text: "Cinejoy tracking, Continue Watching, movie/TV hover previews and provider browsing now behave as one connected flow.",
+    highlights: [
+      "Cinejoy's current cinejoy.pk watch routes are tracked directly, including season/episode values and TMDB IDs from the URL.",
+      "Iframe-hosted Cinejoy players can fall back to the universal tracker while the top page supplies the correct media context.",
+      "Extension progress now appears in PBox Home Continue Watching through a local browser-companion bridge, and episode resume progress counts as in-progress state.",
+      "Movie and TV posters now open a larger floating quick-look card on hover, matching the Games hover-preview pattern instead of clipping controls inside the poster.",
+      "Browse by Provider now includes the full Cinejoy-style row: Netflix, Prime Video, Disney+, Apple TV+, Apple TV, Hulu, HBO Max, Paramount+, Peacock, Crunchyroll, Starz, AMC+, MGM Plus, YouTube Premium, YouTube, Tubi, Pluto TV and HiDive.",
+    ],
+  },
+  {
+    icon: Activity,
+    title: "Integration cleanup",
+    text: "Settings no longer advertises account connections that are not actually configured and usable.",
+    highlights: [
+      "Trakt and Simkl setup cards were removed from Extension & Apps because this build has no client credentials for them.",
+      "Only configured MyAnimeList and AniList connections are exposed in the integration dashboard.",
+      "Direct connect, callback, manual sync, queue and background sync paths now ignore retired providers in this build.",
+      "Help, environment examples and current integration copy were updated so the UI no longer asks for missing setup secrets.",
+    ],
+  },
+  {
+    icon: Clapperboard,
+    title: "Reels feed",
+    text: "The missing Reels entry is back in navigation with a proper vertical video experience instead of a landscape trailer floating inside a tall card.",
+    highlights: [
+      "Reels now has its own /reels route in Explore, while the old /shorts address forwards to it.",
+      "Trailers are centre-cropped into a real 9:16 stage with full-height scroll snapping like YouTube Shorts.",
+      "Playback, sound and title details stay beside or over the video so the feed remains focused on the reel.",
+      "The feed height now respects the app header and mobile bottom navigation so each reel lands cleanly in the viewport.",
+    ],
+  },
+  {
     icon: Clapperboard,
     title: "Home & discovery",
     text: "The home page is more cinematic and useful without covering the artwork that gives PBox its atmosphere.",
@@ -93,7 +127,7 @@ const RELEASES = [
   },
   {
     icon: ShieldCheck,
-    title: "Browser companion v1.3.1",
+    title: "Browser companion v1.3.2",
     text: "The tracking extension is packaged, current and easier to reach from Settings.",
     highlights: [
       "A Download extension shortcut is visible on the default Settings screen and full controls remain under Extension & Apps.",
@@ -124,11 +158,11 @@ const ROLLING_RELEASES = [
     title: "Browser companion test release",
     text: "The extension is easier to recognise, configure and test while keeping the broader playback tracking work from the previous batch.",
     highlights: [
-      "Pandora's Box for Chrome is now v1.3.1 with its own open-box/playback icon across Chrome's toolbar, extension list and packaged build.",
+      "Pandora's Box for Chrome is now v1.3.2 with Cinejoy .pk tracking, extension-to-web Continue Watching and the existing open-box/playback icon.",
       "The popup now has a dedicated Settings sheet for Auto-track, notifications, country, TMDB matching and optional Supabase sync instead of sending every settings change to a separate page.",
       "Advanced profile, import and data tools remain available from the Settings sheet, and Chrome's extension Options link opens that full page directly.",
       "The Settings sheet explains startup behavior: newly opened watch pages work automatically, while tabs that were already open before an install or extension reload need one page refresh.",
-      "The website download links now point at the v1.3.1 package so the build being tested matches the visible extension version.",
+      "The website download links now point at the v1.3.2 package so the build being tested matches the visible extension version.",
     ],
   },
   {
@@ -234,7 +268,7 @@ const ROLLING_RELEASES = [
       "Cinejoy is now called out as a dedicated movie and TV tracking source with TMDB title mapping plus season and episode parsing.",
       "CinemaOS is surfaced as a supported companion source for title, season and episode progress tracking.",
       "Crunchyroll, Netflix and Disney+ coverage is visible in the same compact source grid so browser tracking is easier to understand at a glance.",
-      "Account sync remains clearly separated below for MyAnimeList, AniList, Trakt and Simkl, where supported OAuth/API connections exist.",
+      "Account sync remains clearly separated below for the currently supported MyAnimeList and AniList connections.",
       "The production build continues to pass all 61 routes after the integrations UI update.",
     ],
   },
@@ -484,7 +518,7 @@ const ROLLING_RELEASES = [
     batch: "Revamp batch 12",
     date: "17 September 2026",
     title: "Settings & integrations control centre",
-    text: "Connected services now read like one tracking dashboard, with clearer sync health, coverage and actions across Simkl, Trakt, MyAnimeList and AniList.",
+    text: "Connected services now read like one tracking dashboard, with clearer sync health, coverage and actions across MyAnimeList and AniList.",
     highlights: [
       "Extension & Apps now opens automatically after an integration OAuth callback, so connection success and errors stay visible instead of dropping users back on Account.",
       "A new integration summary shows connected services, Auto Sync coverage, the latest healthy sync and anything that needs attention.",
@@ -630,19 +664,6 @@ const ROLLING_RELEASES = [
       "Featured, top-rated and genre shelves cover Fantasy, Sci-Fi, Horror, Romance, Mystery, History and Biography.",
       "Book details include authors, editions, subjects, publishers and ISBN information.",
       "Anna's Archive is available as an external search link using ISBN when possible, with title/author fallback.",
-    ],
-  },
-  {
-    icon: Activity,
-    batch: "Revamp batch 1",
-    date: "16 September 2026",
-    title: "Simkl account connection & sync",
-    text: "Simkl is now a first-class account integration beside Trakt for movie and series tracking.",
-    highlights: [
-      "OAuth connection, account lookup and long-lived Simkl tokens are supported from Settings.",
-      "Pull sync reads Simkl list, activity, status, progress and rating data.",
-      "Push sync supports list changes, history and ratings for TMDB-backed movies and series.",
-      "The integration queue now applies the correct provider constraints for Simkl and Trakt.",
     ],
   },
 ];

@@ -193,11 +193,11 @@ const ENTRIES: FaqEntry[] = [
     ),
   },
   {
-    question: "Can I connect Simkl, Trakt, MyAnimeList or AniList?",
+    question: "Can I connect MyAnimeList or AniList?",
     category: "Accounts",
     answer: (
       <p>
-        Yes. Open <span className="text-[var(--text)]">Settings → Extension &amp; Apps</span> to connect supported services, see what media each one covers, run a manual sync, turn on Auto Sync where available, and review connection health. Simkl and Trakt cover movie/series tracking, while anime and manga services keep their own supported scopes.
+        Yes. Open <span className="text-[var(--text)]">Settings → Extension &amp; Apps</span> to connect MyAnimeList or AniList, run a manual sync, turn on Auto Sync, and review connection health for anime and manga tracking.
       </p>
     ),
   },
@@ -214,7 +214,7 @@ const ENTRIES: FaqEntry[] = [
 
 const HELP_ROUTES = [
   { href: "/settings#import", icon: UploadCloud, title: "Import a library", text: "Paste lists, import MAL XML or restore a PBox backup." },
-  { href: "/settings#integrations", icon: Plug, title: "Connect services", text: "Manage Simkl, Trakt, anime/manga sync and the browser companion." },
+  { href: "/settings#integrations", icon: Plug, title: "Connect services", text: "Manage MyAnimeList, AniList and the browser companion." },
   { href: "/books", icon: BookOpenText, title: "Explore books", text: "Search Open Library and browse ratings, genres and book details." },
   { href: "/sites", icon: ArrowRight, title: "Open providers", text: "Jump to the Watch, Read & Play directory for external destinations." },
 ] as const;

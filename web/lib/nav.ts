@@ -18,6 +18,7 @@ import {
   MessageCircle,
   Globe2,
   Sparkles,
+  Clapperboard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: Home, group: "main", bottom: true },
   { href: "/browse", label: "Discover", icon: Compass, group: "main", bottom: true },
+  { href: "/reels", label: "Reels", icon: Clapperboard, group: "main" },
   { href: "/search", label: "Search", icon: Search, group: "main", bottom: true },
   { href: "/library", label: "Library", icon: Library, group: "main", bottom: true },
   { href: "/schedule", label: "Calendar", icon: CalendarDays, group: "main" },

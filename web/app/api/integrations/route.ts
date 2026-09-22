@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { PROVIDERS, providerIsConfigured, type ProviderId } from "@/lib/integrations/providers";
+import { ACTIVE_PROVIDER_IDS, PROVIDERS, providerIsConfigured } from "@/lib/integrations/providers";
 
 /** GET → connection state for every provider (never exposes tokens). */
 export async function GET() {
@@ -26,7 +26,7 @@ export async function GET() {
     .eq("user_id", user.id)
     .eq("resolved", false);
 
-  const providers = (Object.keys(PROVIDERS) as ProviderId[]).map((id) => {
+  const providers = ACTIVE_PROVIDER_IDS.filter((id) => providerIsConfigured(PROVIDERS[id])).map((id) => {
     const cfg = PROVIDERS[id];
     const row = rows?.find((r) => r.provider === id) ?? null;
     return {

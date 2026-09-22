@@ -144,6 +144,9 @@ export class ProgressManager {
         const base = `https://cinemaos.live/search?q=${encodedTitle}`;
         return timestamp !== null ? `${base}&t=${Math.floor(timestamp)}` : base;
       }
+      case "cinejoy":
+      case "cinejoy.pk":
+        return `https://cinejoy.pk/search?q=${encodedTitle}`;
       case "nepu":
         return `https://nepu.to/search?q=${encodedTitle}`;
       case "aniwave":

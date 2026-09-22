@@ -33,7 +33,7 @@ function parseCinejoyPlayback(url: string | undefined): CinejoyPlaybackRoute | n
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    if (!(parsed.hostname === "cinejoy.to" || parsed.hostname.endsWith(".cinejoy.to"))) return null;
+    if (!(parsed.hostname === "cinejoy.to" || parsed.hostname.endsWith(".cinejoy.to") || parsed.hostname === "cinejoy.pk" || parsed.hostname.endsWith(".cinejoy.pk"))) return null;
     const match = parsed.pathname.match(/\/watch\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/i);
     if (!match) return null;
     const tmdbId = Number.parseInt(match[2] ?? "", 10);
@@ -58,7 +58,7 @@ function cleanPlaybackTitle(value: string): string {
 
 function playbackSearchTitle(value: string): string {
   return cleanPlaybackTitle(value)
-    .replace(/\bS\d{1,2}E\d{1,3}\b.*$/i, "")
+    .replace(/\bS\d{1,2}\s*[:.-]?\s*E\d{1,3}\b.*$/i, "")
     .replace(/\bSeason\s+\d+\s*(?:(?:Episode|Ep\.?)\s*\d+)?\b.*$/i, "")
     .replace(/\bEpisode\s+\d+\b.*$/i, "")
     .replace(/\s+(?:watch|stream)\s+(?:online|free).*$/i, "")
@@ -102,13 +102,13 @@ function enrichProgressEventFromTab(event: ProgressEvent, sender?: chrome.runtim
   event.episodeNumber ??= parsePlaybackNumber(combined, [
     /episode[/-](\d+)/i,
     /Episode\s+(\d+)/i,
-    /\bS\d{1,2}E(\d{1,3})\b/i,
+    /\bS\d{1,2}\s*[:.-]?\s*E(\d{1,3})\b/i,
     /[?&](?:ep|episode)=(\d+)/i,
   ]);
   event.seasonNumber ??= parsePlaybackNumber(combined, [
     /season[/-](\d+)/i,
     /Season\s+(\d+)/i,
-    /\bS(\d{1,2})E\d{1,3}\b/i,
+    /\bS(\d{1,2})\s*[:.-]?\s*E\d{1,3}\b/i,
     /[?&]season=(\d+)/i,
   ]);
   event.mediaType = inferPlaybackMediaType(event);
@@ -244,7 +244,7 @@ async function createAutoTrackedItem(event: ProgressEvent, apiKey: string): Prom
     console.warn("Pandora's Box could not enrich auto-tracked TMDB item", error);
   }
 
-  const fallbackTitle = cleanPlaybackTitle(event.title) || `${mediaType === "movie" ? "Movie" : "Series"} ${tmdbId}`;
+  const fallbackTitle = playbackSearchTitle(event.title) || `${mediaType === "movie" ? "Movie" : "Series"} ${tmdbId}`;
   try {
     return await listManager.add({
       id: `tmdb-${tmdbId}`,

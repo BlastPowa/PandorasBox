@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { runTwoWaySync, type IntegrationRow } from "@/lib/integrations/sync";
+import { providerIsActive } from "@/lib/integrations/providers";
 
 export const maxDuration = 300;
 
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
   let synced = 0;
   const errors: string[] = [];
   for (const row of (rows ?? []) as IntegrationRow[]) {
+    if (!providerIsActive(row.provider)) continue;
     try {
       await runTwoWaySync(supabase, row);
       synced += 1;

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getProvider, redirectUri, simklApiUrl, simklHeaders } from "@/lib/integrations/providers";
+import { getProvider, providerIsActive, redirectUri, simklApiUrl, simklHeaders } from "@/lib/integrations/providers";
 
 /** OAuth callback: exchanges the code for tokens and stores the connection. */
 export async function GET(
@@ -8,6 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ provider: string }> }
 ) {
   const { provider: providerId } = await params;
+  if (!providerIsActive(providerId)) return NextResponse.redirect(new URL("/settings#integrations", request.url));
   const cfg = getProvider(providerId);
   const url = new URL(request.url);
   const fail = (reason: string) =>
