@@ -4,6 +4,8 @@ import { createDefaultProgress } from "../../core/storage/schema";
 import type { UnifiedSearchResult } from "../../core/utils/search";
 import { formatProgress, getTypeLabel, getStatusLabel, truncateText } from "../../core/utils/formatters";
 
+const PBOX_WEB_ORIGIN = "https://pandoras-box-tau.vercel.app";
+
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -52,6 +54,43 @@ function showError(container: HTMLElement, message: string): void {
   const note = el("div", "error-note", message);
   container.prepend(note);
   setTimeout(() => note.remove(), 6000);
+}
+
+function numericId(value: number | null | undefined, fallback: string, prefix: string): string | null {
+  if (value !== null && value !== undefined && Number.isFinite(value)) return String(value);
+  return fallback.match(new RegExp(`^${prefix}-(\\d+)$`, "i"))?.[1] ?? null;
+}
+
+function buildPboxDetailUrl(item: ReelItem): string {
+  let path: string;
+  if (item.source === "tmdb") {
+    const id = numericId(item.tmdbId, item.id, "tmdb");
+    path = id ? `/title/${item.type}/tmdb/${id}` : `/search?q=${encodeURIComponent(item.title)}`;
+  } else if (item.source === "anilist") {
+    const id = numericId(item.anilistId, item.id, "anilist");
+    path = id
+      ? `/title/${item.type}/anilist/${id}`
+      : item.type === "anime" && item.malId
+        ? `/title/anime/anilist/jikan-${item.malId}`
+        : `/search?q=${encodeURIComponent(item.title)}`;
+  } else if (item.source === "mangadex") {
+    const id = item.mangadexId ?? item.id.match(/^mangadex-(.+)$/i)?.[1] ?? null;
+    path = id ? `/title/${item.type}/mangadex/${encodeURIComponent(id)}` : `/search?q=${encodeURIComponent(item.title)}`;
+  } else {
+    path = `/search?q=${encodeURIComponent(item.title)}`;
+  }
+
+  const url = new URL(path, PBOX_WEB_ORIGIN);
+  if ((item.type === "series" || item.type === "anime") && (item.progress.currentEpisode ?? 0) > 0) {
+    url.searchParams.set("season", String(item.progress.currentSeason ?? 1));
+    url.searchParams.set("episode", String(item.progress.currentEpisode));
+    url.hash = "pbox-episodes";
+  }
+  return url.toString();
+}
+
+async function openPboxDetail(item: ReelItem): Promise<void> {
+  await chrome.tabs.create({ url: buildPboxDetailUrl(item) });
 }
 
 let activeTab = "home";
@@ -146,11 +185,19 @@ async function loadHome(): Promise<void> {
 
 function buildContinueCard(item: ReelItem): HTMLElement {
   const card = el("div", "continue-card");
+  card.tabIndex = 0;
+  card.setAttribute("role", "link");
+  card.setAttribute("aria-label", `Open ${item.title} in Pandora's Box`);
   card.appendChild(poster(item.posterUrl, "poster-60", item.title));
 
   const meta = el("div", "continue-meta");
   meta.appendChild(el("div", "continue-title", truncateText(item.title, 25)));
-  meta.appendChild(el("div", "continue-progress-text", formatProgress(item.progress, item.type)));
+  const progressText = el("div", "continue-progress-text", formatProgress(item.progress, item.type));
+  meta.appendChild(progressText);
+  const episodeName = el("div", "continue-episode-name");
+  const summary = el("div", "continue-summary", item.synopsis ? truncateText(item.synopsis, 128) : "Open the episode in PBox for details, reviews and the full guide.");
+  meta.appendChild(episodeName);
+  meta.appendChild(summary);
   const track = el("div", "progress-track");
   const fill = el("div", "progress-fill");
   const resumePercent = item.type === "series" || item.type === "anime"
@@ -161,8 +208,25 @@ function buildContinueCard(item: ReelItem): HTMLElement {
   meta.appendChild(track);
   card.appendChild(meta);
 
+  if ((item.type === "series" || item.type === "anime") && (item.progress.currentEpisode ?? 0) > 0) {
+    void sendMessage({ type: "getEpisodeSpotlight", itemId: item.id }).then((spotlight) => {
+      if (!spotlight) return;
+      episodeName.textContent = `S${spotlight.season} · E${spotlight.episode} — ${spotlight.name}`;
+      if (spotlight.overview) summary.textContent = spotlight.overview;
+    }).catch(() => undefined);
+  }
+
+  card.addEventListener("click", () => void openPboxDetail(item));
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      void openPboxDetail(item);
+    }
+  });
+
   const resume = el("button", "resume-btn", "Resume") as HTMLButtonElement;
-  resume.addEventListener("click", () => {
+  resume.addEventListener("click", (event) => {
+    event.stopPropagation();
     void (async () => {
       try {
         const list = await sendMessage({ type: "getList" });
@@ -411,6 +475,7 @@ function buildListRow(item: ReelItem): HTMLElement {
   meta.appendChild(el("div", "list-progress", formatProgress(item.progress, item.type)));
   row.appendChild(meta);
   row.appendChild(statusBadge(item.status));
+  row.addEventListener("click", () => void openPboxDetail(item));
 
   const menuBtn = el("button", "menu-btn", "⋮");
   menuBtn.addEventListener("click", (event) => {

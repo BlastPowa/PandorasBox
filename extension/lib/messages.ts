@@ -33,6 +33,7 @@ export type ReelMessage =
       mangadexId?: string;
     }
   | { type: "getAiringToday" }
+  | { type: "getEpisodeSpotlight"; itemId: string }
   | { type: "syncNow" };
 
 export interface AiringTodayEntry {
@@ -41,6 +42,15 @@ export interface AiringTodayEntry {
   posterUrl: string | null;
   episode: number;
   airingAt: number;
+}
+
+export interface EpisodeSpotlight {
+  season: number;
+  episode: number;
+  name: string;
+  overview: string | null;
+  stillUrl: string | null;
+  runtime: number | null;
 }
 
 export type ReelResponseMap = {
@@ -60,6 +70,7 @@ export type ReelResponseMap = {
   search: UnifiedSearchResult[];
   getWatchProviders: WatchOption[];
   getAiringToday: AiringTodayEntry[];
+  getEpisodeSpotlight: EpisodeSpotlight | null;
   syncNow: { success: boolean; message: string };
 };
 

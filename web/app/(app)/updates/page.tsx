@@ -25,6 +25,18 @@ export const metadata = { title: "What's New · PBox" };
 const RELEASES = [
   {
     icon: Activity,
+    title: "Episode deep-links & glass extension refresh",
+    text: "The browser companion now hands your current episode straight into PBox and uses its home space for richer episode context instead of empty chrome.",
+    highlights: [
+      "Continue Watching cards open the matching PBox title at the tracked season and episode, scroll directly to Episodes and open that episode's detail panel.",
+      "The provider Resume button still opens the external watch source, so PBox details and playback resume remain separate actions.",
+      "Extension Continue Watching cards can enrich the tracked episode with its TMDB episode name and synopsis, falling back to the title summary when episode metadata is unavailable.",
+      "The popup now uses denser Pandora-style glass surfaces, blur, layered gradients, glow borders and smoother hover/focus motion across Continue Watching, airing and stats cards.",
+      "Pandora's Box extension is now v1.3.4 and the Settings download links point to the matching package.",
+    ],
+  },
+  {
+    icon: Activity,
     title: "Playback progress & detail-page polish",
     text: "Extension progress is easier to verify on PBox, episode browsing gets priority on title pages and playback coverage now handles Anime Nexus more reliably.",
     highlights: [

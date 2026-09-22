@@ -392,7 +392,7 @@ export function SettingsView({
                     </p>
                   </div>
                   <Button asChild className="w-full shrink-0 sm:w-auto">
-                    <a href="/downloads/pandoras-box-extension-v1.3.2.zip" download>
+                    <a href="/downloads/pandoras-box-extension-v1.3.4.zip" download>
                       <Download className="size-4" /> Download extension
                     </a>
                   </Button>

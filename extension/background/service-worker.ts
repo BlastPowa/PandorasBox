@@ -1,6 +1,6 @@
 import { initManagers } from "../lib/chromeStorage";
 import { getSettings, saveSettings, ensureDefaultSettings, getOrCreateSyncUserId } from "../lib/settings";
-import type { ReelMessage, ReelResponseError, AiringTodayEntry } from "../lib/messages";
+import type { ReelMessage, ReelResponseError, AiringTodayEntry, EpisodeSpotlight } from "../lib/messages";
 import { EpisodeChecker } from "../../core/notifications/episodeChecker";
 import { ChapterChecker } from "../../core/notifications/chapterChecker";
 import { SupabaseSync } from "../../core/sync/supabase";
@@ -10,6 +10,7 @@ import {
   getMovieDetails,
   getMovieWatchProviders,
   getPosterUrl,
+  getSeasonDetails,
   getSeriesDetails,
   getSeriesWatchProviders,
 } from "../../core/api/tmdb";
@@ -610,6 +611,28 @@ async function handleMessage(message: ReelMessage, sender?: chrome.runtime.Messa
     }
     case "getAiringToday":
       return getAiringToday();
+    case "getEpisodeSpotlight": {
+      const item = await listManager.getById(message.itemId);
+      const episodeNumber = item?.progress.currentEpisode ?? null;
+      if (!item?.tmdbId || episodeNumber === null || episodeNumber <= 0) return null;
+      const seasonNumber = item.progress.currentSeason ?? 1;
+      try {
+        const season = await withApiKey((key) => getSeasonDetails(item.tmdbId!, seasonNumber, key));
+        const episode = season.episodes.find((entry) => entry.episode_number === episodeNumber);
+        if (!episode) return null;
+        const spotlight: EpisodeSpotlight = {
+          season: seasonNumber,
+          episode: episodeNumber,
+          name: episode.name || `Episode ${episodeNumber}`,
+          overview: episode.overview || null,
+          stillUrl: episode.still_path ? `https://image.tmdb.org/t/p/w780${episode.still_path}` : null,
+          runtime: episode.runtime ?? null,
+        };
+        return spotlight;
+      } catch {
+        return null;
+      }
+    }
     case "syncNow":
       return runSupabaseSync();
   }
@@ -632,6 +655,7 @@ const MESSAGE_TYPES = new Set<ReelMessage["type"]>([
   "search",
   "getWatchProviders",
   "getAiringToday",
+  "getEpisodeSpotlight",
   "syncNow",
 ]);
 

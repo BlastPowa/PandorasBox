@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Check, ListChecks, Undo2, Star, CalendarDays, Clock3 } from "lucide-react";
@@ -17,16 +17,23 @@ export function EpisodesSection({
   tmdbId,
   totalSeasons,
   initialEpisodes,
+  initialSeason = 1,
+  initialEpisode = null,
 }: {
   itemId: string;
   tmdbId: number;
   totalSeasons: number;
   initialEpisodes: TMDBEpisode[];
+  initialSeason?: number;
+  initialEpisode?: number | null;
 }) {
-  const [season, setSeason] = useState(1);
-  const [episodes, setEpisodes] = useState<TMDBEpisode[]>(initialEpisodes);
-  const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<TMDBEpisode | null>(null);
+  const initialSelectedEpisode = initialSeason === 1 && initialEpisode !== null
+    ? initialEpisodes.find((episode) => episode.episode_number === initialEpisode) ?? null
+    : null;
+  const [season, setSeason] = useState(initialSeason);
+  const [episodes, setEpisodes] = useState<TMDBEpisode[]>(initialSeason === 1 ? initialEpisodes : []);
+  const [loading, setLoading] = useState(initialSeason !== 1);
+  const [selected, setSelected] = useState<TMDBEpisode | null>(initialSelectedEpisode);
   const [selectMode, setSelectMode] = useState(false);
   const [checked, setChecked] = useState<Set<number>>(new Set());
   const { getById, markEpisode, updateProgress } = useLibrary();
@@ -40,7 +47,7 @@ export function EpisodesSection({
     return ep.episode_number <= currentEpisode;
   }
 
-  async function changeSeason(next: number) {
+  async function changeSeason(next: number, episodeToOpen: number | null = null) {
     setSeason(next);
     setChecked(new Set());
     setLoading(true);
@@ -48,6 +55,9 @@ export function EpisodesSection({
       const res = await fetch(`/api/episodes?id=${tmdbId}&season=${next}`);
       const json = (await res.json()) as { episodes: TMDBEpisode[] };
       setEpisodes(json.episodes);
+      if (episodeToOpen !== null) {
+        setSelected(json.episodes.find((episode) => episode.episode_number === episodeToOpen) ?? null);
+      }
     } catch {
       toast.error("Could not load that season");
       setEpisodes([]);
@@ -55,6 +65,29 @@ export function EpisodesSection({
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (initialSeason === 1) return;
+    let cancelled = false;
+    void fetch(`/api/episodes?id=${tmdbId}&season=${initialSeason}`)
+      .then((res) => res.json() as Promise<{ episodes: TMDBEpisode[] }>)
+      .then((json) => {
+        if (cancelled) return;
+        setEpisodes(json.episodes);
+        if (initialEpisode !== null) {
+          setSelected(json.episodes.find((episode) => episode.episode_number === initialEpisode) ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setEpisodes([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialEpisode, initialSeason, tmdbId]);
 
   function toggleCheck(epNumber: number) {
     setChecked((prev) => {

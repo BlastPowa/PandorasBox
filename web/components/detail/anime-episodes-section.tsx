@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Check, ListChecks, Undo2 } from "lucide-react";
@@ -16,15 +16,20 @@ export function AnimeEpisodesSection({
   itemId,
   malId,
   initialEpisodes,
+  initialEpisode = null,
 }: {
   itemId: string;
   malId: number;
   initialEpisodes: JikanEpisode[];
+  initialEpisode?: number | null;
 }) {
+  const initialSelectedEpisode = initialEpisode !== null
+    ? initialEpisodes.find((entry) => entry.mal_id === initialEpisode) ?? null
+    : null;
   const [episodes] = useState<JikanEpisode[]>(initialEpisodes);
-  const [selected, setSelected] = useState<JikanEpisode | null>(null);
+  const [selected, setSelected] = useState<JikanEpisode | null>(initialSelectedEpisode);
   const [synopsis, setSynopsis] = useState<string | null>(null);
-  const [synopsisLoading, setSynopsisLoading] = useState(false);
+  const [synopsisLoading, setSynopsisLoading] = useState(initialSelectedEpisode !== null);
   const [selectMode, setSelectMode] = useState(false);
   const [checked, setChecked] = useState<Set<number>>(new Set());
   const { getById, markEpisode, updateProgress } = useLibrary();
@@ -80,6 +85,25 @@ export function AnimeEpisodesSection({
       setSynopsisLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!initialSelectedEpisode) return;
+    let cancelled = false;
+    void fetch(`/api/anime-episode?malId=${malId}&ep=${initialSelectedEpisode.mal_id}`)
+      .then((res) => res.json() as Promise<{ episode: { synopsis: string | null } | null }>)
+      .then((json) => {
+        if (!cancelled) setSynopsis(json.episode?.synopsis ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setSynopsis(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSynopsisLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSelectedEpisode, malId]);
 
   if (episodes.length === 0) return null;
 

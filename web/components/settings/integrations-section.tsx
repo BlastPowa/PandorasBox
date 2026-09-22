@@ -163,7 +163,7 @@ function BrowserCompanionCard() {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild>
-              <a href="/downloads/pandoras-box-extension-v1.3.3.zip" download>
+              <a href="/downloads/pandoras-box-extension-v1.3.4.zip" download>
                 <Download className="size-4" /> Download extension
               </a>
             </Button>

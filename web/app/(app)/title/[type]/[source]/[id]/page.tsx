@@ -44,10 +44,15 @@ export async function generateMetadata({ params }: { params: Promise<{ type: str
 
 export default async function TitlePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ type: string; source: string; id: string }>;
+  searchParams: Promise<{ season?: string; episode?: string }>;
 }) {
   const { type, source, id } = await params;
+  const query = await searchParams;
+  const requestedSeason = parsePositiveInt(query.season) ?? 1;
+  const requestedEpisode = parsePositiveInt(query.episode);
   if (!VALID_TYPES.includes(type as ReelItemType)) notFound();
 
   const profile = await getProfile();
@@ -331,6 +336,8 @@ export default async function TitlePage({
             tmdbId={detail.tmdbId}
             totalSeasons={detail.totalSeasons ?? 1}
             initialEpisodes={detail.episodes}
+            initialSeason={requestedSeason}
+            initialEpisode={requestedEpisode}
           />
         )}
 
@@ -339,6 +346,7 @@ export default async function TitlePage({
             itemId={detail.id}
             malId={detail.malId}
             initialEpisodes={detail.animeEpisodes ?? []}
+            initialEpisode={requestedEpisode}
           />
         )}
 
@@ -415,6 +423,12 @@ function RatingsStrip({ detail }: { detail: DetailData }) {
 
 function joinNames(values: string[] | undefined): string | null {
   return values && values.length > 0 ? values.join(", ") : null;
+}
+
+function parsePositiveInt(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function formatDetailDate(value: string | null | undefined): string | null {
