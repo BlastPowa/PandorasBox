@@ -27,6 +27,10 @@ async function HomeContent() {
   return (
     <HomeDashboard
       trending={trending}
+      movies={movies}
+      series={series}
+      anime={anime}
+      manga={manga}
       generatedAt={getGeneratedAt()}
     />
   );
@@ -55,7 +59,7 @@ function HomeSkeleton() {
 
 export default function HomePage() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+    <div className="w-full">
       <Suspense fallback={<HomeSkeleton />}>
         <HomeContent />
       </Suspense>

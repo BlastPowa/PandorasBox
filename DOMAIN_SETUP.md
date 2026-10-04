@@ -6,8 +6,8 @@ The existing app is hosted by Vercel as project `pandoras-box` and is available 
 
 1. Open the existing `pandoras-box` project, then **Settings → Domains**.
 2. Add `pandorasbox.live` to **Production**.
-3. Add `www.pandorasbox.live` and redirect it to `pandorasbox.live`.
-4. Copy the exact A and CNAME values Vercel displays for this project. These values can be specific to the project; use the displayed values.
+3. The configured primary domain is `www.pandorasbox.live`; `pandorasbox.live` redirects to it with HTTP 308.
+4. The verified Vercel dashboard values are A / `@` / `216.198.79.1` and CNAME / `www` / `7757696da984c413.vercel-dns-017.com`. If Vercel changes its recommendations, use the latest displayed values.
 
 ## Spaceship
 
@@ -22,17 +22,17 @@ The existing app is hosted by Vercel as project `pandoras-box` and is available 
 
 In the app's existing Supabase project, open **Authentication → URL Configuration**:
 
-- Set **Site URL** to `https://pandorasbox.live` after the domain is live.
-- Add `https://pandorasbox.live/auth/callback` and `https://pandorasbox.live/auth/callback?next=**` to **Redirect URLs** (the app includes a `next` query parameter).
-- Add `https://pandorasbox.live/reset-password` to **Redirect URLs**.
+- Set **Site URL** to `https://www.pandorasbox.live` after the domain is live.
+- Add `https://www.pandorasbox.live/auth/callback` and `https://www.pandorasbox.live/auth/callback?next=**` to **Redirect URLs** (the app includes a `next` query parameter).
+- Add `https://www.pandorasbox.live/reset-password` to **Redirect URLs**.
 - Preserve the existing Vercel and local development URLs.
 
 The app derives signup, Google sign-in and password-reset redirects from the current browser origin. Setting a Vercel `NEXT_PUBLIC_SITE_URL` variable alone does not update Supabase's allowlist.
 
 If AniList or MyAnimeList integrations are configured, add the new callback in the provider's existing developer application settings:
 
-- AniList: `https://pandorasbox.live/api/integrations/anilist/callback`
-- MyAnimeList: `https://pandorasbox.live/api/integrations/mal/callback`
+- AniList: `https://www.pandorasbox.live/api/integrations/anilist/callback`
+- MyAnimeList: `https://www.pandorasbox.live/api/integrations/mal/callback`
 
 ## Browser companion
 

@@ -24,6 +24,17 @@ export const metadata = { title: "What's New · PBox" };
 
 const RELEASES = [
   {
+    icon: Clapperboard,
+    title: "A more cinematic home",
+    text: "Spotlight opens into a full-width backdrop, with calmer discovery rows and more room for the artwork.",
+    highlights: [
+      "Wide Spotlight artwork fades into the page, with smooth image transitions, upcoming previews and pause/previous/next controls.",
+      "Top 10 movies and shows use landscape cards, followed by a simpler provider picker and wide provider discovery rows.",
+      "Continue Watching stays close to Spotlight when you have progress; your library summary and optional tonight queue sit further down the page.",
+      "The layout adapts to phones and respects reduced-motion preferences and appearance themes.",
+    ],
+  },
+  {
     icon: Globe,
     title: "Custom domain companion support",
     text: "The browser companion is ready for Pandora's Box's new address.",

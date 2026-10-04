@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Film, LoaderCircle, Tv } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
-import { PosterCard } from "@/components/discovery/poster-card";
+import { CinematicRail } from "@/components/home/cinematic-rail";
 import { STREAMING_PROVIDERS, providerLogoUrl } from "@/lib/streaming-providers";
 
 type ProviderKind = "movie" | "tv";
 
 export function ProviderFeed() {
-  const [slug, setSlug] = useState<string | null>(null);
+  const [slug, setSlug] = useState<string | null>("netflix");
   const [kind, setKind] = useState<ProviderKind>("movie");
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -120,7 +120,7 @@ export function ProviderFeed() {
       </div>
 
       {slug && (
-        <div className="pb-provider-results rounded-[24px] p-3 sm:p-4">
+        <div className="pb-cinema-provider-results">
           <div className="mb-3 flex items-center justify-between gap-3 px-1">
             <div>
               <p className="text-sm font-bold text-[var(--text)]">Popular on {activeProvider?.name}</p>
@@ -138,11 +138,7 @@ export function ProviderFeed() {
           ) : results.length === 0 ? (
             <p className="py-8 text-center text-sm text-[var(--text-muted)]">No titles found for this provider right now.</p>
           ) : (
-            <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {results.slice(0, 14).map((item) => (
-                <PosterCard key={`${item.source}-${item.id}`} item={item} quickLook className="w-[118px] shrink-0 snap-start sm:w-[142px] md:w-[156px]" />
-              ))}
-            </div>
+            <CinematicRail title={`Popular ${kind === "movie" ? "movies" : "shows"} on ${activeProvider?.name}`} items={results.slice(0, 14)} />
           )}
         </div>
       )}
