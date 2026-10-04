@@ -64,6 +64,7 @@ function playbackSearchTitle(value: string): string {
     .replace(/\bEpisode\s+\d+\b.*$/i, "")
     .replace(/\s+(?:watch|stream)\s+(?:online|free).*$/i, "")
     .replace(/\s+/g, " ")
+    .replace(/\s*[-|–—]\s*$/, "")
     .trim();
 }
 
@@ -177,6 +178,37 @@ function parseYear(value: string): number | null {
   if (!value) return null;
   const year = Number.parseInt(value.slice(0, 4), 10);
   return Number.isFinite(year) ? year : null;
+}
+
+function isAnimeNexusPlayback(event: ProgressEvent): boolean {
+  try { const host = new URL(event.url).hostname; return host === "anime.nexus" || host.endsWith(".anime.nexus"); }
+  catch { return event.site === "anime.nexus"; }
+}
+
+async function createAutoTrackedAnime(event: ProgressEvent, apiKey: string): Promise<ReelItem | null> {
+  const query = playbackSearchTitle(event.title);
+  if (query.length < 2) return null;
+  const results = await unifiedSearch(query, apiKey, {
+    includeMovies: false, includeSeries: false, includeAnime: true, includeManga: false, includeManhwa: false,
+  });
+  const exact = results.filter(result => result.type === "anime" && normaliseTitle(result.title) === normaliseTitle(query));
+  // Prefer the anime catalogue; never guess between different seasons with the same title.
+  const candidates = exact.filter(result => result.source === "anilist");
+  const pool = candidates.length ? candidates : exact;
+  if (new Set(pool.map(result => result.id)).size !== 1) return null;
+  const result = pool[0];
+  if (!result) return null;
+  const existing = (await listManager.getAll()).find(item => item.id === result.id);
+  if (existing) return existing;
+  const progress = createDefaultProgress();
+  progress.totalEpisodes = result.totalEpisodes;
+  return listManager.add({
+    id: result.id, source: result.source, type: "anime", title: result.title,
+    posterUrl: result.posterUrl, backdropUrl: result.backdropUrl ?? null, synopsis: result.synopsis,
+    status: "watching", progress, rating: null, genres: [], totalEpisodes: result.totalEpisodes,
+    totalChapters: null, totalSeasons: null, year: result.year, anilistId: result.anilistId,
+    tmdbId: result.tmdbId, mangadexId: null, malId: result.malId, completedAt: null, lastWatchedSite: event.site,
+  });
 }
 
 async function createAutoTrackedItem(event: ProgressEvent, apiKey: string): Promise<ReelItem | null> {
@@ -525,14 +557,16 @@ async function handleMessage(message: ReelMessage, sender?: chrome.runtime.Messa
           return { success: false };
         }
         const list = await listManager.getAll();
-        let match = progressManager.findMatchingItem(
+        let match = isAnimeNexusPlayback(event)
+          ? list.find(item => item.type === "anime" && normaliseTitle(item.title) === normaliseTitle(playbackSearchTitle(event.title))) ?? null
+          : progressManager.findMatchingItem(
           event.title,
           list,
           event.tmdbId ?? null,
           event.mediaType ?? null
         );
-        if (!match) {
-          await resolveAutoTrackedIdentity(event, settings.tmdbApiKey);
+        if (!match && !isAnimeNexusPlayback(event)) {
+          if (!isAnimeNexusPlayback(event)) await resolveAutoTrackedIdentity(event, settings.tmdbApiKey);
           match = progressManager.findMatchingItem(
             event.title,
             list,
@@ -541,7 +575,9 @@ async function handleMessage(message: ReelMessage, sender?: chrome.runtime.Messa
           );
         }
         if (!match) {
-          const created = await createAutoTrackedItem(event, settings.tmdbApiKey);
+          const created = isAnimeNexusPlayback(event)
+            ? await createAutoTrackedAnime(event, settings.tmdbApiKey)
+            : await createAutoTrackedItem(event, settings.tmdbApiKey);
           if (!created) return { success: false };
           event.itemId = created.id;
         } else {

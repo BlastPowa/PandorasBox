@@ -121,6 +121,8 @@ function structuredMediaType(metadata: string): MediaType {
 
 function pageTitle(): string {
   const candidates = [
+    document.querySelector<HTMLElement>("[data-anime-title]")?.dataset.animeTitle,
+    document.querySelector<HTMLElement>("h1")?.innerText,
     document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.content,
     document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')?.content,
     document.querySelector<HTMLElement>("h1")?.innerText,
@@ -136,6 +138,7 @@ function pageTitle(): string {
 function getEpisodeNumber(text: string): number | null {
   return extractNumber(text, [
     /episode[/-](\d+)/i,
+    /[?&](?:episodeNumber|episode_number)=(\d+)/i,
     /Episode\s+(\d+)/i,
     /Ep\.?\s*(\d+)/i,
     /[?&](?:ep|episode)=(\d+)/i,
@@ -192,7 +195,8 @@ function buildLocalContext(): MediaContext {
 
   const title = pageTitle();
   const metadata = structuredMetadataText();
-  const combined = `${window.location.href} ${title}`;
+  const selectedEpisode = document.querySelector<HTMLElement>('[data-episode][aria-current="true"], [data-episode].active, [aria-current="true"][aria-label*="Episode"]');
+  const combined = `${window.location.href} ${title} ${selectedEpisode?.getAttribute("aria-label") ?? ""} ${selectedEpisode?.dataset.episode ? `Episode ${selectedEpisode.dataset.episode}` : ""}`;
   const episodeNumber = getEpisodeNumber(combined);
   const seasonNumber = getSeasonNumber(combined);
   const mediaType = inferMediaType(combined, metadata, episodeNumber);

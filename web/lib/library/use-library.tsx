@@ -7,6 +7,7 @@ import type { ReelStats } from "@core/storage/listManager";
 import type { ReelItem, ReelItemStatus, ReelItemType, ReelProgress } from "@core/storage/schema";
 import { createClient } from "@/lib/supabase/client";
 import { SupabaseLibraryAdapter } from "./adapter";
+import { EXTENSION_LIBRARY_CHANNEL, mergeExtensionProgress } from "./extension-progress";
 
 interface LibraryContextValue {
   items: ReelItem[];
@@ -88,6 +89,32 @@ export function LibraryProvider({
       supabaseRef.current = null;
       void supabase.removeChannel(channel);
     };
+  }, [userId, refresh]);
+
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    let queue = Promise.resolve();
+    const receive = (event: MessageEvent<unknown>) => {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const message = event.data as { channel?: string; type?: string; items?: unknown[] } | null;
+      if (message?.channel !== EXTENSION_LIBRARY_CHANNEL || message.type !== "response" || !Array.isArray(message.items)) return;
+      const incoming = message.items;
+      queue = queue.then(async () => {
+        if (!active || !supabaseRef.current) return;
+        const adapter = new SupabaseLibraryAdapter(supabaseRef.current, userId);
+        const raw = await adapter.getItem("reel_list");
+        const merged = mergeExtensionProgress(raw ? JSON.parse(raw) as ReelItem[] : [], incoming);
+        if (!merged.changed || !active) return;
+        await adapter.setItem("reel_list", JSON.stringify(merged.items));
+        if (active) await refresh();
+      }).catch(() => { if (active) setError("Watching progress could not sync. Reload to try again."); });
+    };
+    const request = () => window.postMessage({ channel: EXTENSION_LIBRARY_CHANNEL, type: "request" }, window.location.origin);
+    window.addEventListener("message", receive);
+    request();
+    const retry = window.setTimeout(request, 1200);
+    return () => { active = false; window.removeEventListener("message", receive); window.clearTimeout(retry); };
   }, [userId, refresh]);
 
   /** Fire-and-forget: queue a push to connected integrations. */

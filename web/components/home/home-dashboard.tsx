@@ -134,6 +134,7 @@ function SectionHeading({
 export function HomeDashboard({ trending, generatedAt, movies, series, anime, manga }: DashboardProps) {
   const { items, loading, signedIn } = useLibrary();
   const stats = useLibraryStats(items);
+  const [watchingKind, setWatchingKind] = useState<"all" | "movie" | "series" | "anime">("all");
   const [extensionItems, setExtensionItems] = useState<ReelItem[]>([]);
   const [resolvedContinueArtwork, setResolvedContinueArtwork] = useState<Record<string, string | null>>({});
 
@@ -275,6 +276,13 @@ export function HomeDashboard({ trending, generatedAt, movies, series, anime, ma
 
       {(signedIn || combinedContinueWatching.length > 0) && <section>
         <SectionHeading eyebrow="Back to your stories" title="Continue watching" action="Your library" href="/library" />
+        <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Continue watching category">
+          {([['all', 'All'], ['series', 'Shows'], ['movie', 'Movies'], ['anime', 'Anime']] as const).map(([kind, label]) => (
+            <button key={kind} type="button" aria-pressed={watchingKind === kind} onClick={() => setWatchingKind(kind)} className={`min-h-11 rounded-full border px-4 text-sm font-semibold transition ${watchingKind === kind ? "border-[rgb(var(--accent-rgb)/.4)] bg-[rgb(var(--accent-rgb)/.15)] text-[var(--accent)]" : "border-[var(--border)] bg-white/5 text-[var(--text-muted)] hover:text-[var(--text)]"}`}>
+              {label} <span className="ml-1 opacity-60">{combinedContinueWatching.filter(item => kind === 'all' || item.type === kind).length}</span>
+            </button>
+          ))}
+        </div>
         {!signedIn && combinedContinueWatching.length === 0 ? (
           <div className="pb-uiverse-card pb-uiverse-card--notice rounded-2xl p-6 text-sm text-[var(--text-secondary)]">
             Sign in to sync exact progress across your library. You can still explore everything below.
@@ -286,8 +294,9 @@ export function HomeDashboard({ trending, generatedAt, movies, series, anime, ma
           </div>
         ) : (
           <div className="-mx-2 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {combinedContinueWatching.every(item => watchingKind !== "all" && item.type !== watchingKind) && <p className="px-2 py-6 text-sm text-[var(--text-muted)]">Nothing to resume in this category yet.</p>}
             <div className="flex snap-x snap-mandatory gap-3 sm:gap-4">
-              {combinedContinueWatching.slice(0, 10).map((item) => {
+              {combinedContinueWatching.filter(item => watchingKind === "all" || item.type === watchingKind).slice(0, 10).map((item) => {
                 const artwork = item.backdropUrl ?? item.posterUrl ?? resolvedContinueArtwork[itemIdentity(item)] ?? null;
                 return (
                   <article key={item.id} className="pb-continue-card group relative w-[78vw] max-w-[360px] shrink-0 snap-start overflow-hidden rounded-[22px] sm:w-[340px] md:w-[370px] lg:w-[390px]">

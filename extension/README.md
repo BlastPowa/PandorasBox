@@ -44,7 +44,7 @@ Movie/series search, provider lookups and safe automatic creation of titles that
 
 ## Optional Supabase sync
 
-Supabase sync is optional and disabled by default. If you enable it, provide an HTTPS Supabase project URL and public anon key in the popup settings. The extension syncs its `reel_lists` record using a generated per-install identity. This is extension-to-extension storage and is not the same thing as signing into the Pandora's Box website. The local browser bridge can show extension progress on the website's Home page, but it does not write that progress into the signed-in cloud library unless a separate account-linked integration is added.
+Supabase sync is optional and disabled by default. If you enable it, provide an HTTPS Supabase project URL and public anon key in the popup settings. The extension syncs its `reel_lists` record using a generated per-install identity. This is extension-to-extension storage and is not the same thing as signing into the Pandora's Box website. When you open Pandora's Box while signed in, the browser bridge automatically imports captured movie, show and anime playback into that account's library. Newer progress is merged without replacing your ratings; no account tokens are shared with the extension. Leave a PBox tab open for live updates. Anime Nexus playback uses anime catalogue matching and does not require linking your Nexus account.
 
 ## Security notes
 
