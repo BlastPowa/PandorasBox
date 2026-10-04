@@ -5,7 +5,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const destination = searchParams.get("next") ?? "/";
+  const next = destination.startsWith("/") && !destination.startsWith("//") && !destination.includes("\\") ? destination : "/";
 
   if (code && isSupabaseConfigured) {
     const supabase = await createClient();

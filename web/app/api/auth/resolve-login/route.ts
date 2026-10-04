@@ -2,14 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
-/**
- * Lets users sign in with either their email or their username. If the
- * identifier already looks like an email it's returned as-is (no lookup).
- * Otherwise we resolve the username to its account email using the
- * service-role client (auth.users email is never exposed to the client
- * directly). Always responds generically on a miss to avoid username
- * enumeration.
- */
+/** Resolve an exact, case-insensitive username for password sign-in. */
 export async function POST(request: NextRequest) {
   const limit = rateLimit(request, "resolve-login", 15, 60_000);
   if (!limit.ok) return tooManyRequests(limit);
@@ -30,12 +23,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = createServiceClient();
-    const { data: profile } = await supabase
+    const { data: profile, error: lookupError } = await supabase
       .from("profiles")
       .select("id")
-      .ilike("username", identifier)
+      .ilike("username", identifier.replace(/[\\%_]/g, "\\$&"))
       .maybeSingle();
 
+    if (lookupError) return NextResponse.json({ email: null }, { status: 503 });
     if (!profile) return NextResponse.json({ email: null });
 
     const { data: userData, error } = await supabase.auth.admin.getUserById((profile as { id: string }).id);
@@ -43,6 +37,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ email: userData.user.email });
   } catch {
-    return NextResponse.json({ email: null });
+    return NextResponse.json({ email: null }, { status: 503 });
   }
 }

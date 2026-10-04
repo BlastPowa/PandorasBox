@@ -1314,3 +1314,15 @@ html.pb-reduce-motion .pb-cinema-home * { transition: none !important; }
 .pb-discover-franchises { border-block: 1px solid var(--border); padding-block: 2rem; }
 @media (prefers-reduced-motion: reduce) { .pb-glass-nav-link, .pb-glass-nav-link > svg, .pb-fluid-provider-feed .pb-provider-tile { transition: none; transform: none !important; } }
 html.pb-reduce-motion .pb-glass-nav-link, html.pb-reduce-motion .pb-glass-nav-link > svg { transition: none; transform: none !important; }
+
+/* Keep account forms readable with a mobile keyboard and safe-area insets. */
+.pb-auth-layout input { font-size: 16px; min-height: 44px; }
+.pb-auth-layout { padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+@media (max-width: 640px), (max-height: 740px) {
+  .pb-auth-layout { justify-content: flex-start; }
+  .pb-auth-layout > div:first-child { margin-bottom: 24px; }
+}
+@media (max-width: 360px) {
+  .pb-auth-layout { padding-left: 12px; padding-right: 12px; }
+  .pb-auth-layout .p-6 { padding: 20px; }
+}

@@ -21,8 +21,8 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
       if (error) throw error;
       setSent(true);
@@ -55,6 +55,9 @@ export default function ForgotPasswordPage() {
               <Input
                 type="email"
                 required
+                aria-label="Email"
+                autoCapitalize="none"
+                spellCheck={false}
                 placeholder="Email"
                 className="pl-10"
                 value={email}

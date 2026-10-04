@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Link from "next/link";
 import { Lock } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
 import { Button } from "@/components/ui-fx/button";
@@ -16,15 +17,25 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [linkError, setLinkError] = useState("");
+
+  const recoveryStarted = useRef(false);
 
   // The recovery link logs the user into a temporary session; confirm it's present.
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || recoveryStarted.current) return;
+    recoveryStarted.current = true;
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
+    async function verifyRecovery() {
+      // The browser client also exchanges codes from older direct recovery links.
+      const { data } = await supabase.auth.getSession();
+      if (new URL(window.location.href).searchParams.has("code")) {
+        window.history.replaceState({}, "", "/reset-password");
+      }
       if (data.session) setReady(true);
-      else toast.error("This reset link is invalid or has expired. Request a new one.");
-    });
+      else setLinkError("This reset link is invalid or has expired. Request a new one.");
+    }
+    void verifyRecovery().catch(() => setLinkError("We couldn't verify this link. Please request a new one."));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -63,6 +74,7 @@ export default function ResetPasswordPage() {
           </p>
         </div>
 
+        {linkError && <div role="alert" className="text-sm text-red-300">{linkError} <Link className="underline" href="/forgot-password">Request a reset link</Link></div>}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" />
@@ -70,6 +82,7 @@ export default function ResetPasswordPage() {
               type="password"
               required
               minLength={8}
+              aria-label="New password"
               placeholder="New password"
               className="pl-10"
               value={password}
@@ -83,6 +96,7 @@ export default function ResetPasswordPage() {
               type="password"
               required
               minLength={8}
+              aria-label="Confirm new password"
               placeholder="Confirm new password"
               className="pl-10"
               value={confirm}
