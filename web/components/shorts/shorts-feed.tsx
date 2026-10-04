@@ -116,7 +116,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
   return (
     <div
       ref={containerRef}
-      className="relative h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height))] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-black text-white [scrollbar-width:none] md:h-[calc(100dvh-var(--app-header-height))] [&::-webkit-scrollbar]:hidden"
+      className="relative h-[calc(100dvh-var(--app-header-height)-var(--app-bottom-nav-height))] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-black text-white [scrollbar-width:none] lg:h-[calc(100dvh-var(--app-header-height))] [&::-webkit-scrollbar]:hidden"
     >
       <div className="pointer-events-none sticky left-0 top-0 z-40 h-0 px-3 pt-3 sm:px-5 sm:pt-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 rounded-full border border-white/10 bg-black/35 px-3.5 py-2 text-white shadow-lg backdrop-blur-xl sm:px-4">
@@ -269,7 +269,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
       })}
 
       {/* Desktop up/down controls */}
-      <div className="fixed bottom-8 right-6 z-30 hidden flex-col gap-2 md:flex">
+      <div className="fixed bottom-8 right-6 z-30 hidden flex-col gap-2 lg:flex">
         <button
           onClick={() => scrollToSlide(Math.max(active - 1, 0))}
           disabled={active === 0}

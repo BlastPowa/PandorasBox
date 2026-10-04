@@ -49,7 +49,7 @@ export function BackToTop() {
       className={cn(
         "group fixed bottom-20 right-4 z-40 grid size-12 place-items-center rounded-full",
         "border border-[var(--border)] bg-[var(--bg-elevated)]/80 backdrop-blur-xl",
-        "transition-all duration-300 hover:border-[var(--accent)] md:bottom-6 md:right-6",
+        "transition-all duration-300 hover:border-[var(--accent)] lg:bottom-6 lg:right-6",
         shown ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0"
       )}
     >

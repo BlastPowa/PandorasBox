@@ -36,6 +36,7 @@ let typeFilter = "all";
 let statusFilter = "all";
 let textFilter = "";
 let fullList: ReelItem[] = [];
+let returnFocus: HTMLElement | null = null;
 
 function matchesFilters(item: ReelItem): boolean {
   if (typeFilter !== "all" && item.type !== typeFilter) {
@@ -67,20 +68,31 @@ function render(): void {
   const library = byId("library");
   library.replaceChildren();
 
-  const filtered = fullList.filter(matchesFilters);
+  const filtered = fullList.filter(matchesFilters).sort((a,b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+  byId("resultsLabel").textContent = `${filtered.length} ${filtered.length === 1 ? "title" : "titles"}`;
+  byId("librarySummary").replaceChildren(...[
+    ["Saved", fullList.length], ["Active", fullList.filter(i => ["watching", "rewatching", "reading"].includes(i.status)).length],
+    ["Finished", fullList.filter(i => i.status === "completed").length],
+  ].map(([label,count]) => { const stat = el("div", "summary-stat"); stat.append(el("strong", "", String(count)), el("span", "", String(label))); return stat; }));
   if (filtered.length === 0) {
     const empty = el("div", "empty-state");
     empty.appendChild(el("div", "empty-art", "🗂️"));
-    empty.appendChild(el("p", "empty-title", "Nothing here yet"));
-    empty.appendChild(el("p", "empty-sub", "Add titles from the popup search, then manage everything here."));
-    library.appendChild(empty);
+    empty.appendChild(el("p", "empty-title", fullList.length ? "No matching titles" : "Your next story starts here"));
+    empty.appendChild(el("p", "empty-sub", fullList.length ? "Try another filter or search to find your titles." : "Add a title from the extension search, or start watching with tracking enabled."));
+    const reset = el("button", "action-btn primary", fullList.length ? "Clear filters" : "Explore Pandora’s Box");
+    reset.addEventListener("click", () => {
+      if (!fullList.length) { void chrome.tabs.create({ url: "https://www.pandorasbox.live/browse" }); return; }
+      typeFilter = statusFilter = "all"; textFilter = "";
+      byId<HTMLInputElement>("filterInput").value = ""; byId<HTMLSelectElement>("statusFilter").value = "all";
+      updateTypeFilters(); render();
+    }); empty.appendChild(reset); library.appendChild(empty);
     return;
   }
 
   const gridItems = filtered.filter(
     (item) => item.type === "movie" || item.type === "series" || item.type === "anime"
   );
-  const readingItems = filtered.filter((item) => item.type === "manga" || item.type === "manhwa");
+  const readingItems = filtered.filter((item) => item.type === "manga" || item.type === "manhwa" || item.type === "comic");
 
   if (gridItems.length > 0) {
     const grid = el("div", "poster-grid");
@@ -101,7 +113,8 @@ function render(): void {
 }
 
 function buildPosterCard(item: ReelItem): HTMLElement {
-  const card = el("div", "poster-card");
+  const card = el("button", "poster-card");
+  card.setAttribute("aria-label", `${item.title}, ${getStatusLabel(item.status)}`);
   if (item.posterUrl) {
     const img = el("img") as HTMLImageElement;
     img.src = item.posterUrl;
@@ -118,12 +131,14 @@ function buildPosterCard(item: ReelItem): HTMLElement {
 
   const overlay = el("div", "card-overlay");
   overlay.appendChild(el("div", "card-title", item.title));
+  overlay.appendChild(el("div", "card-meta", `${getTypeLabel(item.type)} · ${getStatusLabel(item.status)}`));
+  overlay.appendChild(el("div", "card-meta", formatProgress(item.progress, item.type)));
   card.appendChild(overlay);
 
   if (item.progress.percentComplete > 0) {
     const track = el("div", "card-progress");
     const fill = el("div", "card-progress-fill");
-    fill.style.width = `${Math.round(item.progress.percentComplete)}%`;
+    fill.style.width = `${Math.max(0, Math.min(100, Math.round(item.progress.percentComplete)))}%`;
     track.appendChild(fill);
     card.appendChild(track);
   }
@@ -133,7 +148,7 @@ function buildPosterCard(item: ReelItem): HTMLElement {
 }
 
 function buildReadingRow(item: ReelItem): HTMLElement {
-  const row = el("div", "reading-row");
+  const row = el("button", "reading-row");
   if (item.posterUrl) {
     const img = el("img", "reading-poster") as HTMLImageElement;
     img.src = item.posterUrl;
@@ -154,11 +169,12 @@ function buildReadingRow(item: ReelItem): HTMLElement {
 
 function openDetail(item: ReelItem): void {
   const overlay = byId("detailOverlay");
+  if (overlay.hidden) returnFocus = document.activeElement as HTMLElement;
   const inner = byId("detailInner");
   inner.replaceChildren();
 
   const back = el("button", "detail-back", "← Library");
-  back.addEventListener("click", () => overlay.classList.remove("open"));
+  back.addEventListener("click", closeDetail);
   inner.appendChild(back);
 
   const hero = el("div", "detail-hero");
@@ -197,17 +213,19 @@ function openDetail(item: ReelItem): void {
   }
 
   const actions = el("div", "detail-actions");
-  const isReading = item.type === "manga" || item.type === "manhwa";
+  const isReading = item.type === "manga" || item.type === "manhwa" || item.type === "comic";
 
   const markNext = el(
     "button",
     "action-btn primary",
-    isReading ? "Mark Next Chapter" : "Mark Next Episode"
+    item.type === "movie" ? "Mark completed" : isReading ? "Mark next chapter" : "Mark next episode"
   );
   markNext.addEventListener("click", () => {
     void (async () => {
       try {
-        if (isReading) {
+        if (item.type === "movie") {
+          await sendMessage({ type: "markComplete", id: item.id });
+        } else if (isReading) {
           const next = (item.progress.currentChapter ?? 0) + 1;
           await sendMessage({ type: "markChapterRead", id: item.id, chapter: next });
         } else {
@@ -231,7 +249,7 @@ function openDetail(item: ReelItem): void {
     void (async () => {
       try {
         await sendMessage({ type: "removeItem", id: item.id });
-        overlay.classList.remove("open");
+        closeDetail();
         await refresh();
       } catch (error) {
         inner.prepend(el("div", "error-note", error instanceof Error ? error.message : "Failed"));
@@ -250,7 +268,10 @@ function openDetail(item: ReelItem): void {
   watchSection.appendChild(watchBtn);
   inner.appendChild(watchSection);
 
+  overlay.hidden = false;
   overlay.classList.add("open");
+  document.querySelectorAll<HTMLElement>("body > :not(#detailOverlay):not(script)").forEach(node => node.inert = true);
+  back.focus();
 }
 
 async function loadWatchOptions(
@@ -306,7 +327,7 @@ function renderWatchOptions(container: HTMLElement, options: WatchOption[]): voi
 }
 
 function buildWatchOption(option: WatchOption): HTMLElement {
-  const row = el("div", "watch-option");
+  const row = el("button", "watch-option");
   if (option.logoUrl) {
     const logo = el("img", "watch-logo") as HTMLImageElement;
     logo.src = option.logoUrl;
@@ -330,22 +351,12 @@ function setupFilters(): void {
       return;
     }
     typeFilter = target.dataset.type;
-    document
-      .querySelectorAll<HTMLButtonElement>("#typeFilters .pill")
-      .forEach((pill) => pill.classList.toggle("active", pill.dataset.type === typeFilter));
+    updateTypeFilters();
     render();
   });
 
-  byId("statusFilters").addEventListener("click", (event) => {
-    const target = event.target as HTMLElement;
-    if (!target.dataset.status) {
-      return;
-    }
-    statusFilter = target.dataset.status;
-    document
-      .querySelectorAll<HTMLButtonElement>("#statusFilters .pill")
-      .forEach((pill) => pill.classList.toggle("active", pill.dataset.status === statusFilter));
-    render();
+  byId<HTMLSelectElement>("statusFilter").addEventListener("change", event => {
+    statusFilter = (event.target as HTMLSelectElement).value; render();
   });
 
   byId<HTMLInputElement>("filterInput").addEventListener("input", (event) => {
@@ -354,6 +365,29 @@ function setupFilters(): void {
   });
 }
 
+function updateTypeFilters(): void {
+  document.querySelectorAll<HTMLButtonElement>("#typeFilters .pill").forEach(pill => {
+    const active = pill.dataset.type === typeFilter; pill.classList.toggle("active", active); pill.setAttribute("aria-pressed", String(active));
+  });
+}
+function closeDetail(): void {
+  byId("detailOverlay").classList.remove("open"); byId("detailOverlay").hidden = true;
+  document.querySelectorAll<HTMLElement>("body > :not(#detailOverlay):not(script)").forEach(node => node.inert = false);
+  if (returnFocus?.isConnected) returnFocus.focus(); else byId<HTMLInputElement>("filterInput").focus();
+}
+document.addEventListener("keydown", event => {
+  const overlay = byId("detailOverlay"); if (overlay.hidden) return;
+  if (event.key === "Escape") closeDetail();
+  if (event.key === "Tab") {
+    const nodes = Array.from(overlay.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
+    const first = nodes[0], last = nodes[nodes.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }
+});
+byId("extensionVersion").textContent = `v${chrome.runtime.getManifest().version}`;
+byId("openWeb").addEventListener("click", () => { void chrome.tabs.create({ url: "https://www.pandorasbox.live/library" }); });
+updateTypeFilters();
 setupFilters();
 void refresh();
 

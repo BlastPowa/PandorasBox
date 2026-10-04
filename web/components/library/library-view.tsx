@@ -409,9 +409,9 @@ function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onR
         <div className="mt-auto flex flex-wrap items-end justify-between gap-1.5 pt-2">
           <div className="max-w-full overflow-hidden"><RatingStars value={item.rating} onChange={onRate} size={14} /></div>
           <div className="flex gap-0.5 rounded-full border border-[var(--border)] bg-[var(--glass)] p-0.5 backdrop-blur-md">
-            {item.type === "comic" ? <Link href={href} aria-label="Open issue tracker" title="Open issue tracker" className="rounded-full p-1.5 text-[var(--accent)] hover:bg-[var(--bg-elevated)]"><ListChecks className="size-4" /></Link> : <button onClick={onNext} aria-label="Mark next" title="Mark next" className="rounded-full p-1.5 text-[var(--accent)] hover:bg-[var(--bg-elevated)]"><Plus className="size-4" /></button>}
-            <button onClick={onComplete} aria-label={`Mark ${item.title} complete`} title="Complete" className="rounded-full p-1.5 text-[var(--completed)] hover:bg-[var(--bg-elevated)]"><Check className="size-4" /></button>
-            <button onClick={onRemove} disabled={removing} aria-label={`Remove ${item.title} from library`} title="Remove" className="rounded-full p-1.5 text-[var(--dropped)] hover:bg-[var(--bg-elevated)] disabled:cursor-wait disabled:opacity-40"><Trash2 className="size-4" /></button>
+            {item.type === "comic" ? <Link href={href} aria-label="Open issue tracker" title="Open issue tracker" className="grid size-11 place-items-center rounded-full text-[var(--accent)] hover:bg-[var(--bg-elevated)]"><ListChecks className="size-4" /></Link> : <button onClick={onNext} aria-label="Mark next" title="Mark next" className="grid size-11 place-items-center rounded-full text-[var(--accent)] hover:bg-[var(--bg-elevated)]"><Plus className="size-4" /></button>}
+            <button onClick={onComplete} aria-label={`Mark ${item.title} complete`} title="Complete" className="grid size-11 place-items-center rounded-full text-[var(--completed)] hover:bg-[var(--bg-elevated)]"><Check className="size-4" /></button>
+            <button onClick={onRemove} disabled={removing} aria-label={`Remove ${item.title} from library`} title="Remove" className="grid size-11 place-items-center rounded-full text-[var(--dropped)] hover:bg-[var(--bg-elevated)] disabled:cursor-wait disabled:opacity-40"><Trash2 className="size-4" /></button>
           </div>
         </div>
       </div>

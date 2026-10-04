@@ -20,7 +20,7 @@ export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   ).filter((i) => i.label.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
-    <nav className="pointer-events-none fixed inset-x-0 bottom-[max(8px,var(--safe-bottom))] z-40 px-[max(8px,var(--safe-left))] md:hidden">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-[max(8px,var(--safe-bottom))] z-40 px-[max(8px,var(--safe-left))] lg:hidden">
       <div className="pointer-events-auto mx-auto flex max-w-lg items-stretch justify-around overflow-hidden rounded-[22px] border border-[var(--border)] bg-[var(--nav-surface)] px-1 shadow-[0_16px_42px_rgba(0,0,0,.12)] backdrop-blur-xl">
         {BOTTOM_NAV.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);

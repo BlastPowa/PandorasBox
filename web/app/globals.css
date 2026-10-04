@@ -326,7 +326,7 @@ body::before {
   .pbox-announcement-toast { animation: none; }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   :root {
     --app-bottom-nav-row: 0px;
   }

@@ -43,7 +43,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
           className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-secondary)] shadow-sm transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         />
       ) : (
-        <div className="grid size-11 shrink-0 place-items-center md:hidden">
+        <div className="grid size-11 shrink-0 place-items-center lg:hidden">
           <Brand compact className="size-11 justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]" />
         </div>
       )}

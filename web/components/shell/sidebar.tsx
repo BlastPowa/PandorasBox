@@ -12,7 +12,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
   return (
-    <aside className="pb-glass-sidebar sticky top-0 z-40 hidden h-dvh w-[232px] shrink-0 flex-col border-r border-[var(--nav-border)] bg-[var(--nav-surface)] px-4 py-5 backdrop-blur-xl md:flex">
+    <aside className="pb-glass-sidebar sticky top-0 z-40 hidden h-dvh w-[232px] shrink-0 flex-col border-r border-[var(--nav-border)] bg-[var(--nav-surface)] px-4 py-5 backdrop-blur-xl lg:flex">
       <div className="px-2">
         <Brand />
         <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">Everything you’re watching, reading and playing.</p>

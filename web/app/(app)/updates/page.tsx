@@ -25,6 +25,17 @@ export const metadata = { title: "What's New · PBox" };
 
 const RELEASES = [
   {
+    icon: Smartphone,
+    title: "A refreshed companion & better tablet layouts",
+    text: "Companion v1.3.9 brings the library side panel in line with the new popup.",
+    highlights: [
+      "Glass panels, library counts, readable progress cards and wrapping media filters replace the old REEL panel. Comics and every library status are included.",
+      "Movies can be marked completed directly; keyboard controls let you open titles and return to your library.",
+      "Portrait tablets use bottom navigation with the full More menu. Wider screens retain the sidebar, and settings forms have more room on smaller laptops and tablets.",
+      "Library actions have larger touch targets. To update an unpacked extension, extract the new ZIP into its existing folder, reload it in chrome://extensions, then refresh your watch and PBox tabs.",
+    ],
+  },
+  {
     icon: Compass,
     title: "Discover, navigation & the new address",
     text: "Find every page more easily and explore a calmer, more cinematic Discover page.",

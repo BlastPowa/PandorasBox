@@ -38,8 +38,8 @@ export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, Re
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-8">
-      <nav className="grid grid-cols-2 gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-2 sm:grid-cols-3 lg:sticky lg:top-24 lg:grid-cols-1 lg:self-start">
+    <div className="grid gap-6 xl:grid-cols-[230px_minmax(0,1fr)] xl:gap-8">
+      <nav className="grid grid-cols-2 gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-surface)] p-2 sm:grid-cols-3 xl:sticky xl:top-24 xl:grid-cols-1 xl:self-start">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (
@@ -48,7 +48,7 @@ export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, Re
               onClick={() => selectTab(t.key)}
               aria-pressed={active === t.key}
               className={cn(
-                "group flex min-h-14 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-all",
+                "group flex min-h-14 min-w-0 items-center gap-2 sm:gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-all",
                 active === t.key
                   ? "bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--text)] ring-1 ring-inset ring-[rgb(var(--accent-rgb)/0.4)]"
                   : "text-[var(--text-secondary)] hover:bg-[var(--glass)] hover:text-[var(--text)]"
@@ -63,8 +63,8 @@ export function SettingsTabs({ sections }: { sections: Record<SettingsTabKey, Re
                 <Icon className="size-4" />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-semibold">{t.label}</span>
-                <span className="hidden text-[11px] font-normal text-[var(--text-muted)] lg:block">{t.description}</span>
+                <span className="block break-words text-xs font-semibold sm:text-sm">{t.label}</span>
+                <span className="hidden text-[11px] font-normal text-[var(--text-muted)] xl:block">{t.description}</span>
               </span>
             </button>
           );
