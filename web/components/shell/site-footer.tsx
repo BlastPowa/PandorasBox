@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { Brand } from "./brand";
+export function SiteFooter() {
+ return <footer className="mx-4 mb-[calc(var(--app-bottom-nav-height)+1rem)] mt-8 rounded-2xl border border-[var(--border)] bg-[var(--glass)] px-5 py-6 backdrop-blur-xl md:mx-8 md:mb-6 sm:px-7">
+ <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><Brand /><nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-3 text-sm text-[var(--text-muted)]">{[["/movies","Movies"],["/browse","Discover"],["/collections","Lists"],["/library","Library"],["/faq","Help"]].map(([href,label]) => <Link key={href} href={href} className="hover:text-[var(--text)]">{label}</Link>)}</nav></div>
+ <div className="mt-5 flex flex-col gap-4 border-t border-[var(--border)] pt-5 text-xs leading-relaxed text-[var(--text-muted)] sm:flex-row sm:justify-between"><p className="max-w-xl">Track your stories and discover where to watch. Pandora’s Box does not host movies or episodes. Artwork and catalogue data belong to their respective providers.</p><div className="flex shrink-0 flex-col gap-3 sm:items-end"><nav aria-label="Policies" className="flex flex-wrap gap-4"><Link href="/privacy">Privacy</Link><Link href="/cookies">Cookies</Link><Link href="/terms">Terms</Link><Link href="/faq">Contact</Link></nav><span>© {new Date().getFullYear()} Pandora’s Box · Data by TMDB, AniList & more</span></div></div></footer>;
+}

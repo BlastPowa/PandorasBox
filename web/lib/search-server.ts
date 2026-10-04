@@ -1,4 +1,5 @@
 import "server-only";
+import { normaliseTitle } from "@core/utils/formatters";
 import { unifiedSearch, type UnifiedSearchResult } from "@core/utils/search";
 import { searchMangaDex, getMangaDexCoverUrl } from "@core/api/mangadex";
 import { searchComics } from "@/lib/comics";
@@ -66,5 +67,8 @@ export async function runSearch(query: string, requestedTypes?: ImportMediaType[
     }
   }
 
-  return Array.from(new Map(results.map((result) => [`${result.source}:${result.type}:${result.id}`, result])).values());
+  const key = normaliseTitle(query);
+  const relevance = (title: string) => { const normalized = normaliseTitle(title); return normalized === key ? 3 : normalized.startsWith(key) ? 2 : normalized.includes(key) ? 1 : 0; };
+  return Array.from(new Map(results.map((result) => [`${result.source}:${result.type}:${result.id}`, result])).values())
+    .sort((a,b) => relevance(b.title) - relevance(a.title) || (b.score ?? 0) - (a.score ?? 0));
 }

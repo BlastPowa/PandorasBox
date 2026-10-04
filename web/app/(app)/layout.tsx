@@ -1,3 +1,4 @@
+import { SiteFooter } from "@/components/shell/site-footer";
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { BottomNav } from "@/components/shell/bottom-nav";
@@ -19,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar profile={profile} />
           <main className="flex-1 pb-[calc(var(--app-bottom-nav-height)+1rem)] md:pb-10">{children}</main>
+          <SiteFooter />
           <BottomNav isAdmin={isAdmin} />
         </div>
         <CommandPaletteLoader />

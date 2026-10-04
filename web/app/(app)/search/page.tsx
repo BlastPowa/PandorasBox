@@ -1,3 +1,4 @@
+import { SearchRelated } from "@/components/search/search-related";
 import { Suspense } from "react";
 import { ArrowRight, Search, Sparkles } from "lucide-react";
 import { runSearch } from "@/lib/search-server";
@@ -23,7 +24,7 @@ async function Results({ q }: { q: string }) {
       }
     : null;
   return (
-    <FilterableGrid items={results} franchise={franchise} query={q} />
+    <><FilterableGrid items={results} franchise={franchise} query={q} /><Suspense fallback={<div className="mt-10 skeleton h-48 rounded-2xl" />}><SearchRelated q={q} results={results} /></Suspense></>
   );
 }
 
@@ -33,7 +34,7 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const query = (q ?? "").trim();
+  const query = (q ?? "").trim().slice(0,150);
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">

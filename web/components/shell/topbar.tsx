@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { Search, User as UserIcon, LogIn, Library, Settings, LogOut, ChevronDown, X } from "lucide-react";
 import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
-import { SearchInput } from "@/components/ui-fx/input";
+import { LiveSearch } from "@/components/search/live-search";
 import { Brand } from "./brand";
 import type { Profile } from "@/lib/auth";
 import { NotificationBell } from "@/components/social/notification-bell";
@@ -29,19 +29,9 @@ function pageAlreadyHasBackControl(pathname: string) {
 }
 
 export function Topbar({ profile }: { profile: Profile | null }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const [q, setQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const showShellBack = pathname !== "/" && !pageAlreadyHasBackControl(pathname);
-
-  function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    const query = q.trim();
-    if (!query) return;
-    setSearchOpen(false);
-    router.push(`/search?q=${encodeURIComponent(query)}`);
-  }
 
   return (
     <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-[var(--border)] bg-[var(--nav-surface)] pb-2.5 pl-[max(0.75rem,var(--safe-left))] pr-[max(0.75rem,var(--safe-right))] pt-[calc(var(--safe-top)+0.625rem)] backdrop-blur-xl md:gap-3 md:px-6 md:py-3">
@@ -58,15 +48,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="mx-auto min-w-0 flex-1 max-w-2xl max-[359px]:hidden">
-        <SearchInput
-          icon={<Search className="size-4" />}
-          placeholder="Search films, shows, anime, manga, comics and games"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          aria-label="Search"
-        />
-      </form>
+      <div className="mx-auto min-w-0 flex-1 max-w-2xl max-[359px]:hidden"><LiveSearch /></div>
 
       <Dialog.Root open={searchOpen} onOpenChange={setSearchOpen}>
         <Dialog.Trigger asChild>
@@ -84,9 +66,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
               </div>
               <Dialog.Close className="grid size-10 place-items-center rounded-xl bg-[var(--bg-elevated)]" aria-label="Close search"><X className="size-5" /></Dialog.Close>
             </div>
-            <form onSubmit={onSubmit} className="mt-4">
-              <SearchInput autoFocus icon={<Search className="size-4" />} placeholder="What are you looking for?" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search PBox" />
-            </form>
+            <div className="mt-4"><LiveSearch autoFocus onNavigate={() => setSearchOpen(false)} /></div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

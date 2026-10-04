@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import Link from "next/link";
 import { Brand } from "@/components/shell/brand";
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         PBox tracks movies, series, anime, K-drama, cartoons, manga &amp; manhwa, and
         links you to where they&apos;re streaming. Data from TMDB, AniList &amp; MangaDex.
       </p>
+      <nav aria-label="Policies" className="mt-4 flex flex-wrap justify-center gap-5 text-xs text-[var(--text-muted)]"><Link href="/privacy">Privacy</Link><Link href="/cookies">Cookies</Link><Link href="/terms">Terms</Link><Link href="/faq">Contact</Link></nav>
     </div>
   );
 }

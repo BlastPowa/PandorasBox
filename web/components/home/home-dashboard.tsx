@@ -358,7 +358,7 @@ export function HomeDashboard({ trending, generatedAt, movies, series, anime, ma
         </div>
       </div></details>
       </>}
-      <footer className="pb-cinema-footer"><span className="font-display font-bold">Pandora’s Box</span><span>Your stories, all in one place.</span><div className="flex gap-5"><Link href="/browse">Discover</Link><Link href="/library">Library</Link><Link href="/faq">Help</Link></div></footer>
+
       </div>
 
     </div>
