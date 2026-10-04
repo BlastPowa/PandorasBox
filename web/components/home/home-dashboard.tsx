@@ -243,6 +243,36 @@ export function HomeDashboard({ trending, generatedAt, movies, series, anime, ma
       <CinematicSpotlight items={trending} />
       <div className="pb-cinema-body">
 
+      {signedIn && (
+        <section className="pb-uiverse-card rounded-[22px] p-4 sm:p-5" aria-label="Library summary">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="pb-uiverse-icon grid size-10 shrink-0 place-items-center rounded-xl text-[var(--accent)]"><Library className="size-4" /></div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Your library</p>
+                <h2 className="mt-0.5 font-display text-base font-bold text-[var(--text)] sm:text-lg">Progress at a glance</h2>
+              </div>
+            </div>
+            <div className="grid flex-1 grid-cols-4 gap-2 sm:max-w-2xl">
+              {[
+                { label: "Active", value: stats.watching },
+                { label: "Planned", value: stats.planned },
+                { label: "Done", value: stats.completed },
+                { label: "Saved", value: stats.totalItems },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-xl bg-[var(--glass)] px-2 py-2.5 text-center">
+                  <div className="font-display text-lg font-bold tabular-nums text-[var(--text)] sm:text-xl">{loading ? "—" : value}</div>
+                  <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)] sm:text-[10px]">{label}</div>
+                </div>
+              ))}
+            </div>
+            <Link href="/stats" className="pb-uiverse-action-link inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-xl px-3 text-xs font-bold text-[var(--accent)]">
+              Full stats <ChevronRight className="size-4" />
+            </Link>
+          </div>
+        </section>
+      )}
+
       {(signedIn || combinedContinueWatching.length > 0) && <section>
         <SectionHeading eyebrow="Back to your stories" title="Continue watching" action="Your library" href="/library" />
         {!signedIn && combinedContinueWatching.length === 0 ? (
@@ -299,33 +329,6 @@ export function HomeDashboard({ trending, generatedAt, movies, series, anime, ma
       <CinematicRail title="Trending anime" eyebrow="Animation & imagination" items={anime.slice(0, 12)} href="/anime" />
       <CinematicRail title="On your reading radar" eyebrow="One more chapter" items={manga.slice(0, 12)} href="/browse" />
       {signedIn && <>
-        <section className="pb-uiverse-card rounded-[22px] p-4 sm:p-5" aria-label="Library summary">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="pb-uiverse-icon grid size-10 shrink-0 place-items-center rounded-xl text-[var(--accent)]"><Library className="size-4" /></div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Your library</p>
-                <h2 className="mt-0.5 font-display text-base font-bold text-[var(--text)] sm:text-lg">Progress at a glance</h2>
-              </div>
-            </div>
-            <div className="grid flex-1 grid-cols-4 gap-2 sm:max-w-2xl">
-              {[
-                { label: "Active", value: stats.watching },
-                { label: "Planned", value: stats.planned },
-                { label: "Done", value: stats.completed },
-                { label: "Saved", value: stats.totalItems },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded-xl bg-[var(--glass)] px-2 py-2.5 text-center">
-                  <div className="font-display text-lg font-bold tabular-nums text-[var(--text)] sm:text-xl">{loading ? "—" : value}</div>
-                  <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)] sm:text-[10px]">{label}</div>
-                </div>
-              ))}
-            </div>
-            <Link href="/stats" className="pb-uiverse-action-link inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-xl px-3 text-xs font-bold text-[var(--accent)]">
-              Full stats <ChevronRight className="size-4" />
-            </Link>
-          </div>
-        </section>
       <details className="pb-cinema-personal"><summary>Your queue for tonight <ChevronRight className="size-4" /></summary><div className="pt-5">
         <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
           <div>

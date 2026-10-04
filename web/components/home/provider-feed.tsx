@@ -2,13 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Film, LoaderCircle, Tv } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { CinematicRail } from "@/components/home/cinematic-rail";
 import { STREAMING_PROVIDERS, providerLogoUrl } from "@/lib/streaming-providers";
 
 type ProviderKind = "movie" | "tv";
+const PROVIDER_TINTS: Record<string, string> = {
+  netflix: "229 9 20", "prime-video": "0 168 225", "disney-plus": "36 104 205",
+  hulu: "28 231 131", max: "100 65 230", "paramount-plus": "0 100 255",
+  crunchyroll: "244 117 33", peacock: "223 180 75", "apple-tv-plus": "140 150 160",
+};
 
 export function ProviderFeed() {
   const [slug, setSlug] = useState<string | null>("netflix");
@@ -53,7 +58,7 @@ export function ProviderFeed() {
   const activeProvider = STREAMING_PROVIDERS.find((provider) => provider.slug === slug) ?? null;
 
   return (
-    <section className="pb-provider-feed space-y-4" aria-label="Browse by streaming provider">
+    <section className="pb-provider-feed pb-fluid-provider-feed space-y-4" aria-label="Browse by streaming provider" style={{ "--provider-rgb": PROVIDER_TINTS[slug ?? ""] ?? "var(--accent-rgb)" } as CSSProperties}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Streaming services</p>
@@ -123,8 +128,8 @@ export function ProviderFeed() {
         <div className="pb-cinema-provider-results">
           <div className="mb-3 flex items-center justify-between gap-3 px-1">
             <div>
-              <p className="text-sm font-bold text-[var(--text)]">Popular on {activeProvider?.name}</p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">{kind === "movie" ? "Movies" : "TV shows"} available through this provider</p>
+              <div className="flex items-center gap-3">{activeProvider && <span className="relative size-11 shrink-0 overflow-hidden rounded-xl"><Image src={providerLogoUrl(activeProvider)} alt="" fill sizes="44px" className="object-cover" /></span>}<div><p className="pb-cinema-eyebrow">Popular {kind === "movie" ? "movies" : "shows"} on</p><p className="text-base font-bold text-[var(--text)]">{activeProvider?.name}</p></div></div>
+
             </div>
             {activeProvider && (
               <Link href={`/browse/streaming-${activeProvider.slug}`} className="shrink-0 text-xs font-bold text-[var(--accent)] hover:underline">

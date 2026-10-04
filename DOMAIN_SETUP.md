@@ -2,6 +2,8 @@
 
 The existing app is hosted by Vercel as project `pandoras-box` and is available at https://pandoras-box-tau.vercel.app. The domain is registered with Spaceship.
 
+Both HTTPS addresses were verified live on 4 October 2026. Supabase URL settings still need account-side confirmation.
+
 ## Vercel
 
 1. Open the existing `pandoras-box` project, then **Settings → Domains**.
@@ -36,7 +38,7 @@ If AniList or MyAnimeList integrations are configured, add the new callback in t
 
 ## Browser companion
 
-Version 1.3.5 allows the local progress bridge on the root domain, `www`, the original Vercel domain and localhost. Install/reload the updated companion and refresh the app tab. Popup detail links retain the original Vercel URL until the new domain is verified live; switch `PBOX_WEB_ORIGIN` in `extension/popup/popup.ts` and rebuild/package the companion after verification.
+Version 1.3.6 allows the local progress bridge on the root domain, `www`, the original Vercel domain and localhost. Its popup title/episode links now open `https://www.pandorasbox.live`. Install/reload the updated companion and refresh the app tab.
 
 ## Verify
 

@@ -4,7 +4,7 @@ import { createDefaultProgress } from "../../core/storage/schema";
 import type { UnifiedSearchResult } from "../../core/utils/search";
 import { formatProgress, getTypeLabel, getStatusLabel, truncateText } from "../../core/utils/formatters";
 
-const PBOX_WEB_ORIGIN = "https://pandoras-box-tau.vercel.app";
+const PBOX_WEB_ORIGIN = "https://www.pandorasbox.live";
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,

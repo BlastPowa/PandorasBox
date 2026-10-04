@@ -12,13 +12,13 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
   return (
-    <aside className="sticky top-0 z-40 hidden h-dvh w-[232px] shrink-0 flex-col border-r border-[var(--nav-border)] bg-[var(--nav-surface)] px-4 py-5 backdrop-blur-xl md:flex">
+    <aside className="pb-glass-sidebar sticky top-0 z-40 hidden h-dvh w-[232px] shrink-0 flex-col border-r border-[var(--nav-border)] bg-[var(--nav-surface)] px-4 py-5 backdrop-blur-xl md:flex">
       <div className="px-2">
         <Brand />
         <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">Everything you’re watching, reading and playing.</p>
       </div>
 
-      <nav className="mt-7 flex-1 space-y-6 overflow-y-auto pr-1" aria-label="Primary navigation">
+      <nav className="mt-5 min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1" aria-label="Primary navigation">
         {NAV_GROUPS.map((group) => {
           const groupItems = items.filter((item) => item.group === group.key);
           if (groupItems.length === 0) return null;
@@ -35,7 +35,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                       href={item.href}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                        "pb-glass-nav-link flex min-h-9 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                         active
                           ? "bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]"
                           : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text)]"
@@ -54,14 +54,13 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
       <Link
         href="/search"
-        className="mt-4 rounded-2xl border border-[rgb(var(--accent-rgb)/0.22)] bg-[rgb(var(--accent-rgb)/0.07)] p-3.5 transition hover:border-[rgb(var(--accent-rgb)/0.4)] hover:bg-[rgb(var(--accent-rgb)/0.11)]"
+        className="pb-sidebar-search mt-3 flex shrink-0 items-center gap-3 rounded-2xl border border-[rgb(var(--accent-rgb)/0.22)] bg-[rgb(var(--accent-rgb)/0.07)] p-3 transition hover:border-[rgb(var(--accent-rgb)/0.4)] hover:bg-[rgb(var(--accent-rgb)/0.11)]"
       >
         <div className="flex items-center justify-between gap-2">
           <span className="grid size-8 place-items-center rounded-xl bg-[rgb(var(--accent-rgb)/0.14)] text-[var(--accent)]"><Sparkles className="size-4" /></span>
           <ArrowUpRight className="size-4 text-[var(--text-muted)]" />
         </div>
-        <p className="mt-3 text-sm font-bold text-[var(--text)]">Find something new</p>
-        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Find anything, save it, then check in from one place.</p>
+        <p className="text-xs font-bold text-[var(--text)]">Find something new</p>
       </Link>
     </aside>
   );

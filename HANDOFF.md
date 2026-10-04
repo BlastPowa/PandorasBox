@@ -4,11 +4,11 @@ Universal entertainment tracker: movies, TV, K-drama, cartoons, anime, manga, ma
 
 **Stack:** Next.js 16 (App Router, Turbopack), TypeScript (strict), Tailwind CSS v4 (CSS-based `@theme inline` config, no `tailwind.config`), Supabase (Postgres + Auth + Storage + Realtime), a shared `core/` package (`@core/...` path alias) used by the web app and the active Pandora's Box browser companion.
 
-**Production:** `pandoras-box-tau.vercel.app` (confirmed via the User-Agent string sent to Comic Vine in `web/lib/comics.ts`).
+**Production:** `www.pandorasbox.live` (verified HTTPS); `pandorasbox.live` redirects there. `pandoras-box-tau.vercel.app` remains an active alias.
 
 **Repo root:** `C:\Users\Blast\Projects\Reel` — web app in `web/`, shared logic in `core/`, active browser companion in `extension/`. `C:\Users\Blast\Downloads\Reel` is a compatibility junction to this directory for existing chats.
 
-**Custom domain setup:** `pandorasbox.live` was purchased through Spaceship. See `DOMAIN_SETUP.md` for the remaining Vercel/DNS/auth configuration. Extension v1.3.5 supports the new domain; popup detail links retain the working Vercel address until the custom domain is verified live.
+**Custom domain setup:** `pandorasbox.live` was purchased through Spaceship. See `DOMAIN_SETUP.md` for the remaining Vercel/DNS/auth configuration. Extension v1.3.6 supports the new domain and opens popup detail links at `https://www.pandorasbox.live`. Supabase auth URL configuration still needs account-side confirmation.
 
 ---
 

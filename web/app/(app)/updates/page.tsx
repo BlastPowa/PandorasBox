@@ -7,6 +7,7 @@ import {
   Bell,
   Bookmark,
   Clapperboard,
+  Compass,
   Dices,
   Gamepad2,
   Globe,
@@ -23,6 +24,17 @@ import { DiscoveryPageHeader } from "@/components/discovery/discovery-page-heade
 export const metadata = { title: "What's New · PBox" };
 
 const RELEASES = [
+  {
+    icon: Compass,
+    title: "Discover, navigation & the new address",
+    text: "Find every page more easily and explore a calmer, more cinematic Discover page.",
+    highlights: [
+      "Rankings, Episode Ratings, Movies, TV Shows, Anime and Trailer Feed are back in desktop navigation and mobile More.",
+      "Your Library now sits directly below Spotlight, with active navigation and provider icons using glass highlights and quieter inactive states.",
+      "Discover brings together a wide backdrop, artwork categories, mood shortcuts and landscape collections; provider selection adds its own colour and logo.",
+      "Pandora's Box is live at www.pandorasbox.live. Companion v1.3.6 opens title and episode links at the new address.",
+    ],
+  },
   {
     icon: Clapperboard,
     title: "A more cinematic home",
