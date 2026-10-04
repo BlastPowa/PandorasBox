@@ -20,6 +20,9 @@ export function ProviderFeed() {
   const [kind, setKind] = useState<ProviderKind>("movie");
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [displayedKey, setDisplayedKey] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const resultCache = useRef(new Map<string, UnifiedSearchResult[]>());
 
   useEffect(() => {
@@ -29,33 +32,40 @@ export function ProviderFeed() {
     const cached = resultCache.current.get(cacheKey);
     if (cached) {
       setResults(cached);
+      setDisplayedKey(cacheKey);
+      setFailed(false);
       setLoading(false);
       return;
     }
 
     const controller = new AbortController();
     setLoading(true);
+    setFailed(false);
     fetch(`/api/provider?slug=${encodeURIComponent(slug)}&kind=${kind}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Provider request failed");
         return response.json() as Promise<{ results?: UnifiedSearchResult[] }>;
       })
       .then((payload) => {
+        if (controller.signal.aborted) return;
         const nextResults = Array.isArray(payload.results) ? payload.results : [];
         resultCache.current.set(cacheKey, nextResults);
         setResults(nextResults);
+        setDisplayedKey(cacheKey);
       })
       .catch((error) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) setResults([]);
+        if (!controller.signal.aborted && !(error instanceof DOMException && error.name === "AbortError")) setFailed(true);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
 
     return () => controller.abort();
-  }, [kind, slug]);
+  }, [kind, slug, retryAttempt]);
 
-  const activeProvider = STREAMING_PROVIDERS.find((provider) => provider.slug === slug) ?? null;
+  const selectedProvider = STREAMING_PROVIDERS.find((provider) => provider.slug === slug) ?? null;
+  const [displayedSlug, displayedKind] = (displayedKey ?? `${slug}:${kind}`).split(":");
+  const activeProvider = STREAMING_PROVIDERS.find((provider) => provider.slug === displayedSlug) ?? selectedProvider;
 
   return (
     <section className="pb-provider-feed pb-fluid-provider-feed space-y-4" aria-label="Browse by streaming provider" style={{ "--provider-rgb": PROVIDER_TINTS[slug ?? ""] ?? "var(--accent-rgb)" } as CSSProperties}>
@@ -98,13 +108,8 @@ export function ProviderFeed() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => {
-                  if (selected) {
-                    setSlug(null);
-                    setResults([]);
-                    setLoading(false);
-                  } else {
-                    setSlug(provider.slug);
-                  }
+                  if (!selected) setSlug(provider.slug);
+                  else if (failed) setRetryAttempt(value => value + 1);
                 }}
                 className={`pb-provider-tile group flex w-[78px] shrink-0 flex-col items-center gap-2 rounded-[20px] px-2 py-3 text-center transition sm:w-[88px] sm:px-3 ${selected ? "is-active" : ""}`}
               >
@@ -128,7 +133,7 @@ export function ProviderFeed() {
         <div className="pb-cinema-provider-results">
           <div className="mb-3 flex items-center justify-between gap-3 px-1">
             <div>
-              <div className="flex items-center gap-3">{activeProvider && <span className="relative size-11 shrink-0 overflow-hidden rounded-xl"><Image src={providerLogoUrl(activeProvider)} alt="" fill sizes="44px" className="object-cover" /></span>}<div><p className="pb-cinema-eyebrow">Popular {kind === "movie" ? "movies" : "shows"} on</p><p className="text-base font-bold text-[var(--text)]">{activeProvider?.name}</p></div></div>
+              <div className="flex items-center gap-3">{activeProvider && <span className="relative size-11 shrink-0 overflow-hidden rounded-xl"><Image src={providerLogoUrl(activeProvider)} alt="" fill sizes="44px" className="object-cover" /></span>}<div><p className="pb-cinema-eyebrow">Popular {displayedKind === "movie" ? "movies" : "shows"} on</p><p className="text-base font-bold text-[var(--text)]">{activeProvider?.name}</p></div></div>
 
             </div>
             {activeProvider && (
@@ -138,13 +143,18 @@ export function ProviderFeed() {
             )}
           </div>
 
-          {loading ? (
-            <div className="grid min-h-36 place-items-center text-[var(--text-muted)]"><LoaderCircle className="size-5 animate-spin" /></div>
-          ) : results.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[var(--text-muted)]">No titles found for this provider right now.</p>
-          ) : (
-            <CinematicRail title={`Popular ${kind === "movie" ? "movies" : "shows"} on ${activeProvider?.name}`} items={results.slice(0, 14)} />
-          )}
+          <div className="pb-provider-stage" aria-busy={loading}>
+            <p className="pb-provider-load-status" role="status" aria-live="polite">
+              {loading ? <><LoaderCircle className="size-3.5 animate-spin" /> Loading {kind === "movie" ? "movies" : "shows"} on {selectedProvider?.name}…</> : failed ? "Couldn’t load this provider. Select it again to retry, or choose another." : ""}
+            </p>
+            {results.length > 0 ? (
+              <div key={displayedKey} className={`pb-provider-row ${loading ? "is-loading" : "is-ready"}`}>
+                <CinematicRail title={`Popular ${displayedKind === "movie" ? "movies" : "shows"} on ${activeProvider?.name}`} items={results.slice(0, 14)} />
+              </div>
+            ) : loading ? (
+              <div className="pb-provider-skeletons" aria-hidden="true">{Array.from({length:5}, (_,index) => <div key={index}><div className="skeleton aspect-video rounded-xl" /><div className="skeleton mt-3 h-4 w-3/4 rounded" /><div className="skeleton mt-2 h-3 w-1/2 rounded" /></div>)}</div>
+            ) : !failed && <p className="py-12 text-center text-sm text-[var(--text-muted)]">No titles found for this provider right now.</p>}
+          </div>
         </div>
       )}
     </section>
