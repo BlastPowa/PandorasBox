@@ -1,5 +1,6 @@
 "use client";
 
+import { EXTENSION_VERSION, EXTENSION_DOWNLOAD } from "@/lib/extension-release";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -388,11 +389,11 @@ export function SettingsView({
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">Browser extension</p>
                     <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                      Download Pandora&apos;s Box v1.3.2 here anytime. Full tracking and sync controls live under Extension &amp; Apps.
+                      Download Pandora&apos;s Box v{EXTENSION_VERSION} here anytime. Full tracking and sync controls live under Extension &amp; Apps.
                     </p>
                   </div>
                   <Button asChild className="w-full shrink-0 sm:w-auto">
-                    <a href="/downloads/pandoras-box-extension-v1.3.7.zip" download>
+                    <a href={EXTENSION_DOWNLOAD} download>
                       <Download className="size-4" /> Download extension
                     </a>
                   </Button>

@@ -71,7 +71,9 @@ export class ProgressManager {
       await this.listManager.updateProgress(item.id, progressUpdates);
     }
 
-    await this.listManager.update(item.id, { lastWatchedSite: event.site });
+    let lastWatchedUrl: string | null = null;
+    try { const url = new URL(event.url); if (url.protocol === "https:" || url.protocol === "http:") lastWatchedUrl = url.href; } catch { /* Keep progress when a player supplies an invalid URL. */ }
+    await this.listManager.update(item.id, { lastWatchedSite: event.site, lastWatchedUrl });
   }
 
   findMatchingItem(
@@ -126,6 +128,9 @@ export class ProgressManager {
   }
 
   buildResumeUrl(item: ReelItem): string | null {
+    if (item.lastWatchedUrl) {
+      try { const url = new URL(item.lastWatchedUrl); if (["http:", "https:"].includes(url.protocol)) return url.href; } catch { /* Older records fall back to provider links. */ }
+    }
     if (!item.lastWatchedSite) {
       return null;
     }

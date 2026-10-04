@@ -94,6 +94,7 @@ async function openPboxDetail(item: ReelItem): Promise<void> {
 }
 
 let activeTab = "home";
+let watchingKind = "all";
 
 function switchTab(tab: string): void {
   activeTab = tab;
@@ -127,7 +128,7 @@ async function loadHome(): Promise<void> {
     ]);
 
     continueList.replaceChildren();
-    const top = inProgress.slice(0, 3);
+    const top = inProgress.filter(item => watchingKind === "all" || item.type === watchingKind).slice(0, 8);
     if (top.length > 0) {
       continueSection.classList.remove("hidden");
       homeEmpty.classList.add("hidden");
@@ -188,10 +189,15 @@ function buildContinueCard(item: ReelItem): HTMLElement {
   card.tabIndex = 0;
   card.setAttribute("role", "link");
   card.setAttribute("aria-label", `Open ${item.title} in Pandora's Box`);
+  if (item.backdropUrl) {
+    const artwork = el("img", "continue-backdrop") as HTMLImageElement;
+    artwork.src = item.backdropUrl; artwork.alt = ""; artwork.loading = "lazy";
+    card.appendChild(artwork);
+  }
   card.appendChild(poster(item.posterUrl, "poster-60", item.title));
 
   const meta = el("div", "continue-meta");
-  meta.appendChild(el("div", "continue-title", truncateText(item.title, 25)));
+  meta.appendChild(el("div", "continue-title", item.title));
   const progressText = el("div", "continue-progress-text", formatProgress(item.progress, item.type));
   meta.appendChild(progressText);
   const episodeName = el("div", "continue-episode-name");
@@ -248,12 +254,17 @@ function buildContinueCard(item: ReelItem): HTMLElement {
 }
 
 function buildResumeUrlFromItem(item: ReelItem): string | null {
+  if (item.lastWatchedUrl) {
+    try { const url = new URL(item.lastWatchedUrl); if (["https:", "http:"].includes(url.protocol)) return url.href; } catch { /* Use the provider fallback for old records. */ }
+  }
   if (!item.lastWatchedSite) {
     return null;
   }
   const site = item.lastWatchedSite.toLowerCase();
   const encoded = encodeURIComponent(item.title);
   switch (site) {
+    case "anime.nexus":
+      return `https://anime.nexus/search?q=${encoded}`;
     case "netflix":
       return "https://www.netflix.com/browse";
     case "disneyplus":
@@ -641,10 +652,23 @@ function setupSettingsPanel(): void {
 }
 
 function setupChrome(): void {
+  byId("extensionVersion").textContent = `Companion · v${chrome.runtime.getManifest().version}`;
+  byId("openWebBtn").addEventListener("click", () => void chrome.tabs.create({url: PBOX_WEB_ORIGIN}));
+  byId("watchFilters").addEventListener("click", event => {
+    const kind = (event.target as HTMLElement).closest<HTMLElement>("[data-kind]")?.dataset.kind;
+    if (!kind) return;
+    watchingKind = kind;
+    byId("watchFilters").querySelectorAll<HTMLButtonElement>("button").forEach(button => {
+      button.classList.toggle("active", button.dataset.kind === kind);
+      button.setAttribute("aria-pressed", String(button.dataset.kind === kind));
+    });
+    void loadHome();
+  });
   byId("tabs").addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
-    if (target.dataset.tab) {
-      switchTab(target.dataset.tab);
+    const tab = target.closest<HTMLElement>("[data-tab]")?.dataset.tab;
+    if (tab) {
+      switchTab(tab);
     }
   });
 

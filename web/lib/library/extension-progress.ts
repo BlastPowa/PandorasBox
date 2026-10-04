@@ -15,7 +15,7 @@ export function mergeExtensionProgress(library: ReelItem[], incoming: unknown[])
     const existing = items[index];
     if (Date.parse(item.updatedAt) <= Date.parse(existing.updatedAt)) continue;
     items[index] = { ...existing, progress: { ...existing.progress, ...item.progress }, status: item.status,
-      lastWatchedSite: item.lastWatchedSite, updatedAt: item.updatedAt, completedAt: item.completedAt,
+      lastWatchedSite: item.lastWatchedSite, lastWatchedUrl: item.lastWatchedUrl, updatedAt: item.updatedAt, completedAt: item.completedAt,
       posterUrl: existing.posterUrl ?? item.posterUrl, backdropUrl: existing.backdropUrl ?? item.backdropUrl };
     changed = true;
   }

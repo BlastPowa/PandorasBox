@@ -1,5 +1,6 @@
 "use client";
 
+import { EXTENSION_VERSION, EXTENSION_DOWNLOAD } from "@/lib/extension-release";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -147,7 +148,7 @@ function BrowserCompanionCard() {
             </span>
             <div>
               <p className="font-display text-lg font-bold">Pandora&apos;s Box for Chrome</p>
-              <p className="text-xs font-semibold text-[var(--accent)]">Version 1.3.3</p>
+              <p className="text-xs font-semibold text-[var(--accent)]">Version {EXTENSION_VERSION}</p>
             </div>
           </div>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
@@ -163,7 +164,7 @@ function BrowserCompanionCard() {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild>
-              <a href="/downloads/pandoras-box-extension-v1.3.7.zip" download>
+              <a href={EXTENSION_DOWNLOAD} download>
                 <Download className="size-4" /> Download extension
               </a>
             </Button>
@@ -206,7 +207,7 @@ function BrowserCompanionCard() {
               })}
             </div>
             <p className="mt-3 text-[11px] leading-5 text-[var(--text-muted)]">
-              Account syncing is managed separately below. Browser-companion playback progress is exposed locally to PBox Home while the extension is installed.
+              Captured playback imports into your library while a signed-in PBox tab is open. Connected account integrations are managed separately below.
             </p>
           </div>
 
@@ -217,6 +218,7 @@ function BrowserCompanionCard() {
               <li><span className="mr-2 font-bold text-[var(--accent)]">2.</span>Open <code className="rounded bg-[var(--glass)] px-1.5 py-0.5">chrome://extensions</code> and enable Developer mode.</li>
               <li><span className="mr-2 font-bold text-[var(--accent)]">3.</span>Choose <strong>Load unpacked</strong> and select the extracted folder.</li>
             </ol>
+            <p className="mt-4 text-xs leading-5 text-[var(--text-secondary)]"><strong>Updating an existing install?</strong> Unpacked extensions do not update automatically. Extract this ZIP into the same folder you originally loaded, replacing its files, then click Reload on Pandora’s Box in chrome://extensions. Reload your watching and PBox tabs too. Keep the same extension entry to preserve its saved library.</p>
           </div>
         </div>
       </div>

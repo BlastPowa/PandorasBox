@@ -53,6 +53,7 @@ export interface ReelItem {
   updatedAt: string;
   completedAt: string | null;
   lastWatchedSite: string | null;
+  lastWatchedUrl?: string | null;
 }
 
 export interface ReelSettings {

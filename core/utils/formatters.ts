@@ -34,7 +34,7 @@ export function formatProgress(progress: ReelProgress, type: ReelItemType): stri
   }
   if (type === "series" || type === "anime") {
     const current = progress.currentEpisode ?? 0;
-    if (progress.totalEpisodes !== null) {
+    if (typeof progress.totalEpisodes === "number" && progress.totalEpisodes > 0) {
       return `Episode ${current} of ${progress.totalEpisodes}`;
     }
     return `Episode ${current}`;
@@ -42,10 +42,10 @@ export function formatProgress(progress: ReelProgress, type: ReelItemType): stri
   const currentChapter = progress.currentChapter ?? 0;
   if (type === "comic") {
     const issue = progress.currentIssueNumber ?? String(currentChapter);
-    if (progress.totalChapters !== null) return `Issue ${issue} · ${currentChapter} of ${progress.totalChapters} read`;
+    if (typeof progress.totalChapters === "number" && progress.totalChapters > 0) return `Issue ${issue} · ${currentChapter} of ${progress.totalChapters} read`;
     return `Issue ${issue}`;
   }
-  if (progress.totalChapters !== null) {
+  if (typeof progress.totalChapters === "number" && progress.totalChapters > 0) {
     return `Chapter ${currentChapter} of ${progress.totalChapters}`;
   }
   return `Chapter ${currentChapter}`;

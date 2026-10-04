@@ -1064,3 +1064,30 @@ body {
   line-height: 1.5;
   margin-bottom: 10px;
 }
+
+/* Companion refresh: compact glass navigation and cinematic resume cards. */
+:root { --accent: #a78bfa; --accent-2: #48d6c8; --grad: linear-gradient(120deg,#a78bfa,#48d6c8); }
+html,body { width: 440px; height: 600px; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+body { background: radial-gradient(ellipse at 100% 0%,#34234580,transparent 60%),radial-gradient(ellipse at 0% 100%,#16483f50,transparent 65%),#101117; }
+.topbar { flex-wrap: wrap; padding: 16px 18px 10px; gap: 14px; background: #17181f99; box-shadow: none; }
+.brand { flex: 1; }.brand-icon { width: 32px; height: 32px; border-radius: 10px; }
+.brand-mark { font-size: 15px; letter-spacing: -.3px; color: #f7f5ff; background: none; }
+.brand-mark small { display: block; margin-top: 3px; font-size: 10px; font-weight: 500; color: #a4a1b2; letter-spacing: .2px; }
+.topbar > .icon-btn { order: 1; width: 36px; height: 36px; }
+.tabs { order: 2; flex: 0 0 100%; padding: 4px; gap: 4px; border: 1px solid #ffffff10; border-radius: 14px; background: #090a0f70; }
+.tab { flex: 1; padding: 9px 12px; border-radius: 10px; opacity: .6; font-weight: 600; }
+.tab.active { background: #ffffff12; color: #f3edff; box-shadow: inset 0 1px #ffffff12; opacity: 1; }.tab:hover { opacity: 1; }
+.companion-intro { padding: 4px 0 16px; }.eyebrow { color: #a59bb8; font-size: 9px; letter-spacing: 1.8px; font-weight: 700; }
+.companion-intro h1 { font-size: 21px; letter-spacing: -.6px; margin-top: 7px; }.companion-intro p { color: var(--text-secondary); font-size: 11px; line-height: 1.6; margin-top: 6px; }
+.watch-filters { display: flex; gap: 6px; margin-bottom: 18px; }.watch-filters .pill { flex: 1; padding: 8px 5px; border-radius: 999px; font-size: 11px; }.watch-filters .pill.active { background: #a78bfa20; color: #c4b5fd; border-color: #a78bfa45; }
+.section-head h2 { letter-spacing: -.2px; text-transform: none; font-size: 14px; color: #eeebf5; }
+.continue-card { min-height: 126px; align-items: center; padding: 14px; border-radius: 16px; background: #ffffff05; border-color: #ffffff14; box-shadow: none; }
+.continue-card::before { width: auto; inset: 0; background: linear-gradient(90deg,#11121bea 30%,#11121b90); opacity: 1; pointer-events: none; z-index: 1; }
+.continue-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
+.continue-card > :not(.continue-backdrop) { position: relative; z-index: 2; }.poster-60 { width: 54px; height: 80px; border-radius: 9px; }
+.continue-title { font-size: 14px; }.continue-summary { display: none; }.continue-episode-name:empty { display: none; }
+.resume-btn { flex-shrink: 0; border: 1px solid #ffffff25; background: #ffffff14; color: #fff; border-radius: 999px; padding: 9px 12px; }
+.stat-chip { background: #ffffff05; border-color: #ffffff12; border-radius: 13px; }.stat-value { background: none; color: #d3c5fa; -webkit-text-fill-color: currentColor; }.stat-label { letter-spacing: .6px; font-size: 9px; }
+.bottombar { display: flex; gap: 8px; background: #17181fc0; border-top: 1px solid #ffffff10; padding: 12px 16px; }.bottombar button { flex: 1; min-height: 36px; font-family: inherit; font-size: 11px; border-radius: 11px; border: 1px solid #ffffff14; background: #ffffff08; color: #c4c0d0; cursor: pointer; }.bottombar .web-btn { background: #a78bfa20; color: #ddd1ff; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation: none !important; transition: none !important; } }
