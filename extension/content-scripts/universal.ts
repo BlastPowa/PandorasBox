@@ -5,7 +5,13 @@ const VERY_LONG_VIDEO_SECONDS = 45 * 60;
 const CONTEXT_CHANNEL = "__pandora_box_media_context_v1__";
 
 const EXTENSION_LIBRARY_CHANNEL = "__pbox_extension_library_v1__";
-const PBOX_WEB_HOSTS = new Set(["pandoras-box-tau.vercel.app", "localhost", "127.0.0.1"]);
+const PBOX_WEB_HOSTS = new Set([
+  "pandorasbox.live",
+  "www.pandorasbox.live",
+  "pandoras-box-tau.vercel.app",
+  "localhost",
+  "127.0.0.1",
+]);
 
 type ExtensionLibraryBridgeMessage =
   | { channel: typeof EXTENSION_LIBRARY_CHANNEL; type: "request" }

@@ -24,6 +24,15 @@ export const metadata = { title: "What's New · PBox" };
 
 const RELEASES = [
   {
+    icon: Globe,
+    title: "Custom domain companion support",
+    text: "The browser companion is ready for Pandora's Box's new address.",
+    highlights: [
+      "Extension v1.3.5 supports local Continue Watching progress on pandorasbox.live and www.pandorasbox.live, alongside the existing Vercel address.",
+      "Download the updated companion from Settings and reload it, then refresh your Pandora's Box tab to connect local progress.",
+    ],
+  },
+  {
     icon: Activity,
     title: "Episode deep-links & glass extension refresh",
     text: "The browser companion now hands your current episode straight into PBox and uses its home space for richer episode context instead of empty chrome.",

@@ -6,7 +6,9 @@ Universal entertainment tracker: movies, TV, K-drama, cartoons, anime, manga, ma
 
 **Production:** `pandoras-box-tau.vercel.app` (confirmed via the User-Agent string sent to Comic Vine in `web/lib/comics.ts`).
 
-**Repo root:** `C:\Users\Blast\Downloads\Reel` — web app in `web/`, shared logic in `core/`, active browser companion in `extension/`.
+**Repo root:** `C:\Users\Blast\Projects\Reel` — web app in `web/`, shared logic in `core/`, active browser companion in `extension/`. `C:\Users\Blast\Downloads\Reel` is a compatibility junction to this directory for existing chats.
+
+**Custom domain setup:** `pandorasbox.live` was purchased through Spaceship. See `DOMAIN_SETUP.md` for the remaining Vercel/DNS/auth configuration. Extension v1.3.5 supports the new domain; popup detail links retain the working Vercel address until the custom domain is verified live.
 
 ---
 
