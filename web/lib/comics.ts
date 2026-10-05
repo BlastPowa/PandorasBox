@@ -97,7 +97,7 @@ async function fetchSeries(query: string, publisher: Publisher): Promise<ComicSe
   });
   if (!url) return null;
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
+    const res = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(12000), next: { revalidate: DAY } });
     if (!res.ok) return null;
     const json = (await res.json()) as { results?: ComicVineVolume[] };
     const candidates = (json.results ?? []).filter((r) => r.publisher?.id === PUBLISHER_ID[publisher]);
@@ -118,7 +118,7 @@ export async function getComics(publisher: Publisher): Promise<ComicSeries[]> {
   });
   if (url) {
     try {
-      const res = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
+      const res = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(12000), next: { revalidate: DAY } });
       if (res.ok) {
         const json = (await res.json()) as { results?: ComicVineVolume[] };
         const seen = new Set<number>();
@@ -147,7 +147,7 @@ export async function searchComics(query: string): Promise<ComicSeries[]> {
   });
   if (!url) return [];
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: 60 * 60 } });
+    const res = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(12000), next: { revalidate: 60 * 60 } });
     if (!res.ok) return [];
     const json = (await res.json()) as { results?: ComicVineVolume[] };
     return (json.results ?? [])
@@ -176,7 +176,7 @@ export async function getComicDetail(id: number): Promise<ComicDetail | null> {
   });
   if (!url) return null;
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
+    const res = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(12000), next: { revalidate: DAY } });
     if (!res.ok) return null;
     const json = (await res.json()) as { results?: ComicVineVolumeDetail };
     const v = json.results;
@@ -219,7 +219,7 @@ export async function getComicIssues(volumeId: number): Promise<ComicIssue[]> {
   const firstUrl = buildUrl(0);
   if (!firstUrl) return [];
   try {
-    const res = await fetch(firstUrl, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
+    const res = await fetch(firstUrl, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(12000), next: { revalidate: DAY } });
     if (!res.ok) return [];
     const first = (await res.json()) as { results?: ComicVineIssue[]; number_of_total_results?: number };
     const total = Math.min(first.number_of_total_results ?? first.results?.length ?? 0, 1000);
@@ -227,7 +227,7 @@ export async function getComicIssues(volumeId: number): Promise<ComicIssue[]> {
     const additional = await Promise.all(offsets.map(async (offset) => {
       const url = buildUrl(offset);
       if (!url) return [];
-      const page = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: DAY } });
+      const page = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(12000), next: { revalidate: DAY } });
       if (!page.ok) return [];
       const json = (await page.json()) as { results?: ComicVineIssue[] };
       return json.results ?? [];

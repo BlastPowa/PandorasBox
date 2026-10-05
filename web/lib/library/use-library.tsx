@@ -142,7 +142,7 @@ export function LibraryProvider({
             kind: isAnime ? "anime" : "manga",
           },
         }),
-      });
+      }).catch(() => undefined);
     } catch {
       // sync queueing must never break library operations
     }
@@ -207,10 +207,10 @@ export function LibraryProvider({
       stats,
       refresh,
       add: (item) => run((m) => m.add(item), item.id, "added"),
-      update: (id, updates) => run((m) => m.update(id, updates), id),
+      update: (id, updates) => run((m) => m.update(id, updates), id, updates.status === "completed" ? "finished" : updates.progress ? "progressed" : undefined),
       remove: (id) => run((m) => m.remove(id)),
       setStatus: (id, status) =>
-        run((m) => m.update(id, { status }), id, status === "watching" || status === "rewatching" || status === "reading" ? "started" : undefined),
+        run((m) => status === "completed" ? m.markComplete(id) : m.update(id, { status, completedAt: null }), id, status === "completed" ? "finished" : status === "watching" || status === "rewatching" || status === "reading" ? "started" : undefined),
       setRating: (id, rating) => run((m) => m.update(id, { rating }), id, "rated"),
       markEpisode: (id, episode, season) =>
         run((m) => m.markEpisodeWatched(id, episode, season), id, {

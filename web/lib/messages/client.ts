@@ -1,8 +1,12 @@
 import type { Conversation, ConversationDetail, MessageMedia, MessageShareCard } from "./types";
 
 async function json<T>(response: Response): Promise<T> {
-  const body = (await response.json().catch(() => ({}))) as T & { error?: string };
-  if (!response.ok) throw new Error(body.error ?? "Request failed");
+  const body = await response.json().catch(() => null) as (T & { error?: string }) | null;
+  if (!response.ok || !body) {
+    const detail = body?.error;
+    const internal = detail && /schema cache|relationship|column|relation|postgres|PGRST/i.test(detail);
+    throw new Error(response.status === 401 ? "Sign in again to use messages." : internal || !detail ? "Messages are temporarily unavailable. Please try again." : detail);
+  }
   return body;
 }
 

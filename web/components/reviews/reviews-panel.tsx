@@ -25,6 +25,7 @@ function timeAgo(iso: string): string {
 export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: string; scrollable?: boolean }) {
   const { signedIn } = useLibrary();
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -40,6 +41,7 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
   async function load() {
     await Promise.resolve();
     setLoading(true);
+    setLoadError(null);
     try {
       const [list, uid] = await Promise.all([listReviews(mediaKey), getCurrentUserId()]);
       setReviews(list);
@@ -51,7 +53,7 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
         setDraftSpoiler(mine.is_spoiler);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not load reviews");
+      setLoadError(e instanceof Error ? e.message : "Could not load reviews");
     } finally {
       setLoading(false);
     }
@@ -68,7 +70,7 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
   const averageRating = ratedReviews.length > 0
     ? ratedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / ratedReviews.length
     : null;
-  const distribution = [5, 4, 3, 2, 1].map((rating) => ({
+  const distribution = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((rating) => ({
     rating,
     count: ratedReviews.filter((review) => Math.round(review.rating ?? 0) === rating).length,
   }));
@@ -132,7 +134,7 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
   }
 
   async function toggleHelpful(review: Review) {
-    if (!signedIn || helpfulPending.has(review.id)) return;
+    if (!signedIn || !review.helpful_available || helpfulPending.has(review.id)) return;
     setHelpfulPending((current) => new Set(current).add(review.id));
     try {
       await setReviewHelpful(review.id, !review.helpful_by_me);
@@ -153,7 +155,8 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
+      {loadError && <div role="status" className="rounded-xl border border-[var(--border)] p-4 text-sm">{loadError} <button onClick={() => void load()} className="ml-2 min-h-11 font-bold text-[var(--accent)]">Retry</button></div>}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -204,7 +207,7 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
         <div className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-4 sm:grid-cols-[120px_1fr] sm:items-center">
           <div className="text-center sm:border-r sm:border-[var(--border)] sm:pr-4">
             <div className="flex items-center justify-center gap-1 font-display text-3xl font-black text-[var(--text)]">
-              <Star className="size-5 fill-current text-[var(--gold)]" /> {averageRating.toFixed(1)}
+              <Star className="size-5 fill-current text-[var(--gold)]" /> {averageRating.toFixed(1)}<span className="text-sm text-[var(--text-muted)]">/10</span>
             </div>
             <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">{ratedReviews.length} rated</p>
           </div>
@@ -231,10 +234,10 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-[var(--text-muted)]">Your review</span>
               <div className="flex gap-1">
-                <button onClick={beginEditing} aria-label="Edit your review" className="rounded-md p-1.5 text-[var(--text-secondary)] hover:bg-[var(--glass-strong)]">
+                <button onClick={beginEditing} aria-label="Edit your review" className="grid size-11 place-items-center rounded-md text-[var(--text-secondary)] hover:bg-[var(--glass-strong)]">
                   <Pencil className="size-3.5" />
                 </button>
-                <button onClick={() => void remove(myReview.id)} aria-label="Delete your review" className="rounded-md p-1.5 text-[var(--dropped)] hover:bg-[var(--glass-strong)]">
+                <button onClick={() => void remove(myReview.id)} aria-label="Delete your review" className="grid size-11 place-items-center rounded-md text-[var(--dropped)] hover:bg-[var(--glass-strong)]">
                   <Trash2 className="size-3.5" />
                 </button>
               </div>
@@ -245,7 +248,11 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
           </div>
         ) : (
           <div className="glass space-y-2.5 rounded-[var(--radius-md)] p-3">
-            <RatingStars value={draftRating} onChange={setDraftRating} size={16} />
+            <label className="flex flex-wrap items-center gap-3 text-xs font-semibold">Your rating
+              <select aria-label="Your review rating" value={draftRating ?? ""} onChange={event => setDraftRating(event.target.value ? Number(event.target.value) : null)} className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-3 text-base">
+                <option value="">No rating</option>{Array.from({length:10},(_,i) => i+1).map(value => <option key={value} value={value}>{value} / 10</option>)}
+              </select>
+            </label>
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -321,10 +328,11 @@ export function ReviewsPanel({ mediaKey, scrollable = false }: { mediaKey: strin
                 {r.is_friend ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]"><Users className="size-3" /> Friend</span> : <span />}
                 <button
                   type="button"
-                  disabled={!signedIn || helpfulPending.has(r.id)}
+                  disabled={!signedIn || !r.helpful_available || helpfulPending.has(r.id)}
+                  title={!r.helpful_available ? "Helpful voting is temporarily unavailable" : !signedIn ? "Sign in to vote" : "Mark this review helpful"}
                   onClick={() => void toggleHelpful(r)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-45",
+                    "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-45",
                     r.helpful_by_me ? "bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent)]" : "text-[var(--text-muted)] hover:bg-[var(--glass-strong)] hover:text-[var(--text)]"
                   )}
                 >

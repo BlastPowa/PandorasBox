@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { headers } from "next/headers";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -42,17 +44,19 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
       className={`${fredoka.variable} ${inter.variable} ${jetbrains.variable} h-full`}
       suppressHydrationWarning
     >
+      <head><script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} /></head>
       <body className="min-h-dvh">
         <Providers>{children}</Providers>
       </body>

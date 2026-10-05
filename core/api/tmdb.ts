@@ -144,7 +144,7 @@ function buildUrl(path: string, apiKey: string, extraParams?: Record<string, str
 
 async function tmdbFetch<T>(path: string, apiKey: string, extraParams?: Record<string, string>, fresh = false): Promise<T> {
   try {
-    const response = await fetch(buildUrl(path, apiKey, extraParams), fresh ? { cache: "no-store" } : undefined);
+    const response = await fetch(buildUrl(path, apiKey, extraParams), { ...(fresh ? { cache: "no-store" as const } : {}), signal: AbortSignal.timeout(12000) });
     if (!response.ok) {
       throw new Error(`TMDB request failed with status ${response.status}: ${path}`);
     }

@@ -6,6 +6,7 @@ import { supabaseUrl, supabaseAnonKey } from "./env";
 export async function createClient() {
   const cookieStore = await cookies();
   return createServerClient(supabaseUrl, supabaseAnonKey, {
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(15000) }) },
     cookies: {
       getAll() {
         return cookieStore.getAll();

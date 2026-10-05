@@ -1,13 +1,14 @@
 import "server-only";
+import { getScheduledGames } from "./igdb";
 import { getPosterUrl } from "@core/api/tmdb";
 
 const ANILIST_URL = "https://graphql.anilist.co";
 
 export interface ScheduleEntry {
   id: string;
-  kind: "anime" | "movie" | "series";
-  detailType: "anime" | "movie" | "series";
-  source: "anilist" | "tmdb";
+  kind: "anime" | "movie" | "series" | "game";
+  detailType: "anime" | "movie" | "series" | "game";
+  source: "anilist" | "tmdb" | "igdb";
   refId: string;
   title: string;
   posterUrl: string | null;
@@ -17,7 +18,7 @@ export interface ScheduleEntry {
 }
 
 function entryHref(e: ScheduleEntry): string {
-  return `/title/${e.detailType}/${e.source}/${e.refId}`;
+  return e.kind === "game" ? `/game/${e.refId}` : `/title/${e.detailType}/${e.source}/${e.refId}`;
 }
 export { entryHref };
 
@@ -36,11 +37,12 @@ interface AiringNode {
 }
 
 export async function getAnimeWeek(days = 7): Promise<ScheduleEntry[]> {
-  const now = Math.floor(Date.now() / 1000);
+  const now = Math.floor(Date.now() / 86400000) * 86400;
   const end = now + 60 * 60 * 24 * days;
   const query = `
-    query ($start: Int, $end: Int) {
-      Page(page: 1, perPage: 50) {
+    query ($start: Int, $end: Int, $page: Int) {
+      Page(page: $page, perPage: 50) {
+        pageInfo { hasNextPage }
         airingSchedules(airingAt_greater: $start, airingAt_lesser: $end, sort: TIME) {
           episode
           airingAt
@@ -50,17 +52,19 @@ export async function getAnimeWeek(days = 7): Promise<ScheduleEntry[]> {
     }
   `;
   try {
-    const res = await fetch(ANILIST_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query, variables: { start: now, end } }),
-      next: { revalidate: 60 * 30 },
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { data?: { Page?: { airingSchedules?: AiringNode[] } } };
-    return (json.data?.Page?.airingSchedules ?? [])
-      .filter((n) => !n.media.isAdult && (n.media.popularity ?? 0) > 3000)
-      .map((n) => ({
+    const nodes: AiringNode[] = [];
+    for (let page = 1; page <= 10; page++) {
+      const res = await fetch(ANILIST_URL, {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query, variables: { start: now, end, page } }),
+        next: { revalidate: 60 * 30 }, signal: AbortSignal.timeout(12000),
+      });
+      if (!res.ok) break;
+      const json = await res.json() as { data?: { Page?: { airingSchedules?: AiringNode[]; pageInfo?: { hasNextPage?: boolean } } } };
+      nodes.push(...(json.data?.Page?.airingSchedules ?? []));
+      if (!json.data?.Page?.pageInfo?.hasNextPage) break;
+    }
+    return nodes.filter(n => !n.media.isAdult)      .map((n) => ({
         id: `anilist-${n.media.id}`,
         kind: "anime" as const,
         detailType: "anime" as const,
@@ -172,7 +176,7 @@ export async function getUpcomingAnime(): Promise<ScheduleEntry[]> {
     if (!res.ok) return [];
     const json = (await res.json()) as { data?: { Page?: { media?: AniListUpcomingNode[] } } };
     return (json.data?.Page?.media ?? [])
-      .filter((m) => !m.isAdult && m.startDate.year)
+      .filter((m) => !m.isAdult && m.startDate.year && m.startDate.month && m.startDate.day)
       .map((m) => {
         const y = m.startDate.year as number;
         const mo = m.startDate.month ?? 1;
@@ -268,4 +272,13 @@ export async function getTvWindow(days = 14): Promise<ScheduleEntry[]> {
       hasTime: false,
     }];
   });
+}
+
+export async function getGameReleases(): Promise<ScheduleEntry[]> {
+  const games = await getScheduledGames(180);
+  return games.filter(game => game.releaseDate).map(game => ({
+    id: `igdb-${game.id}`, kind: "game", detailType: "game", source: "igdb", refId: String(game.id),
+    title: game.name, posterUrl: game.coverUrl,
+    timestamp: dateToUnix(game.releaseDate!.slice(0,10)), label: "Game release", hasTime: false,
+  }));
 }

@@ -27,18 +27,19 @@ async function relevantLists(q: string) {
   if (!isSupabaseConfigured) return [];
   try {
     const supabase = await createClient();
+    const signal = AbortSignal.timeout(6000);
     const pattern = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
     const [names, matches] = await Promise.all([
-      supabase.from("collections").select("id,name,share_slug,cover_url,user_id").eq("visibility","public").ilike("name",pattern).limit(8),
-      supabase.from("collection_items").select("collection_id").ilike("title",pattern).limit(100),
+      supabase.from("collections").select("id,name,share_slug,cover_url,user_id").eq("visibility","public").ilike("name",pattern).limit(8).abortSignal(signal),
+      supabase.from("collection_items").select("collection_id").ilike("title",pattern).limit(100).abortSignal(signal),
     ]);
     const ids = [...new Set((matches.data ?? []).map(item => item.collection_id))];
-    const containing = ids.length ? await supabase.from("collections").select("id,name,share_slug,cover_url,user_id").eq("visibility","public").in("id",ids).limit(8) : {data: []};
+    const containing = ids.length ? await supabase.from("collections").select("id,name,share_slug,cover_url,user_id").eq("visibility","public").in("id",ids).limit(8).abortSignal(signal) : {data: []};
     const lists = [...new Map([...(names.data ?? []), ...(containing.data ?? [])].map(item => [item.id,item])).values()].slice(0,8);
     return await Promise.all(lists.map(async list => {
       const [covers, owner] = await Promise.all([
-        supabase.from("collection_items").select("poster_url",{count:"exact"}).eq("collection_id",list.id).limit(4),
-        supabase.from("profiles").select("username").eq("id",list.user_id).maybeSingle(),
+        supabase.from("collection_items").select("poster_url",{count:"exact"}).eq("collection_id",list.id).limit(4).abortSignal(signal),
+        supabase.from("profiles").select("username").eq("id",list.user_id).abortSignal(signal).maybeSingle(),
       ]);
       return {...list, posters: (covers.data ?? []).flatMap(item => item.poster_url ? [item.poster_url as string] : []), count: covers.count ?? 0, owner: owner.data?.username ?? "PBox member"};
     }));

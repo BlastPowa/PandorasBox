@@ -1,5 +1,6 @@
 "use client";
 
+import * as Dialog from "@radix-ui/react-dialog";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -47,10 +48,12 @@ const SMART_VIEWS: { key: SmartView; label: string }[] = [
   { key: "nearly_done", label: "Nearly done" },
 ];
 
-export function LibraryView() {
-  const { items, loading, signedIn, remove, markEpisode, markChapter, markComplete, setRating } = useLibrary();
+export function LibraryView({ initialStatus = "all" }: { initialStatus?: ReelItemStatus | "all" }) {
+  const { items, loading, signedIn, remove, markEpisode, markChapter, markComplete, setRating, update, error, refresh } = useLibrary();
   const stats = useLibraryStats(items);
-  const [status, setStatus] = useState<ReelItemStatus | "all">("all");
+  const [editing, setEditing] = useState<ReelItem | null>(null);
+  const act = async (action: () => Promise<void>) => { try { await action(); } catch { toast.error("Could not save your library change. Please try again."); } };
+  const [status, setStatus] = useState<ReelItemStatus | "all">(initialStatus);
   const [type, setType] = useState<ReelItemType | "all">("all");
   const [sort, setSort] = useState<SortKey>("updated");
   const [smartView, setSmartView] = useState<SmartView>("all");
@@ -148,12 +151,15 @@ export function LibraryView() {
 
   return (
     <div className="space-y-4">
+      {error && <div role="alert" className="rounded-xl border border-[var(--border)] p-4 text-sm">Your library could not sync. <Button variant="glass" onClick={() => void refresh()}>Retry</Button></div>}
+      <div className="flex flex-wrap gap-2"><Button variant={status === "planned" ? "primary" : "glass"} onClick={() => { setStatus("planned"); setSmartView("all"); }}>Watchlist · {stats.planned}</Button><Button variant="glass" asChild><Link href="/stats">View stats <BarChart3 className="size-4" /></Link></Button></div>
+      {editing && <ProgressEditor key={editing.id} item={editing} onClose={() => setEditing(null)} onSave={(updates) => update(editing.id, updates)} />}
       {/* Stats summary bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total" value={stats.totalItems} icon={<Library className="size-4" />} />
         <StatCard label="Watching" value={stats.watching} icon={<PlayCircle className="size-4" />} />
         <StatCard label="Completed" value={stats.completed} icon={<CircleCheckBig className="size-4" />} />
-        <StatCard label="Hours" value={Math.round(stats.totalWatchTimeMinutes / 60)} icon={<Clock3 className="size-4" />} />
+        <StatCard label="Estimated hours" value={Math.round(stats.totalWatchTimeMinutes / 60)} icon={<Clock3 className="size-4" />} />
       </div>
 
       {items.length > 0 && (
@@ -329,9 +335,10 @@ export function LibraryView() {
               selectMode={selectMode}
               selected={selected.has(item.id)}
               onToggleSelect={() => toggleSelect(item.id)}
-              onRate={(v) => void setRating(item.id, v)}
-              onNext={() => void advance(item, markEpisode, markChapter)}
-              onComplete={() => void markComplete(item.id)}
+              onRate={(v) => void act(() => setRating(item.id, v))}
+              onNext={() => void act(() => item.type === "movie" ? markComplete(item.id) : advance(item, markEpisode, markChapter))}
+              onEdit={() => setEditing(item)}
+              onComplete={() => void act(() => markComplete(item.id))}
               removing={removing.has(item.id)}
               onRemove={() => void removeFromLibrary(item)}
             />
@@ -354,6 +361,49 @@ function toCollectionItem(i: ReelItem): AddToCollectionItem {
     tmdbId: i.tmdbId,
     mangadexId: i.mangadexId,
   };
+}
+
+function ProgressEditor({ item, onClose, onSave }: { item: ReelItem; onClose: () => void; onSave: (updates: Partial<ReelItem>) => Promise<void> }) {
+  const reading = ["manga", "manhwa", "comic"].includes(item.type);
+  const movie = item.type === "movie";
+  const total = reading ? item.progress.totalChapters : item.progress.totalEpisodes;
+  const [status, setStatus] = useState(item.status);
+  const [value, setValue] = useState(String(movie ? Math.round(item.progress.percentComplete) : reading ? item.progress.currentChapter ?? 0 : item.progress.currentEpisode ?? 0));
+  const [season, setSeason] = useState(String(item.progress.currentSeason ?? 1));
+  const [saving, setSaving] = useState(false);
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    const amount = Number(value);
+    const seasonNumber = Number(season);
+    if (!value.trim() || !Number.isSafeInteger(amount) || amount < 0 || (movie && amount > 100) || (!movie && total != null && amount > total) || (!reading && !movie && (!Number.isSafeInteger(seasonNumber) || seasonNumber < 1))) {
+      toast.error("Enter a valid progress amount within the title’s total."); return;
+    }
+    setSaving(true);
+    const percent = movie ? amount : total ? Math.min(100, amount / total * 100) : 0;
+    const progress = { ...item.progress, percentComplete: status === "completed" ? 100 : percent };
+    if (reading) progress.currentChapter = amount;
+    else if (!movie) { progress.currentEpisode = amount; progress.currentSeason = seasonNumber; progress.episodeTimestamp = null; progress.currentEpisodePercent = 0; }
+    else if (amount === 0) progress.movieTimestamp = null;
+    try {
+      await onSave({ status, progress, completedAt: status === "completed" ? item.completedAt ?? new Date().toISOString() : null });
+      toast.success("Progress saved"); onClose();
+    } catch { toast.error("Could not save progress. Your changes are still here to retry."); }
+    finally { setSaving(false); }
+  }
+  return <Dialog.Root open onOpenChange={(open) => { if (!open && !saving) onClose(); }}><Dialog.Portal>
+    <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm" />
+    <Dialog.Content className="fixed left-1/2 top-1/2 z-[81] max-h-[85dvh] w-[calc(100%-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-5 text-[var(--text)]">
+      <Dialog.Title className="pr-10 font-display text-xl font-bold">Update progress</Dialog.Title><Dialog.Description className="mt-1 break-words text-sm text-[var(--text-muted)]">{item.title}</Dialog.Description>
+      <Dialog.Close disabled={saving} aria-label="Close progress editor" className="absolute right-2 top-2 grid size-11 place-items-center"><X className="size-5" /></Dialog.Close>
+      <form onSubmit={(event) => void save(event)} className="mt-5 space-y-4">
+        <label className="block text-sm">Status<select aria-label="Status" value={status} onChange={(event) => setStatus(event.target.value as ReelItemStatus)} className="mt-1 block min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3">{STATUS_TABS.filter((tab) => tab.key !== "all").map((tab) => <option key={tab.key} value={tab.key}>{tab.key === "planned" ? "Watchlist / planned" : tab.label}</option>)}</select></label>
+        {!movie && !reading && <label className="block text-sm">Season<input required type="number" min="1" step="1" value={season} onChange={(event) => setSeason(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3" /></label>}
+        <label className="block text-sm">{movie ? "Movie progress (%)" : reading ? "Chapters / issues read" : "Episodes watched"}<input required type="number" min="0" max={movie ? 100 : total ?? undefined} step="1" value={value} onChange={(event) => setValue(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3" /></label>
+        {!movie && <p className="text-xs text-[var(--text-muted)]">{total ? `${total} total` : "Total unknown — your count will still be saved."}</p>}
+        <Button type="submit" loading={saving} className="w-full">Save progress</Button>
+      </form>
+    </Dialog.Content>
+  </Dialog.Portal></Dialog.Root>;
 }
 
 function advance(
@@ -379,9 +429,9 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
   );
 }
 
-function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onRate, onNext, onComplete, onRemove }: {
+function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onRate, onNext, onEdit, onComplete, onRemove }: {
   item: ReelItem; selectMode: boolean; selected: boolean; removing: boolean; onToggleSelect: () => void;
-  onRate: (v: number) => void; onNext: () => void; onComplete: () => void; onRemove: () => void;
+  onRate: (v: number) => void; onEdit: () => void; onNext: () => void; onComplete: () => void; onRemove: () => void;
 }) {
   const href = libraryItemHref(item);
   return (
@@ -405,7 +455,7 @@ function LibraryCard({ item, selectMode, selected, removing, onToggleSelect, onR
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2"><TypeBadge type={item.type} /><StatusBadge status={item.status} /></div>
-        <div className="mt-3"><ProgressMeter item={item} compact /></div>
+        <button type="button" onClick={onEdit} className="mt-2 min-h-11 rounded-lg text-left hover:bg-[var(--glass)]" aria-label={`Edit progress for ${item.title}`}><ProgressMeter item={item} compact /><span className="text-[10px] font-semibold text-[var(--accent)]">Edit progress & status</span></button>
         <div className="mt-auto flex flex-wrap items-end justify-between gap-1.5 pt-2">
           <div className="max-w-full overflow-hidden"><RatingStars value={item.rating} onChange={onRate} size={14} /></div>
           <div className="flex gap-0.5 rounded-full border border-[var(--border)] bg-[var(--glass)] p-0.5 backdrop-blur-md">

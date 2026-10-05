@@ -91,7 +91,7 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
 async function jikanFetch<T>(path: string): Promise<T> {
   return enqueue(async () => {
     try {
-      const response = await fetch(`${JIKAN_BASE_URL}${path}`, { cache: "no-store" });
+      const response = await fetch(`${JIKAN_BASE_URL}${path}`, { cache: "no-store", signal: AbortSignal.timeout(12000) });
       if (!response.ok) {
         throw new Error(`Jikan request failed with status ${response.status}: ${path}`);
       }

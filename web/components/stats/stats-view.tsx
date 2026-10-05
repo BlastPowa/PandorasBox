@@ -66,7 +66,7 @@ export function StatsView({ username, avatarUrl }: { username: string | null; av
         <KpiCard icon={<LibraryBig className="size-4" />} label="Tracked" value={String(stats.total)} detail={`${stats.active} active now`} />
         <KpiCard icon={<CheckCircle2 className="size-4" />} label="Completed" value={String(stats.completed)} detail={`${stats.completionRate.toFixed(0)}% completion`} />
         <KpiCard icon={<Star className="size-4" />} label="Average rating" value={stats.meanRating ? stats.meanRating.toFixed(1) : "—"} detail={stats.ratedCount ? `${stats.ratedCount} rated titles` : "No ratings yet"} />
-        <KpiCard icon={<Clock3 className="size-4" />} label="Watch time" value={formatWatchTime(stats.watchMinutes)} detail={`${stats.episodesSeen.toLocaleString()} episodes logged`} />
+        <KpiCard icon={<Clock3 className="size-4" />} label="Estimated watch time" value={formatWatchTime(stats.watchMinutes)} detail={`${stats.episodesSeen.toLocaleString()} episodes logged`} />
       </section>
 
       <RankCard
@@ -235,7 +235,7 @@ export function StatsView({ username, avatarUrl }: { username: string | null; av
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Momentum</p>
           <h2 className="mt-1 font-display text-xl font-extrabold">Milestones</h2>
           <div className="mt-4 space-y-3">
-            <Milestone icon={<Sparkles className="size-4" />} label="Recent streak" value={`${stats.recentStreak} day${stats.recentStreak === 1 ? "" : "s"}`} note="Consecutive activity days" />
+            <Milestone icon={<Sparkles className="size-4" />} label="Recent update streak" value={`${stats.recentStreak} day${stats.recentStreak === 1 ? "" : "s"}`} note="Based on each title’s latest library update" />
             <Milestone icon={<Trophy className="size-4" />} label="Most tracked" value={stats.topMedium?.label ?? "—"} note={stats.topMedium ? `${stats.topMedium.count} titles` : "Build your library"} />
             <Milestone icon={<BookOpen className="size-4" />} label="Reading progress" value={stats.chaptersRead.toLocaleString()} note="Chapters / issues logged" />
             <Milestone icon={<Film className="size-4" />} label="Screen progress" value={stats.episodesSeen.toLocaleString()} note="Episodes logged" />
@@ -566,9 +566,7 @@ function itemUnits(item: ReelItem, group: MediaGroup) {
 function itemProgressRatio(item: ReelItem) {
   if (item.status === "completed") return 1;
   const stored = Number.isFinite(item.progress.percentComplete) ? item.progress.percentComplete : 0;
-  if (stored > 1) return Math.min(1, stored / 100);
-  if (stored > 0) return Math.min(1, stored);
-  return item.status === "watching" || item.status === "rewatching" ? 0.25 : 0;
+  return Math.min(1, Math.max(0, stored / 100));
 }
 
 function buildWeeklyActivity(items: ReelItem[]) {

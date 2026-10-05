@@ -19,3 +19,6 @@ export const THEMES: ThemeOption[] = [
 export const THEME_STORAGE_KEY = "pb_theme";
 export const APPEARANCE_MODE_KEY = "pb_appearance_mode";
 export const THEME_CHANGE_EVENT = "pbox:theme-change";
+
+// Runs before the first paint, using the same saved preferences as ThemeRuntime.
+export const THEME_INIT_SCRIPT = `(function(){var root=document.documentElement;var read=function(key){try{return localStorage.getItem(key)}catch(e){return null}};var mode=read('pb_appearance_mode');root.dataset.mode=mode==='dark'||mode==='light'?mode:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var theme=read('pb_theme');if(${JSON.stringify(THEMES.map((theme) => theme.id))}.includes(theme)&&theme!=='default')root.dataset.theme=theme;root.classList.toggle('pb-compact',read('pb_compact_rows')==='1');root.classList.toggle('pb-reduce-motion',read('pb_reduce_motion')==='1');})();`;

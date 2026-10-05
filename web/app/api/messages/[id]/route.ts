@@ -9,7 +9,7 @@ function validShare(value: unknown): value is MessageShareCard {
   const card = value as Record<string, unknown>;
   return (card.kind === "title" || card.kind === "collection")
     && typeof card.title === "string" && card.title.trim().length > 0 && card.title.length <= 200
-    && typeof card.href === "string" && card.href.startsWith("/") && card.href.length <= 500
+    && typeof card.href === "string" && ["/title/", "/collections/", "/c/", "/comic/", "/game/"].some((prefix) => (card.href as string).startsWith(prefix)) && !card.href.includes("\\") && card.href.length <= 500
     && (card.posterUrl == null || (typeof card.posterUrl === "string" && card.posterUrl.startsWith("https://")));
 }
 
@@ -35,7 +35,8 @@ async function detail(id: string, cursor?: string | null) {
   const profileMap = new Map((profiles ?? []).map((profile) => [String(profile.id), profile]));
   let query = supabase.from("messages").select("*").eq("conversation_id", id).order("created_at", { ascending: false }).limit(51);
   if (cursor) query = query.lt("created_at", cursor);
-  const { data: messageRows } = await query;
+  const { data: messageRows, error: messageError } = await query;
+  if (messageError) return { response: NextResponse.json({ error: "Could not load conversation messages. Please try again." }, { status: 503 }) };
   const page = messageRows ?? [];
   const replyIds = [...new Set(page.map((message) => message.reply_to_id).filter((replyId): replyId is string => Boolean(replyId)))];
   const { data: replyRows } = replyIds.length

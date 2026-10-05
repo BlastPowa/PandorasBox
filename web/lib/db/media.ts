@@ -28,7 +28,7 @@ export async function getCuratedLinks(mediaKey: string): Promise<CuratedLink[]> 
     const { data } = await supabase
       .from("watch_links")
       .select("id, site_name, url, category, quality")
-      .in("media_key", [mediaKey, "global"]);
+      .in("media_key", [mediaKey, "global"]).abortSignal(AbortSignal.timeout(6000));
     return (data as CuratedLink[] | null) ?? [];
   } catch {
     return [];
@@ -43,7 +43,7 @@ export async function getAvailability(mediaKey: string): Promise<Availability | 
       .from("availability")
       .select("media_key, status, hd_available, digital_date, next_episode, next_chapter, next_air_at")
       .eq("media_key", mediaKey)
-      .maybeSingle();
+      .abortSignal(AbortSignal.timeout(6000)).maybeSingle();
     return (data as Availability | null) ?? null;
   } catch {
     return null;

@@ -3,18 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { CalendarDays, Film, Tv, Sparkles, Bookmark, Rocket, Layers3, ArrowRight, Clock3 } from "lucide-react";
+import { CalendarDays, Film, Tv, Sparkles, Bookmark, Rocket, Layers3, ArrowRight, Clock3, Gamepad2 } from "lucide-react";
 import type { ScheduleEntry } from "@/lib/schedule";
 import { useLibrary } from "@/lib/library/use-library";
+import { countdownText } from "./release-countdown";
 import { EmptyState } from "@/components/ui-fx/feedback";
 
-type Tab = "all" | "anime" | "movie" | "series" | "upcoming" | "mylist";
+type Tab = "all" | "anime" | "movie" | "series" | "game" | "upcoming" | "mylist";
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "all", label: "All", icon: <Layers3 className="size-4" /> },
   { key: "anime", label: "Anime", icon: <Sparkles className="size-4" /> },
   { key: "movie", label: "Movies", icon: <Film className="size-4" /> },
   { key: "series", label: "TV", icon: <Tv className="size-4" /> },
+  { key: "game", label: "Games", icon: <Gamepad2 className="size-4" /> },
   { key: "upcoming", label: "Upcoming", icon: <Rocket className="size-4" /> },
   { key: "mylist", label: "My List", icon: <Bookmark className="size-4" /> },
 ];
@@ -22,20 +24,19 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-function dayKey(ts: number): string {
-  return new Date(ts * 1000).toDateString();
+function entryDate(entry: ScheduleEntry): Date {
+  const instant = new Date(entry.timestamp * 1000);
+  return entry.hasTime ? instant : new Date(`${instant.toISOString().slice(0, 10)}T12:00:00`);
 }
 
 function releaseState(entry: ScheduleEntry, now: number) {
   if (/delay/i.test(entry.label)) return { label: "Delayed", tone: "text-[var(--dropped)]" };
-  const difference = entry.timestamp * 1000 - now;
-  if (!entry.hasTime && dayKey(entry.timestamp) === new Date(now).toDateString()) return { label: "Releases today", tone: "text-[var(--gold)]" };
-  if (difference <= 0) return { label: "Released", tone: "text-[var(--completed)]" };
-  if (difference <= 2 * 60 * 60 * 1000) return { label: "Airing soon", tone: "text-[var(--accent)]" };
-  const days = Math.floor(difference / 86_400_000);
-  const hours = Math.floor((difference % 86_400_000) / 3_600_000);
-  const minutes = Math.max(1, Math.floor((difference % 3_600_000) / 60_000));
-  return { label: days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`, tone: "text-[var(--text-secondary)]" };
+  if (!entry.hasTime) {
+    const date = entryDate(entry), current = new Date(now);
+    const difference = Math.round((Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()) - Date.UTC(current.getFullYear(),current.getMonth(),current.getDate())) / 86400000);
+    return { label: difference === 0 ? "Releases today" : difference < 0 ? "Released" : `In ${difference}d · time TBA`, tone: "text-[var(--text-secondary)]" };
+  }
+  return { label: countdownText(entry.timestamp, now), tone: "text-[var(--accent)]" };
 }
 
 function ReleaseCountdown({ entry, now }: { entry: ScheduleEntry; now: number }) {
@@ -48,11 +49,13 @@ export function ScheduleBoard({
   movies,
   tv,
   upcoming,
+  games,
 }: {
   anime: ScheduleEntry[];
   movies: ScheduleEntry[];
   tv: ScheduleEntry[];
   upcoming: ScheduleEntry[];
+  games: ScheduleEntry[];
 }) {
   const { items, signedIn } = useLibrary();
   const [tab, setTab] = useState<Tab>("all");
@@ -61,23 +64,26 @@ export function ScheduleBoard({
   useEffect(() => {
     const update = () => setNow(Date.now());
     update();
-    const interval = window.setInterval(update, 30_000);
+    const interval = window.setInterval(update, 1000);
     return () => window.clearInterval(interval);
   }, []);
 
-  // Build the next 7 day buckets starting today
+  const today = now ? new Date(now).toDateString() : "";
+  // Build local calendar dates rather than adding 24 hours across DST.
   const days = useMemo(() => {
     const out: { key: string; ts: number; idx: number }[] = [];
-    const base = new Date();
+    if (!today) return out;
+    const base = new Date(today);
     base.setHours(0, 0, 0, 0);
     for (let i = 0; i < 7; i += 1) {
-      const d = new Date(base.getTime() + i * 86400000);
+      const d = new Date(base); d.setDate(base.getDate() + i);
       out.push({ key: d.toDateString(), ts: Math.floor(d.getTime() / 1000), idx: d.getDay() });
     }
     return out;
-  }, []);
+  }, [today]);
 
-  const [activeDay, setActiveDay] = useState<string>(days[0]?.key ?? "");
+  const [selectedDay, setActiveDay] = useState<string>("");
+  const activeDay = days.some(day => day.key === selectedDay) ? selectedDay : days[0]?.key ?? "";
 
   const libraryIds = useMemo(() => {
     const ids = new Set<string>();
@@ -91,13 +97,13 @@ export function ScheduleBoard({
 
   const trackedEntries = useMemo(() => {
     const unique = new Map<string, ScheduleEntry>();
-    for (const entry of [...anime, ...movies, ...tv, ...upcoming]) {
+    for (const entry of [...anime, ...movies, ...tv, ...games, ...upcoming]) {
       if (!libraryIds.has(entry.id)) continue;
       const key = `${entry.id}-${entry.timestamp}-${entry.label}`;
       if (!unique.has(key)) unique.set(key, entry);
     }
     return Array.from(unique.values()).sort((a, b) => a.timestamp - b.timestamp);
-  }, [anime, movies, tv, upcoming, libraryIds]);
+  }, [anime, movies, tv, games, upcoming, libraryIds]);
 
   const trackedThisWeek = useMemo(() => {
     const end = (days[0]?.ts ?? 0) + (7 * 86400);
@@ -110,23 +116,24 @@ export function ScheduleBoard({
   }, [trackedEntries, now]);
 
   const source: ScheduleEntry[] = useMemo(() => {
-    if (tab === "all") return [...anime, ...movies, ...tv];
+    if (tab === "all") return [...anime, ...movies, ...tv, ...games];
     if (tab === "anime") return anime;
     if (tab === "movie") return movies;
     if (tab === "series") return tv;
+    if (tab === "game") return games;
     if (tab === "upcoming") return upcoming;
     // mylist: everything releasing/upcoming that's in the user's library
-    return [...anime, ...movies, ...tv, ...upcoming].filter((e) => libraryIds.has(e.id));
-  }, [tab, anime, movies, tv, upcoming, libraryIds]);
+    return [...anime, ...movies, ...tv, ...games, ...upcoming].filter((e) => libraryIds.has(e.id));
+  }, [tab, anime, movies, tv, games, upcoming, libraryIds]);
 
-  const counts = useMemo(() => ({ anime: anime.length, movie: movies.length, series: tv.length }), [anime.length, movies.length, tv.length]);
+  const counts = useMemo(() => ({ anime: anime.length, movie: movies.length, series: tv.length, game: games.length }), [anime.length, movies.length, tv.length, games.length]);
 
   // Upcoming view: group by month (far-future, no day picker)
   const byMonth = useMemo(() => {
     const map = new Map<string, ScheduleEntry[]>();
     const list = tab === "upcoming" ? upcoming : source;
     for (const e of list) {
-      const d = new Date(e.timestamp * 1000);
+      const d = entryDate(e);
       const k = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
       const arr = map.get(k) ?? [];
       arr.push(e);
@@ -139,7 +146,7 @@ export function ScheduleBoard({
   const byDay = useMemo(() => {
     const map = new Map<string, ScheduleEntry[]>();
     for (const e of source) {
-      const k = dayKey(e.timestamp);
+      const k = entryDate(e).toDateString();
       const arr = map.get(k) ?? [];
       arr.push(e);
       map.set(k, arr);
@@ -154,6 +161,7 @@ export function ScheduleBoard({
       { kind: "anime", label: "Anime", entries: [] },
       { kind: "movie", label: "Movies", entries: [] },
       { kind: "series", label: "TV", entries: [] },
+      { kind: "game", label: "Games", entries: [] },
     ];
     for (const entry of dayEntries) groups.find((group) => group.kind === entry.kind)?.entries.push(entry);
     return groups.filter((group) => group.entries.length > 0);
@@ -164,14 +172,15 @@ export function ScheduleBoard({
       <section className="pb-uiverse-card pb-uiverse-card--compact rounded-[22px] p-3 sm:p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--accent)]"><CalendarDays className="size-3.5" /> This week</div>
+            <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--accent)]"><CalendarDays className="size-3.5" /> Schedule at a glance</div>
             <h2 className="mt-1 font-display text-xl font-extrabold sm:text-2xl">Release overview</h2>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)] sm:text-sm">Jump between anime, movies and TV, then narrow the calendar to titles already in your library.</p>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)] sm:text-sm">Jump between anime, movies, TV and games, then narrow the calendar to titles already in your library.</p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <ScheduleStat label="Anime" value={counts.anime} icon={<Sparkles className="size-4" />} />
             <ScheduleStat label="Movies" value={counts.movie} icon={<Film className="size-4" />} />
             <ScheduleStat label="TV" value={counts.series} icon={<Tv className="size-4" />} />
+            <ScheduleStat label="Games" value={counts.game} icon={<Gamepad2 className="size-4" />} />
           </div>
         </div>
       </section>
@@ -189,7 +198,7 @@ export function ScheduleBoard({
             {nextTracked ? (
               <div className="flex min-w-0 items-center gap-2">
                 <Clock3 className="size-4 shrink-0 text-[var(--accent)]" />
-                <p className="min-w-0 truncate text-xs text-[var(--text-secondary)]"><strong className="text-[var(--text)]">Next:</strong> {nextTracked.title} · {nextTracked.label} · {new Date(nextTracked.timestamp * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</p>
+                <p className="min-w-0 truncate text-xs text-[var(--text-secondary)]"><strong className="text-[var(--text)]">Next:</strong> {nextTracked.title} · {nextTracked.label} · {entryDate(nextTracked).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</p>
               </div>
             ) : (
               <p className="text-xs text-[var(--text-muted)]">No tracked releases are scheduled yet.</p>
@@ -223,7 +232,7 @@ export function ScheduleBoard({
           title="Track titles to build your calendar"
           description="Sign in and add shows, anime and movies to your library — their upcoming releases will collect here."
         />
-      ) : tab === "upcoming" ? (
+      ) : tab === "upcoming" || tab === "game" ? (
         <UpcomingView groups={byMonth} now={now} />
       ) : (
         <>
@@ -279,7 +288,7 @@ export function ScheduleBoard({
                 {dayGroups.map((group) => (
                   <section key={group.kind}>
                     <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--text-secondary)]">
-                      {group.kind === "anime" ? <Sparkles className="size-4 text-[var(--accent)]" /> : group.kind === "movie" ? <Film className="size-4 text-[var(--accent)]" /> : <Tv className="size-4 text-[var(--accent)]" />}
+                      {group.kind === "anime" ? <Sparkles className="size-4 text-[var(--accent)]" /> : group.kind === "movie" ? <Film className="size-4 text-[var(--accent)]" /> : group.kind === "game" ? <Gamepad2 className="size-4 text-[var(--accent)]" /> : <Tv className="size-4 text-[var(--accent)]" />}
                       {group.label}
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -310,7 +319,7 @@ function ScheduleStat({ label, value, icon }: { label: string; value: number; ic
 
 function ScheduleCard({ entry, now }: { entry: ScheduleEntry; now: number }) {
   return (
-    <Link href={`/title/${entry.detailType}/${entry.source}/${entry.refId}`} className="group relative flex min-h-28 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl">
+    <Link href={entry.kind === "game" ? `/game/${entry.refId}` : `/title/${entry.detailType}/${entry.source}/${entry.refId}`} className="group relative flex min-h-28 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl">
       <div className="relative w-20 shrink-0 bg-[var(--bg-elevated)] sm:w-24">
         {entry.posterUrl && <Image src={entry.posterUrl} alt="" fill sizes="96px" className="object-cover transition duration-500 group-hover:scale-105" />}
       </div>
@@ -320,7 +329,7 @@ function ScheduleCard({ entry, now }: { entry: ScheduleEntry; now: number }) {
         <div className="mt-1 text-xs text-[var(--text-secondary)]">{entry.label}</div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {now > 0 && <ReleaseCountdown entry={entry} now={now} />}
-          <span className="font-mono text-[10px] text-[var(--text-muted)]">{entry.hasTime ? new Date(entry.timestamp * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "All day"}</span>
+          <span className="font-mono text-[10px] text-[var(--text-muted)]">{entry.hasTime ? new Date(entry.timestamp * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }) : "Release date · time TBA"}</span>
         </div>
       </div>
     </Link>
@@ -338,7 +347,7 @@ function UpcomingView({ groups, now }: { groups: [string, ScheduleEntry[]][]; no
       <EmptyState
         icon={<Rocket className="size-10" />}
         title="Nothing announced yet"
-        description="Newly announced anime, upcoming movies and TV premieres will appear here."
+        description="Newly announced anime, upcoming movies, TV premieres and games will appear here."
       />
     );
   }
@@ -355,7 +364,7 @@ function UpcomingView({ groups, now }: { groups: [string, ScheduleEntry[]][]; no
               {entries.map((e) => (
                 <Link
                   key={`${e.id}-${e.label}`}
-                  href={`/title/${e.detailType}/${e.source}/${e.refId}`}
+                  href={e.kind === "game" ? `/game/${e.refId}` : `/title/${e.detailType}/${e.source}/${e.refId}`}
                   className="group rounded-2xl border border-transparent p-1 transition hover:border-[var(--border)] hover:bg-[var(--glass)]"
                 >
                   <div className="relative aspect-[2/3] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-elevated)]">
@@ -369,7 +378,7 @@ function UpcomingView({ groups, now }: { groups: [string, ScheduleEntry[]][]; no
                   </div>
                   <p className="mt-1 line-clamp-1 text-xs font-medium">{e.title}</p>
                   <p className="font-mono text-[10px] text-[var(--text-muted)]">
-                    {new Date(e.timestamp * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+                    {entryDate(e).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
                   </p>
                 </Link>
               ))}

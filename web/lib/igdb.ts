@@ -9,7 +9,16 @@ export function igdbImage(imageId: string, size = "cover_big"): string {
 // --- token cache (module-scoped; client-credentials tokens last ~60 days) ---
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
+let tokenRequest: Promise<string | null> | null = null;
+let nextRequestAt = 0;
+
 async function getToken(): Promise<string | null> {
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) return cachedToken.value;
+  if (!tokenRequest) tokenRequest = fetchToken().finally(() => { tokenRequest = null; });
+  return tokenRequest;
+}
+
+async function fetchToken(): Promise<string | null> {
   const id = process.env.IGDB_CLIENT_ID;
   const secret = process.env.IGDB_CLIENT_SECRET;
   if (!id || !secret) return null;
@@ -18,7 +27,7 @@ async function getToken(): Promise<string | null> {
   try {
     const res = await fetch(
       `${TOKEN_URL}?client_id=${id}&client_secret=${secret}&grant_type=client_credentials`,
-      { method: "POST", cache: "no-store" }
+      { method: "POST", cache: "no-store", signal: AbortSignal.timeout(12000) }
     );
     if (!res.ok) return null;
     const json = (await res.json()) as { access_token: string; expires_in: number };
@@ -34,14 +43,26 @@ async function igdbQuery<T>(endpoint: string, body: string, revalidate = 3600): 
   const token = await getToken();
   if (!id || !token) return [];
   try {
-    const res = await fetch(`${API_URL}/${endpoint}`, {
-      method: "POST",
-      headers: { "Client-ID": id, Authorization: `Bearer ${token}`, Accept: "application/json" },
-      body,
-      next: { revalidate },
-    });
-    if (!res.ok) return [];
-    return (await res.json()) as T[];
+    for (let attempt = 0; attempt < 3; attempt++) {
+      // Space requests in this process; retry shared credential rate limits.
+      const delay = Math.max(0, nextRequestAt - Date.now());
+      nextRequestAt = Date.now() + delay + 300;
+      if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+      const res = await fetch(`${API_URL}/${endpoint}`, {
+        method: "POST",
+        headers: { "Client-ID": id, Authorization: `Bearer ${token}`, Accept: "application/json" },
+        body,
+        ...(attempt ? { cache: "no-store" as const } : { next: { revalidate } }),
+        signal: AbortSignal.timeout(12000),
+      });
+      if (res.status === 429 && attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        continue;
+      }
+      if (!res.ok) return [];
+      return (await res.json()) as T[];
+    }
+    return [];
   } catch {
     return [];
   }
@@ -53,6 +74,7 @@ export interface GameCard {
   coverUrl: string | null;
   backdropUrl: string | null;
   previewImages: string[];
+  trailerId: string | null;
   summary: string | null;
   rating: number | null;
   year: number | null;
@@ -64,6 +86,7 @@ export interface GameCard {
 }
 
 interface RawCard {
+  videos?: { video_id: string; name?: string }[];
   id: number;
   name: string;
   cover?: { image_id: string };
@@ -90,6 +113,7 @@ function mapCard(g: RawCard, peakPlayers: number | null = null): GameCard {
     coverUrl: g.cover ? igdbImage(g.cover.image_id, "cover_big") : null,
     backdropUrl: backdrop ? igdbImage(backdrop.image_id, "1080p") : null,
     previewImages,
+    trailerId: (g.videos?.find(video => /trailer/i.test(video.name ?? "")) ?? g.videos?.[0])?.video_id ?? null,
     summary: g.summary ?? null,
     rating: typeof g.rating === "number" ? Math.round(g.rating) / 10 : null,
     year: releaseDate ? releaseDate.getUTCFullYear() : null,
@@ -114,7 +138,7 @@ export interface GameFilters {
   ratingMin?: number | null;
 }
 
-const CARD_FIELDS = "name, cover.image_id, artworks.image_id, screenshots.image_id, summary, rating, first_release_date, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher";
+const CARD_FIELDS = "videos.video_id, videos.name, name, cover.image_id, artworks.image_id, screenshots.image_id, summary, rating, first_release_date, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher";
 
 async function getSteamPlayerCounts(gameIds: number[]): Promise<Map<number, number>> {
   if (gameIds.length === 0) return new Map();
@@ -330,4 +354,12 @@ export async function getGameDetail(id: number): Promise<GameDetail | null> {
     editions: versionRows.flatMap((row) => row.games ?? []).filter((edition) => edition.id !== g.id).map((edition) => ({ id: edition.id, name: edition.name, versionTitle: edition.version_title ?? null, coverUrl: edition.cover ? igdbImage(edition.cover.image_id, "cover_big") : null, summary: edition.summary ?? null, features: featuresForEdition(edition.id) })),
     screenshots: shots.map((s) => igdbImage(s.image_id, "1080p")),
   };
+}
+
+/** Date-only release schedule; IGDB first_release_date is not a launch-time guarantee. */
+export async function getScheduledGames(days = 180): Promise<GameCard[]> {
+  const start = Math.floor(Date.now() / 86400000) * 86400;
+  const end = start + days * 86400;
+  const rows = await igdbQuery<RawCard>("games", `fields ${CARD_FIELDS}; where ${BASE_GAME} & first_release_date >= ${start} & first_release_date < ${end}; sort first_release_date asc; limit 100;`);
+  return rows.map(game => mapCard(game));
 }

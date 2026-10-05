@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 
 /** Sends a command to a YouTube iframe via its postMessage JS API. */
-function ytCommand(iframe: HTMLIFrameElement | null, func: "playVideo" | "pauseVideo") {
+function ytCommand(iframe: HTMLIFrameElement | null, func: "playVideo" | "pauseVideo" | "mute" | "unMute") {
   iframe?.contentWindow?.postMessage(
     JSON.stringify({ event: "command", func, args: [] }),
     "https://www.youtube-nocookie.com"
@@ -68,14 +68,13 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
 
   const togglePlay = useCallback(() => {
     const iframe = iframeRefs.current[active];
-    setPaused((p) => {
-      ytCommand(iframe, p ? "playVideo" : "pauseVideo");
-      return !p;
-    });
-  }, [active]);
+    ytCommand(iframe, paused ? "playVideo" : "pauseVideo");
+    setPaused(!paused);
+  }, [active, paused]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if ((e.target as HTMLElement)?.closest("input, textarea, select, button, a, [contenteditable=true], [role=dialog]")) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
         scrollToSlide(Math.min(active + 1, items.length - 1));
@@ -90,6 +89,28 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [active, items.length, scrollToSlide, togglePlay]);
+
+  useEffect(() => {
+    iframeRefs.current.forEach((iframe, index) => {
+      ytCommand(iframe, muted ? "mute" : "unMute");
+      ytCommand(iframe, index === active && !paused ? "playVideo" : "pauseVideo");
+    });
+  }, [active, muted, paused]);
+
+  useEffect(() => {
+    function receive(event: MessageEvent) {
+      if (event.origin !== "https://www.youtube-nocookie.com" || event.source !== iframeRefs.current[active]?.contentWindow) return;
+      try {
+        const message = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (message.event === "onStateChange") {
+          if (message.info === 1) setPaused(false);
+          if (message.info === 2) setPaused(true);
+        }
+      } catch { /* Ignore unrelated player messages. */ }
+    }
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, [active]);
 
   if (items.length === 0) {
     return (
@@ -168,7 +189,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
                 rounded card, title/meta pinned to its bottom, rail outside it.
                 Sized responsively: near-square-tall on desktop, full-width on
                 phones so the player fills the screen like a real short. */}
-            <div className="relative z-10 h-[calc(100%-0.5rem)] max-h-[820px] aspect-[9/16] w-auto max-w-[calc(100vw-1rem)] overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-2xl md:h-[calc(100%-1.5rem)] md:max-w-[calc(100vw-22rem)]">
+            <div className="relative z-10 h-[calc(100%-0.5rem)] max-h-[820px] aspect-[9/16] w-auto max-w-[calc(100%-1rem)] overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-2xl lg:h-[calc(100%-1.5rem)] lg:max-w-[calc(100%-8rem)]">
               {/* Poster fills the card's letterbox area while staying cheap to composite. */}
               {s.posterUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -183,11 +204,18 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
               >
                 {near ? (
                   <iframe
-                    key={`${s.trailerKey}-${isActive}-${muted}`}
+                    key={s.trailerKey}
                     ref={(el) => {
                       iframeRefs.current[i] = el;
                     }}
-                    src={`https://www.youtube-nocookie.com/embed/${s.trailerKey}?enablejsapi=1&autoplay=${isActive ? 1 : 0}&mute=${muted ? 1 : 0}&controls=0&rel=0&playsinline=1&modestbranding=1&loop=1&playlist=${s.trailerKey}`}
+                    src={`https://www.youtube-nocookie.com/embed/${s.trailerKey}?enablejsapi=1&autoplay=${isActive ? 1 : 0}&mute=1&controls=0&rel=0&playsinline=1&disablekb=1&loop=1&playlist=${s.trailerKey}`}
+                    onLoad={() => {
+                      const iframe = iframeRefs.current[i];
+                      iframe?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: String(i) }), "https://www.youtube-nocookie.com");
+                      iframe?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "addEventListener", args: ["onStateChange"] }), "https://www.youtube-nocookie.com");
+                      ytCommand(iframe, muted ? "mute" : "unMute");
+                      ytCommand(iframe, isActive && !paused ? "playVideo" : "pauseVideo");
+                    }}
                     title={s.title}
                     allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
                     className="pointer-events-none absolute left-1/2 top-1/2 h-full w-[316%] max-w-none -translate-x-1/2 -translate-y-1/2"
@@ -202,7 +230,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
                 {isActive && (
                   <span
                     className={cn(
-                      "absolute grid size-16 place-items-center rounded-full bg-black/50 text-white backdrop-blur transition-opacity",
+                      "absolute left-1/2 top-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white backdrop-blur transition-opacity",
                       paused ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     )}
                   >
@@ -212,7 +240,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
               </button>
 
               {/* Title / year / rating / summary — bottom of the card */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 space-y-1.5 bg-[linear-gradient(to_top,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.58)_60%,transparent)] p-5 pb-6 pr-16 pt-16 md:pr-5">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 space-y-1.5 bg-[linear-gradient(to_top,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.58)_60%,transparent)] p-5 pb-6 pr-16 pt-16 lg:pr-5">
                 <div className="flex items-center gap-3 text-xs font-medium text-white/75">
                   <span className="rounded-full bg-white/15 px-2.5 py-0.5 uppercase tracking-wide">{s.type}</span>
                   {s.year !== null && <span>{s.year}</span>}
@@ -227,7 +255,7 @@ export function ShortsFeed({ items }: { items: ShortItem[] }) {
 
             {/* Action rail — overlays the card on phones (so the player stays
                 full-width like a real short) and sits outside it on desktop. */}
-            <div className="absolute bottom-28 right-3 z-20 flex shrink-0 flex-col items-center gap-3 md:static md:bottom-auto md:right-auto md:z-10 md:gap-4 md:pb-0">
+            <div className="absolute bottom-28 right-3 z-20 flex shrink-0 flex-col items-center gap-3 lg:static lg:bottom-auto lg:right-auto lg:z-10 lg:gap-4 lg:pb-0">
               <Link href={href} className="relative block size-12 overflow-hidden rounded-full border border-white/20 shadow-lg transition hover:scale-105">
                 {s.posterUrl ? (
                   <Image src={s.posterUrl} alt={s.title} fill sizes="64px" className="object-cover" />

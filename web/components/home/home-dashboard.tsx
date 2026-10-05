@@ -246,7 +246,7 @@ export function HomeDashboard({ trending, generatedAt, movies, series, anime, ma
 
       {signedIn && (
         <section className="pb-uiverse-card rounded-[22px] p-4 sm:p-5" aria-label="Library summary">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_auto] xl:items-center">
             <div className="flex items-center gap-3">
               <div className="pb-uiverse-icon grid size-10 shrink-0 place-items-center rounded-xl text-[var(--accent)]"><Library className="size-4" /></div>
               <div>
@@ -254,7 +254,7 @@ export function HomeDashboard({ trending, generatedAt, movies, series, anime, ma
                 <h2 className="mt-0.5 font-display text-base font-bold text-[var(--text)] sm:text-lg">Progress at a glance</h2>
               </div>
             </div>
-            <div className="grid flex-1 grid-cols-4 gap-2 sm:max-w-2xl">
+            <div className="grid min-w-0 grid-cols-4 gap-2">
               {[
                 { label: "Active", value: stats.watching },
                 { label: "Planned", value: stats.planned },

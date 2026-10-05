@@ -49,6 +49,7 @@ export interface DetailData {
   cast?: CastMember[];
   ratings?: Rating[];
   animeEpisodes?: JikanEpisode[];
+  nextAiringEpisode?: { airingAt: number; episode: number } | null;
   about?: DetailAbout;
   galleryImages?: DetailGalleryImage[];
 }
@@ -186,7 +187,7 @@ async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promi
   try {
     if (kind === "movie") {
       const res = await fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${key}`, {
-        next: { revalidate: 60 * 60 * 24 },
+        next: { revalidate: 60 * 60 * 24 }, signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) return [];
       const json = (await res.json()) as TMDBCredits;
@@ -207,7 +208,7 @@ async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promi
     // with sparse per-season credit data (common for newer/foreign series) still
     // return a full main-cast list. Falls back to plain credits if that's empty.
     const aggRes = await fetch(`https://api.themoviedb.org/3/tv/${id}/aggregate_credits?api_key=${key}`, {
-      next: { revalidate: 60 * 60 * 24 },
+      next: { revalidate: 60 * 60 * 24 }, signal: AbortSignal.timeout(8000),
     });
     if (aggRes.ok) {
       const aggJson = (await aggRes.json()) as TMDBAggregateCredits;
@@ -226,7 +227,7 @@ async function getTmdbCast(kind: "movie" | "tv", id: number, key: string): Promi
     }
 
     const res = await fetch(`https://api.themoviedb.org/3/tv/${id}/credits?api_key=${key}`, {
-      next: { revalidate: 60 * 60 * 24 },
+      next: { revalidate: 60 * 60 * 24 }, signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
     const json = (await res.json()) as TMDBCredits;
@@ -254,7 +255,7 @@ async function getOmdbRatings(title: string, year: number | null): Promise<Ratin
     const yearParam = year ? `&y=${year}` : "";
     const res = await fetch(
       `https://www.omdbapi.com/?apikey=${key}&t=${encodeURIComponent(title)}${yearParam}`,
-      { next: { revalidate: 60 * 60 * 24 } }
+      { next: { revalidate: 60 * 60 * 24 }, signal: AbortSignal.timeout(8000) }
     );
     if (!res.ok) return [];
     const json = (await res.json()) as { Ratings?: { Source: string; Value: string }[] };
@@ -767,6 +768,7 @@ export async function getDetail(
         tmdbProviders: null,
         autoWatchOptions: getAllWatchOptions({ type: isManga ? "manga" : "anime", title: media.title.romaji }),
         animeEpisodes,
+        nextAiringEpisode: isManga ? null : media.nextAiringEpisode,
         about: {
           originalTitle: media.title.romaji !== anilistTitle ? media.title.romaji : null,
         },

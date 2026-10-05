@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { CalendarDays, Gamepad2 } from "lucide-react";
 import type { GameCard as GameCardData } from "@/lib/igdb";
+import { GamePreview } from "./game-preview";
 import { cn } from "@/lib/utils";
 
 function releaseContext(releaseDate: string | null, year: number | null) {
@@ -9,19 +12,19 @@ function releaseContext(releaseDate: string | null, year: number | null) {
   return new Intl.DateTimeFormat("en-IE", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(releaseDate));
 }
 
-export function GameCard({ game, className }: { game: GameCardData; className?: string }) {
+export function GameCard({ game, className, landscape = false }: { game: GameCardData; className?: string; landscape?: boolean }) {
   return (
-    <Link
+    <GamePreview game={game} className={className}><Link
       href={`/game/${game.id}`}
       className={cn(
-        "group pb-card-3d relative block overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0_12px_32px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-1 hover:border-[rgb(var(--accent-rgb)/0.34)] hover:shadow-[0_20px_46px_rgba(15,23,42,.12)]",
-        className
+        "group relative block overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0_12px_32px_rgba(15,23,42,.06)] transition duration-300 hover:border-[rgb(var(--accent-rgb)/0.34)] hover:shadow-[0_20px_46px_rgba(15,23,42,.12)]",
+        "w-full"
       )}
     >
-      <div className="relative aspect-[3/4] w-full">
-        {game.coverUrl ? (
+      <div className={landscape ? "relative aspect-[16/10] w-full" : "relative aspect-[3/4] w-full"}>
+        {(landscape ? game.backdropUrl ?? game.coverUrl : game.coverUrl) ? (
           <Image
-            src={game.coverUrl}
+            src={(landscape ? game.backdropUrl ?? game.coverUrl : game.coverUrl)!}
             alt={game.name}
             fill
             sizes="(max-width: 768px) 40vw, 200px"
@@ -57,6 +60,6 @@ export function GameCard({ game, className }: { game: GameCardData; className?: 
           {game.platforms.length > 1 && <span className="inline-flex shrink-0 items-center gap-1 text-[var(--accent)]"><Gamepad2 className="size-3" />+{game.platforms.length - 1}</span>}
         </div>
       )}
-    </Link>
+    </Link></GamePreview>
   );
 }

@@ -33,7 +33,7 @@ async function tmdbTrailer(kind: "movie" | "tv", id: number, season?: number): P
       : `${kind}/${id}/videos`;
   try {
     const res = await fetch(`https://api.themoviedb.org/3/${path}?api_key=${key}`, {
-      next: { revalidate: 60 * 60 * 24 },
+      next: { revalidate: 60 * 60 * 24 }, signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     const json = (await res.json()) as { results?: TMDBVideo[] };
@@ -50,7 +50,7 @@ async function anilistTrailer(id: number): Promise<string | null> {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ query, variables: { id } }),
-      next: { revalidate: 60 * 60 * 24 },
+      next: { revalidate: 60 * 60 * 24 }, signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     const json = (await res.json()) as {

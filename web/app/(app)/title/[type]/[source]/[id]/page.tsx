@@ -1,3 +1,4 @@
+import { EpisodeCountdown } from "@/components/schedule/release-countdown";
 import Image from "next/image";
 import { Suspense } from "react";
 import type { Metadata } from "next";
@@ -142,6 +143,8 @@ export default async function TitlePage({
             <h1 className="max-w-4xl font-display text-3xl font-extrabold leading-[0.96] tracking-tight text-[var(--text)] sm:text-5xl lg:text-6xl">{detail.title}</h1>
 
             {(detail.score !== null || (detail.ratings ?? []).length > 0) && <RatingsStrip detail={detail} />}
+
+            {detail.nextAiringEpisode && <EpisodeCountdown timestamp={detail.nextAiringEpisode.airingAt} episode={detail.nextAiringEpisode.episode} />}
 
             {/* Availability badges (live) */}
             {availability && (

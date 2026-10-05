@@ -24,8 +24,9 @@ async function copyText(text: string) {
     input.style.opacity = "0";
     document.body.appendChild(input);
     input.select();
-    document.execCommand("copy");
+    const copied = document.execCommand("copy");
     input.remove();
+    if (!copied) throw new Error("Clipboard unavailable. Please copy the link manually.");
   }
 }
 
@@ -46,7 +47,7 @@ export function ShareDialog({ entity, className, allowDirect = true }: { entity:
   async function loadFriends() {
     if (loaded || !signedIn || !allowDirect) return;
     try {
-      const [{ data }, relationships, conversationResult] = await Promise.all([createClient().auth.getUser(), listMyFriendships(), listConversations()]);
+      const [{ data }, relationships, conversationResult] = await Promise.all([createClient().auth.getUser(), listMyFriendships(), listConversations().catch(() => ({ conversations: [] as Conversation[] }))]);
       const uid = data.user?.id;
       if (!uid) return;
       const ids = relationships.filter((row) => row.status === "accepted").map((row) => (row.requester === uid ? row.addressee : row.requester));
@@ -112,8 +113,10 @@ export function ShareDialog({ entity, className, allowDirect = true }: { entity:
         if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
-    await copyText(url);
-    toast.success("Share link copied");
+    try {
+      await copyText(url);
+      toast.success("Share link copied");
+    } catch { toast.error("Could not copy the link. Please copy it from the address bar."); }
   }
 
   async function sendToConversation() {

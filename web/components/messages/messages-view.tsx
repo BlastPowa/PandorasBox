@@ -135,7 +135,7 @@ export function MessagesView({ initialConversationId = null, embedded = false }:
     return conversations
       .filter((conversation) => {
         if (needle) {
-          const latest = conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? "";
+          const latest = conversation.latestMessage?.body?.trim() || conversation.latestMessage?.shared_entity?.title || "";
           if (!`${conversation.title} ${latest}`.toLowerCase().includes(needle)) return false;
         }
         if (inboxFilter === "unread") return conversation.unreadCount > 0;
@@ -261,7 +261,7 @@ function ConversationRow({ conversation, myId, active, pinned, onPin, onClick }:
             <span className={cn("shrink-0 text-[10px] font-medium", conversation.unreadCount > 0 ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{formatConversationTimestamp(conversation.updated_at)}</span>
           </span>
           <span className="mt-1 flex items-center justify-between gap-2">
-            <span className="line-clamp-1 text-xs text-[var(--text-muted)]">{mine?.status === "invited" ? "Group invitation" : conversation.latestMessage?.deleted_at ? "Message removed" : (conversation.latestMessage?.body ?? conversation.latestMessage?.shared_entity?.title ?? (conversation.latestMessage?.media_attachment?.kind === "sticker" ? "Sticker" : conversation.latestMessage?.media_attachment?.kind === "gif" ? "GIF" : conversation.latestMessage?.media_attachment ? "Image" : "Start the conversation"))}</span>
+            <span className="line-clamp-1 text-xs text-[var(--text-muted)]">{mine?.status === "invited" ? "Group invitation" : conversation.latestMessage?.deleted_at ? "Message removed" : (conversation.latestMessage?.body?.trim() || conversation.latestMessage?.shared_entity?.title || (conversation.latestMessage?.media_attachment?.kind === "sticker" ? "Sticker" : conversation.latestMessage?.media_attachment?.kind === "gif" ? "GIF" : conversation.latestMessage?.media_attachment ? "Image" : "Start the conversation"))}</span>
             {conversation.unreadCount > 0 && <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[var(--accent)] px-1 font-mono text-[10px] font-bold text-white">{conversation.unreadCount}</span>}
           </span>
           {conversation.deliveryStatus && (
@@ -281,6 +281,9 @@ function ConversationRow({ conversation, myId, active, pinned, onPin, onClick }:
 function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string | null; onBack: () => void; onChanged: () => void }) {
   const [openedAt] = useState(() => Date.now());
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const loadedOlder = useRef(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [typingIds, setTypingIds] = useState<string[]>([]);
@@ -297,9 +300,12 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   const initialScrollComplete = useRef(false);
   const refresh = useCallback(async () => {
     const value = await getConversation(id);
-    setDetail((current) => current && current.chatBackgroundPath === value.chatBackgroundPath && current.chatBackgroundUrl
-      ? { ...value, chatBackgroundUrl: current.chatBackgroundUrl }
-      : value);
+    setDetail((current) => {
+      if (!current) return value;
+      const messages = new Map(current.messages.map((message) => [message.id, message]));
+      value.messages.forEach((message) => messages.set(message.id, message));
+      return { ...value, messages: [...messages.values()].sort((a, b) => a.created_at.localeCompare(b.created_at)), nextCursor: loadedOlder.current ? current.nextCursor : value.nextCursor, chatBackgroundUrl: current.chatBackgroundPath === value.chatBackgroundPath && current.chatBackgroundUrl ? current.chatBackgroundUrl : value.chatBackgroundUrl };
+    });
   }, [id]);
   const scrollMessagesToBottom = useCallback(() => {
     const list = messageListRef.current;
@@ -307,12 +313,13 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   }, []);
   const load = useCallback(async () => {
     try {
+      setLoadError(false);
       await refresh();
       await conversationAction(id, "read").catch(() => undefined);
       window.dispatchEvent(new CustomEvent("pbox:notifications-change"));
       window.dispatchEvent(new CustomEvent("pbox:messages-change"));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not open conversation");
+    } catch {
+      setLoadError(true);
     }
   }, [id, refresh]);
   useEffect(() => {
@@ -322,7 +329,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
     const supabase = createClient();
     const refreshSoon = (delay = 180) => {
       if (realtimeRefreshTimer.current) window.clearTimeout(realtimeRefreshTimer.current);
-      realtimeRefreshTimer.current = window.setTimeout(() => void refresh(), delay);
+      realtimeRefreshTimer.current = window.setTimeout(() => void refresh().catch(() => undefined), delay);
     };
     const channel = supabase
       .channel(`conversation:${id}`)
@@ -359,7 +366,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
           table: "conversation_members",
           filter: `conversation_id=eq.${id}`,
         },
-        () => void refresh(),
+        () => void refresh().catch(() => undefined),
       )
       .on(
         "postgres_changes",
@@ -413,14 +420,14 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
     setDraft(value.slice(0, 2000));
     if (!myId || Date.now() - typingSentAt.current < 2000) return;
     typingSentAt.current = Date.now();
-    await createClient().from("conversation_typing").upsert(
+    try { await createClient().from("conversation_typing").upsert(
       {
         conversation_id: id,
         user_id: myId,
         typed_at: new Date().toISOString(),
       },
       { onConflict: "conversation_id,user_id" },
-    );
+    ); } catch { /* Typing indicators must not interrupt message drafts. */ }
   }
   function startReply(message: Message) {
     if (message.deleted_at || message.id.startsWith("optimistic-")) return;
@@ -471,7 +478,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
             }
           : current,
       );
-      if (myId) void createClient().from("conversation_typing").delete().eq("conversation_id", id).eq("user_id", myId);
+      if (myId) void Promise.resolve().then(async () => { await createClient().from("conversation_typing").delete().eq("conversation_id", id).eq("user_id", myId); }).catch(() => undefined);
       onChanged();
     } catch (error) {
       setDetail((current) =>
@@ -548,7 +555,7 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
   if (!detail)
     return (
       <div className="grid size-full place-items-center">
-        <Loader2 className="size-7 animate-spin text-[var(--accent)]" />
+        <div className="text-center">{loadError ? <><p className="mb-3 text-sm">Could not open this conversation.</p><Button onClick={() => void load()}>Retry</Button></> : <Loader2 className="size-7 animate-spin text-[var(--accent)]" />}</div>
       </div>
     );
   const mine = detail.members.find((member) => member.user_id === myId);
@@ -608,13 +615,24 @@ function ChatPanel({ id, myId, onBack, onChanged }: { id: string; myId: string |
             <Button
               size="sm"
               variant="ghost"
+              disabled={loadingOlder}
               onClick={async () => {
-                const older = await getConversation(id, detail.nextCursor!);
-                setDetail({
-                  ...detail,
-                  messages: [...older.messages, ...detail.messages],
-                  nextCursor: older.nextCursor,
-                });
+                if (loadingOlder || !detail.nextCursor) return;
+                setLoadingOlder(true);
+                const list = messageListRef.current;
+                const height = list?.scrollHeight ?? 0;
+                const top = list?.scrollTop ?? 0;
+                try {
+                  const older = await getConversation(id, detail.nextCursor);
+                  loadedOlder.current = true;
+                  setDetail((current) => {
+                    if (!current) return current;
+                    const messages = new Map([...older.messages, ...current.messages].map((message) => [message.id, message]));
+                    return { ...current, messages: [...messages.values()].sort((a, b) => a.created_at.localeCompare(b.created_at)), nextCursor: older.nextCursor };
+                  });
+                  window.requestAnimationFrame(() => { if (list) list.scrollTop = top + list.scrollHeight - height; });
+                } catch { toast.error("Could not load older messages. Please try again."); }
+                finally { setLoadingOlder(false); }
               }}
             >
               Load older messages
@@ -820,17 +838,23 @@ function ReplyPreview({ message, members, own, onOpen }: { message: Message["rep
 }
 
 function SharedMessageCard({ card, own }: { card: NonNullable<Message["shared_entity"]>; own: boolean }) {
+  const [posterFailed, setPosterFailed] = useState(false);
+  const safeHref = /^\/(?:title|collections|c|comic|game)\//.test(card.href) && !card.href.includes("\\") ? card.href : "/browse";
   return (
-    <Link href={card.href} className={cn("mt-2 block overflow-hidden rounded-xl border text-left", own ? "border-white/35 bg-white/14" : "border-[var(--border)] bg-[var(--bg-base)]")}>
-      {card.posterUrl && (
-        <span className="relative block aspect-[16/6] max-h-24 overflow-hidden">
-          <Image src={card.posterUrl} alt="" fill sizes="(max-width: 640px) 65vw, 320px" className="object-cover" />
+    <Link href={safeHref} className={cn("mt-2 block overflow-hidden rounded-xl border text-left", own ? "border-white/35 bg-white/14" : "border-[var(--border)] bg-[var(--bg-base)]")}>
+      <span className="flex min-w-0 items-center gap-3 p-3">
+        <span className="relative block h-[84px] w-14 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
+          {card.posterUrl && !posterFailed && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={card.posterUrl} alt="" loading="lazy" onError={() => setPosterFailed(true)} className="size-full object-cover" />
+          )}
         </span>
-      )}
-      <span className="block p-3">
-        <span className="block text-[10px] font-bold uppercase tracking-wider opacity-65">{card.kind === "collection" ? "Collection" : (card.mediaType ?? "Title")}</span>
-        <strong className="mt-1 block line-clamp-2 text-sm">{card.title}</strong>
-        {card.year && <span className="mt-1 block text-xs opacity-65">{card.year}</span>}
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] font-bold uppercase tracking-wider opacity-65">{card.kind === "collection" ? "Collection" : (card.mediaType ?? "Title")}</span>
+          <strong className="mt-1 block line-clamp-3 break-words text-sm">{card.title}</strong>
+          {card.year && <span className="mt-1 block text-xs opacity-65">{card.year}</span>}
+          <span className="mt-2 block text-xs font-semibold">View {card.kind === "collection" ? "collection" : "details"} →</span>
+        </span>
       </span>
     </Link>
   );

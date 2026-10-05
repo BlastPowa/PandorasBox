@@ -114,6 +114,7 @@ async function aniListRequest<T>(query: string, variables: Record<string, unknow
       },
       body: JSON.stringify({ query, variables }),
       cache: "no-store",
+      signal: AbortSignal.timeout(12000),
     });
     if (!response.ok) {
       throw new Error(`AniList request failed with status ${response.status}`);
