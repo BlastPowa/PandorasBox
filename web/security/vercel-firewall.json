@@ -1,0 +1,30 @@
+{
+  "firewallEnabled": true,
+  "rules": [
+    {
+      "name": "Limit excessive catalogue browsing",
+      "description": "At most 120 catalogue requests per minute per IP before application compute. Excludes account operations, messages, cron and static assets.",
+      "active": true,
+      "conditionGroup": [
+        {
+          "conditions": [
+            { "type": "method", "op": "eq", "value": "GET" },
+            { "type": "path", "op": "re", "value": "^/(?:$|(?:browse|title|movies|tv|anime|gamers|game|books|book|comics|comic|person|search|reels|shorts|randomize)(?:/|$)|api/(?:search|discover|provider|games|episodes|trailer|books|comics|anime-episode|random|memory-search)(?:/|$))" }
+          ]
+        }
+      ],
+      "action": {
+        "mitigate": {
+          "action": "rate_limit",
+          "rateLimit": {
+            "algo": "fixed_window",
+            "window": 60,
+            "limit": 120,
+            "keys": ["ip"],
+            "action": "rate_limit"
+          }
+        }
+      }
+    }
+  ]
+}
