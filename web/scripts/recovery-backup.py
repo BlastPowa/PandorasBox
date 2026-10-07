@@ -94,7 +94,7 @@ def verify_archive(path):
 
 def database_export(config, directory):
     url = urllib.parse.urlsplit(config.get("PBOX_DATABASE_URL", ""))
-    if url.scheme not in ("postgres", "postgresql") or not url.hostname or not url.password:
+    if url.scheme not in ("postgres", "postgresql") or not url.hostname or not url.password or "YOUR-PASSWORD" in url.password:
         raise ValueError("Save PBOX_DATABASE_URL with password in web/.env.backup.local")
     # Prevent accidentally exporting the separate NightWatch project.
     if PROJECT not in ((url.username or "") + url.hostname):
@@ -110,7 +110,7 @@ def database_export(config, directory):
                PGDATABASE=url.path.lstrip("/") or "postgres", PGSSLMODE="require", PGCONNECT_TIMEOUT="15")
     # Never put the connection URI/password in command arguments or logs.
     commands = [
-        [tools["pg_dump"], "--format=custom", "--no-owner", "--no-acl", "--file", str(directory / "database.dump")],
+        [tools["pg_dump"], "--format=custom", "--file", str(directory / "database.dump")],
         [tools["pg_dumpall"], "--roles-only", "--no-role-passwords", "--file", str(directory / "roles.sql")],
         [tools["pg_restore"], "--list", str(directory / "database.dump")],
     ]

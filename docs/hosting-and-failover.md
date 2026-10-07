@@ -15,6 +15,11 @@ calls, cap total traffic or transfer the Vercel rule to Netlify. Auth, messages,
 cron, health and static files are excluded. See data-recovery-runbook.md for
 encrypted exports and pending backup prerequisites.
 
+On 7 October 2026 deployment 6ac6a17a5569990008c233e7 published commit e6d3020.
+Its post-processing log confirms one accepted programmatic rule, window 120/60,
+IP/domain aggregation and HTTP 429 action. Login/health/search returned 200;
+unauthenticated messages returned 401. No production load test was performed.
+
 ## Netlify import
 
 1. Sign into Netlify. Import existing repository `BlastPowa/PandorasBox`, branch

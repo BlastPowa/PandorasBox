@@ -12,6 +12,9 @@ captured or restore-tested. A new host cannot reconstruct inaccessible data.
    least the source server's major version. PostgreSQL 18 can dump older servers.
    Put their bin directory on PATH or set PBOX_PG_BIN in the ignored file below.
    Official Windows downloads: https://www.postgresql.org/download/windows/
+   On this workstation, PostgreSQL 18.6 portable client binaries are prepared
+   under `%USERPROFILE%/.cache/pbox-postgres-client`; PBOX_PG_BIN is configured
+   locally. No server service is installed.
 2. In Supabase Connect -> Direct / connection string -> Session pooler, copy
    the actual session connection URI (5432, not transaction pooler 6543).
    Replace the password placeholder with the existing password, URL-encoded.
