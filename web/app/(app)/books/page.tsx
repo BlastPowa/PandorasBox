@@ -11,12 +11,14 @@ export const metadata = {
 };
 
 async function BooksContent() {
+  let initial: Awaited<ReturnType<typeof getBooksByGenre>> = [];
+  let unavailable = false;
   try {
-    const initial = await getBooksByGenre("featured");
-    return <BooksBrowser initial={initial} />;
+    initial = await getBooksByGenre("featured");
   } catch {
-    return <><p role="status" className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-4 text-sm text-[var(--text-secondary)]">The book catalogue is temporarily unavailable. Try another shelf or reload in a moment.</p><BooksBrowser initial={[]} /></>;
+    unavailable = true;
   }
+  return <>{unavailable && <p role="status" className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--glass)] p-4 text-sm text-[var(--text-secondary)]">The book catalogue is temporarily unavailable. Try another shelf or reload in a moment.</p>}<BooksBrowser initial={initial} /></>;
 }
 
 export default function BooksPage() {
