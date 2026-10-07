@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import { CheckCircle2, PlayCircle, ChevronRight } from "lucide-react";
 import { formatProgress, getStatusColor, getStatusLabel } from "@core/utils/formatters";

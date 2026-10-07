@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useEffect, useMemo, useState } from "react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { PosterRow, PosterRowSkeleton } from "@/components/discovery/poster-row";

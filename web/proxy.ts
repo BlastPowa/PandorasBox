@@ -74,7 +74,8 @@ export async function proxy(request: NextRequest) {
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", path);
+    url.search = "";
+    url.searchParams.set("next", path + request.nextUrl.search);
     const redirectResponse = NextResponse.redirect(url);
     redirectResponse.headers.set("Content-Security-Policy", csp);
     for (const cookie of response.cookies.getAll()) {
@@ -87,5 +88,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons/|manifest.webmanifest|.*\\.(?:png|jpg|jpeg|svg|webp)$).*)"],
+  // API routes enforce their own permissions. Assets and catalogue API calls
+  // must not spend an extra function call refreshing a Supabase session.
+  matcher: ["/((?!api(?:/|$)|auth(?:/|$)|_next/static|_next/image|favicon.ico|icons/|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|downloads/|.*\\.(?:png|jpg|jpeg|svg|webp|ico|woff|woff2|zip|css|js)$).*)"],
 };

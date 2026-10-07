@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { Dices, Film, Layers3, Sparkles, Tv } from "lucide-react";
 import type { FranchiseDef } from "@/lib/franchises";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";

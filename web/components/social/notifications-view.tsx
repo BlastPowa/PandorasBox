@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { Bell, Check, CheckCheck, ChevronDown, MessageCircle, Share2, Trash2, UserCheck, UserPlus, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui-fx/button";

@@ -1,3 +1,4 @@
+import { publicCatalogJson } from "@/lib/public-cache";
 import { NextResponse, type NextRequest } from "next/server";
 import type { ReelItemType } from "@core/storage/schema";
 import { getTrailerKey } from "@/lib/trailers";
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     const key = await getTrailerKey(type as ReelItemType, source, id, season);
-    return NextResponse.json({ key });
+    return publicCatalogJson({ key }, 3600);
   } catch {
     return NextResponse.json({ key: null }, { status: 500 });
   }

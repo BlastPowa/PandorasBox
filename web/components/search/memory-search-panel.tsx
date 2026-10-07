@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import { Sparkles, Search as SearchIcon, Clock } from "lucide-react";
 import { Button } from "@/components/ui-fx/button";

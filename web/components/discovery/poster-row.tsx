@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { PosterCard } from "./poster-card";

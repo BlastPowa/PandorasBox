@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 import type { ReelItemType } from "@core/storage/schema";
 import type { UnifiedSearchResult } from "@core/utils/search";

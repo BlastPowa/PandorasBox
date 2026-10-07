@@ -1,3 +1,4 @@
+import { publicCatalogJson } from "@/lib/public-cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { getGames, searchGames, type GameSort } from "@/lib/igdb";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -28,10 +29,10 @@ export async function GET(request: NextRequest) {
   try {
     if (query && query.length >= 2) {
       const results = await searchGames(query);
-      return NextResponse.json({ results });
+      return publicCatalogJson({ results });
     }
     const results = await getGames(sort, 36, filters);
-    return NextResponse.json({ results });
+    return publicCatalogJson({ results });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to load games", results: [] },

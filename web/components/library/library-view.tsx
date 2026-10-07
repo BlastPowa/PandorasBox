@@ -3,7 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import { Plus, BarChart3, SlidersHorizontal, Trash2, Check, CheckSquare, ListChecks, X, Search, Sparkles, Library, PlayCircle, CircleCheckBig, Clock3, ArrowRight } from "lucide-react";
 import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";

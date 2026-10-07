@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { X, Compass, ListChecks, Plug, Tv, Sparkles } from "lucide-react";
 
 const STORAGE_KEY = "pb_onboarding_seen_v1";

@@ -1,16 +1,6 @@
 import "server-only";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { getPosterUrl } from "@core/api/tmdb";
-import { createServiceClient } from "@/lib/supabase/admin";
-
-function serviceClientOrNull(): ReturnType<typeof createServiceClient> | null {
-  try {
-    return createServiceClient();
-  } catch {
-    return null;
-  }
-}
-
 export interface PersonCredit extends UnifiedSearchResult {
   /** Character played (acting) or job (crew). */
   role: string;
@@ -102,7 +92,7 @@ async function fetchFromTmdb(id: number): Promise<PersonDetail | null> {
   try {
     const res = await fetch(
       `https://api.themoviedb.org/3/person/${id}?api_key=${key}&append_to_response=combined_credits`,
-      { next: { revalidate: 60 * 60 * 24 } }
+      { next: { revalidate: 60 * 60 * 24 }, signal: AbortSignal.timeout(10000) }
     );
     if (!res.ok) return null;
     const p = (await res.json()) as TMDBPerson & { combined_credits?: TMDBCombinedCredits };
@@ -141,41 +131,10 @@ async function fetchFromTmdb(id: number): Promise<PersonDetail | null> {
   }
 }
 
-/** Person page data, cached in Supabase `person_cache` for 7 days to stay fast for prolific people. */
+/** Shared person data uses the existing TMDB/Next cache, never database space. */
 export async function getPerson(source: string, id: string): Promise<PersonDetail | null> {
   if (source !== "tmdb") return null;
-  const numId = Number.parseInt(id, 10);
-  if (!Number.isFinite(numId)) return null;
-  const personKey = `tmdb-${numId}`;
-
-  const supabase = serviceClientOrNull();
-  if (supabase) {
-    try {
-      const { data } = await supabase
-        .from("person_cache")
-        .select("data, updated_at")
-        .eq("person_key", personKey)
-        .maybeSingle();
-      if (data) {
-        const ageMs = Date.now() - new Date((data as { updated_at: string }).updated_at).getTime();
-        if (ageMs < 7 * 24 * 60 * 60 * 1000) {
-          return (data as { data: PersonDetail }).data;
-        }
-      }
-    } catch {
-      // fall through to live fetch
-    }
-  }
-
-  const fresh = await fetchFromTmdb(numId);
-  if (fresh && supabase) {
-    try {
-      await supabase
-        .from("person_cache")
-        .upsert({ person_key: personKey, data: fresh, updated_at: new Date().toISOString() });
-    } catch {
-      // caching is best-effort
-    }
-  }
-  return fresh;
+  const numId = Number(id);
+  if (!Number.isSafeInteger(numId) || numId <= 0) return null;
+  return fetchFromTmdb(numId);
 }

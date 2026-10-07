@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowRight, X } from "lucide-react";

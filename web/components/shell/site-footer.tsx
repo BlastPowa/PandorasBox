@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { Brand } from "./brand";
 export function SiteFooter() {
  return <footer className="mx-4 mb-[calc(var(--app-bottom-nav-height)+1rem)] mt-8 rounded-2xl border border-[var(--border)] bg-[var(--glass)] px-5 py-6 backdrop-blur-xl md:mx-8 lg:mb-6 sm:px-7">

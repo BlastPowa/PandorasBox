@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { Briefcase, Cake, Clapperboard, Film, Link2, MapPin, Search, Star, Tv } from "lucide-react";
 import type { PersonDetail, PersonCredit } from "@/lib/person";
 import { Pill, TypeBadge } from "@/components/ui-fx/badge";

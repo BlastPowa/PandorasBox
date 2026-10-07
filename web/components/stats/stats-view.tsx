@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useMemo } from "react";
 import type { ReelItem, ReelItemStatus, ReelItemType } from "@core/storage/schema";
 import { getStatusColor, getStatusLabel } from "@core/utils/formatters";

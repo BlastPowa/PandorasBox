@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import { ArrowUpRight, ChevronUp, LoaderCircle, Play } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";

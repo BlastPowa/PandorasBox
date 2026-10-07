@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { usePathname } from "next/navigation";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { NAV_ITEMS, NAV_GROUPS } from "@/lib/nav";

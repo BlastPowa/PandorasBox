@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Film, LoaderCircle, Tv } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";

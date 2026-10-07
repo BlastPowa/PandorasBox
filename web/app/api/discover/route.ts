@@ -1,3 +1,4 @@
+import { publicCatalogJson } from "@/lib/public-cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { discoverTitles } from "@/lib/discover";
 import { genresFor, isSortKey, browseYears, type MediaKind } from "@/lib/browse-filters";
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
       provider: provider ? String(provider.tmdbId) : null,
       page,
     });
-    return NextResponse.json(data);
+    return publicCatalogJson(data);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Discover failed", results: [], page: 1, totalPages: 0 },

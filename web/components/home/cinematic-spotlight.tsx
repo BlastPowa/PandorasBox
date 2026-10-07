@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Compass, Info, Pause, Play, Sparkles, Star } from "lucide-react";
 import type { UnifiedSearchResult } from "@core/utils/search";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { BarChart3, CalendarDays, LibraryBig } from "lucide-react";
 
 type TrackingSection = "library" | "schedule" | "stats";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Bookmark, Compass, EyeOff, FolderPlus, Globe, Heart, Library, Lock, Trash2, Users } from "lucide-react";

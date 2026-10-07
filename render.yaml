@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: pandoras-box
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci --prefix web && npm --prefix web run build && cd web && node scripts/prepare-standalone.mjs
+    startCommand: node web/.next/standalone/web/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://www.pandorasbox.live
+      - key: ENABLE_MEMORY_SEARCH_INDEX_WRITES
+        value: false

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- Small catalogue thumbnails and collection collages use remote source URLs. */
 "use client";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useRouter } from "next/navigation";
 import { Search, ArrowRight, Star } from "lucide-react";
 import { SearchInput } from "@/components/ui-fx/input";

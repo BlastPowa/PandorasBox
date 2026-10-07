@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { ArrowUp, ArrowDown, Trash2, Plus, Trophy, Search, Star, Crown, Library } from "lucide-react";

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, CopyPlus, EyeOff, FolderOpen, Globe, Lock, Pencil, Tags, Users, X } from "lucide-react";

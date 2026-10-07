@@ -1,3 +1,4 @@
+import { publicCatalogJson } from "@/lib/public-cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { runSearch } from "@/lib/search-server";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
   try {
     const results = await runSearch(q, requested.length ? requested : undefined);
     const ranked = requested.length ? rankImportCandidates(q, year, results, requested).map((entry) => entry.result) : results;
-    return NextResponse.json({ results: ranked.slice(0, 12) });
+    return publicCatalogJson({ results: ranked.slice(0, 12) }, 300);
   } catch {
     return NextResponse.json({ results: [] }, { status: 500 });
   }

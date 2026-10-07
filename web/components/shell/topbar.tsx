@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Search, User as UserIcon, LogIn, Library, Settings, LogOut, ChevronDown, X } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
 import { LiveSearch } from "@/components/search/live-search";

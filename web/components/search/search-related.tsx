@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- Small catalogue thumbnails and collection collages use remote source URLs. */
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import type { UnifiedSearchResult } from "@core/utils/search";
 import { normaliseTitle } from "@core/utils/formatters";
 import { createClient } from "@/lib/supabase/server";

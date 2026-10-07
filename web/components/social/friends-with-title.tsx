@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { Library, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { GlassCard } from "@/components/ui-fx/glass-card";

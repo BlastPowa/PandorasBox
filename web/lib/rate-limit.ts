@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Lightweight in-memory sliding-window rate limiter, keyed by client IP + bucket.
+ * Lightweight in-memory fixed-window rate limiter, keyed by client IP + bucket.
  * Free and dependency-free. Note: state is per serverless instance, so it's a
  * best-effort guard against scraping/abuse rather than a distributed limiter.
  * For strict global limits, swap the store for Upstash Redis (has a free tier).
@@ -32,17 +32,17 @@ export function rateLimit(
   const hit = store.get(key);
 
   if (!hit || hit.resetAt <= now) {
+    if (store.size >= 5000) {
+      for (const [k, v] of store) if (v.resetAt <= now) store.delete(k);
+      // Keep memory bounded even when every request comes from a new address.
+      if (store.size >= 5000) store.delete(store.keys().next().value!);
+    }
     store.set(key, { count: 1, resetAt: now + windowMs });
     return { ok: true, remaining: limit - 1, resetAt: now + windowMs };
   }
 
   hit.count += 1;
   const ok = hit.count <= limit;
-
-  // opportunistic cleanup so the map can't grow unbounded
-  if (store.size > 5000) {
-    for (const [k, v] of store) if (v.resetAt <= now) store.delete(k);
-  }
 
   return { ok, remaining: Math.max(0, limit - hit.count), resetAt: hit.resetAt };
 }
@@ -54,6 +54,7 @@ export function tooManyRequests(result: RateResult): NextResponse {
     {
       status: 429,
       headers: {
+        "Cache-Control": "private, no-store",
         "Retry-After": String(retryAfter),
         "X-RateLimit-Remaining": String(result.remaining),
       },

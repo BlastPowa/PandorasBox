@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import { CalendarDays, Film, Tv, Sparkles, Bookmark, Rocket, Layers3, ArrowRight, Clock3, Gamepad2 } from "lucide-react";
 import type { ScheduleEntry } from "@/lib/schedule";

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownAZ, ArrowRight, BookOpenCheck, CalendarDays, Grid2X2, Rows3, Search, X } from "lucide-react";
 import type { ComicSeries, Publisher } from "@/lib/comics-shared";

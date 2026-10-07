@@ -21,7 +21,8 @@ export interface IndexableTitle {
  * job required to get useful results.
  */
 export function indexTitle(t: IndexableTitle): void {
-  if (!t.title) return;
+  // Optional rebuildable index: opt in only when database capacity permits it.
+  if (process.env.ENABLE_MEMORY_SEARCH_INDEX_WRITES !== "true" || !t.title) return;
   void (async () => {
     try {
       const supabase = createServiceClient();

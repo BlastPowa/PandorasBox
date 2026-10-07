@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowRight, Clapperboard, X } from "lucide-react";
 import { useState } from "react";

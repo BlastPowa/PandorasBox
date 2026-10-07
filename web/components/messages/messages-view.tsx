@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Archive, Camera, Check, CheckCheck, ChevronLeft, Edit3, ImagePlus, Laugh, Loader2, MessageCircle, MoreHorizontal, Pin, Plus, Reply, Search, Send, Trash2, UserMinus, Users, Volume2, VolumeX, X } from "lucide-react";

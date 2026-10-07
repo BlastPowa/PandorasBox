@@ -1,3 +1,4 @@
+import { publicCatalogJson } from "@/lib/public-cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSeasonDetails } from "@core/api/tmdb";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   if (Number.isNaN(id) || Number.isNaN(season) || !key) return NextResponse.json({ episodes: [] });
   try {
     const data = await getSeasonDetails(id, season, key);
-    return NextResponse.json({ episodes: data.episodes });
+    return publicCatalogJson({ episodes: data.episodes });
   } catch {
     return NextResponse.json({ episodes: [] }, { status: 500 });
   }

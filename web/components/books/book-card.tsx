@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { ArrowUpRight, Star } from "lucide-react";
 import type { BookSummary } from "@/lib/books-shared";
 import { BookCover } from "@/components/books/book-cover";

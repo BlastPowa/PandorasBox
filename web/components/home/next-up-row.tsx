@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { Clock3, PlayCircle } from "lucide-react";
 import { useLibrary } from "@/lib/library/use-library";
 

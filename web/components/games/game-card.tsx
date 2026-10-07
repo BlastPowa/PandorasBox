@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import Image from "next/image";
 import { CalendarDays, Gamepad2 } from "lucide-react";
 import type { GameCard as GameCardData } from "@/lib/igdb";

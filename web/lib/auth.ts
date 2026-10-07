@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { User } from "@supabase/supabase-js";
@@ -13,21 +14,19 @@ export interface Profile {
   profile_background_position: "top" | "center" | "bottom";
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
   if (!isSupabaseConfigured) return null;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
-}
+});
 
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   if (!isSupabaseConfigured) return null;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return null;
   const { data } = await supabase
     .from("profiles")
@@ -41,7 +40,7 @@ export async function getProfile(): Promise<Profile | null> {
     profile_background_url: row.profile_background_url ?? null,
     profile_background_position: row.profile_background_position ?? "center",
   };
-}
+});
 
 export async function requireAdmin(): Promise<boolean> {
   const profile = await getProfile();

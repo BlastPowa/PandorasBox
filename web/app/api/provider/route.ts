@@ -1,3 +1,4 @@
+import { publicCatalogJson } from "@/lib/public-cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { getByStreamingProvider } from "@/lib/discovery";
 import { getStreamingProvider } from "@/lib/streaming-providers";
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const results = await getByStreamingProvider(provider.tmdbId, kind);
-    return NextResponse.json({ results });
+    return publicCatalogJson({ results });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to load provider", results: [] },

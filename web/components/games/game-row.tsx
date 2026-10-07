@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { GameCard as GameCardData } from "@/lib/igdb";
 import { GameCard } from "./game-card";

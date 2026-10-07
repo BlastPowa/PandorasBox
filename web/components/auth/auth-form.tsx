@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { toast } from "sonner";
 import { Mail, Lock, User as UserIcon, Eye, EyeOff } from "lucide-react";
 import { GlassCard } from "@/components/ui-fx/glass-card";
