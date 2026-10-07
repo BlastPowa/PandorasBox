@@ -7,7 +7,12 @@
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
   ENABLE_MEMORY_SEARCH_INDEX_WRITES = "false"
+  NETLIFY_NEXT_SKEW_PROTECTION = "true"
 
-# Netlify automatically installs its current Next.js/OpenNext adapter.
+# Explicitly enable the current Next.js/OpenNext adapter: framework detection
+# alone published raw .next files without provisioning server routes here.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
 # Environment secrets must be entered in Netlify, never committed here.
 # Do not add an SPA catch-all redirect: this app has server routes and OAuth.
