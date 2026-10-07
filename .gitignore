@@ -30,3 +30,9 @@ Thumbs.db
 
 # vercel
 .vercel
+
+# Recovery exports contain private accounts, password hashes and messages.
+backups/
+**/backups/
+*.pboxbackup
+**/__pycache__/

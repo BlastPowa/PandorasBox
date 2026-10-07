@@ -2,11 +2,18 @@
 
 ## Current status
 
-The Next app is ready for a Netlify repository import via root `netlify.toml`,
-or a Render Blueprint via `render.yaml`, or a standalone Node server.
-No new host, DNS switch or automatic failover is deployed yet. Provider accounts
-and domain access are needed. The Supabase database is still a separate recovery
+The optimized Next app is deployed on Netlify as `pandorasbox-live`, with public
+production access and verified HTTPS for www.pandorasbox.live (apex redirects).
+Cloudflare and automatic failover are not configured. The Supabase database is a separate recovery
 dependency; hosting migration alone cannot restore sign-ups or library writes.
+
+The repository includes a Netlify catalogue guard edge function: 120 requests per
+60 seconds per IP/domain on selected catalogue APIs. It passes requests through
+without database calls or changing cached/private responses. Provider deployment
+logs must confirm the rule was accepted; it does not protect direct Supabase
+calls, cap total traffic or transfer the Vercel rule to Netlify. Auth, messages,
+cron, health and static files are excluded. See data-recovery-runbook.md for
+encrypted exports and pending backup prerequisites.
 
 ## Netlify import
 
