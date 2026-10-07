@@ -1,0 +1,13 @@
+[build]
+  base = "web"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+  ENABLE_MEMORY_SEARCH_INDEX_WRITES = "false"
+
+# Netlify automatically installs its current Next.js/OpenNext adapter.
+# Environment secrets must be entered in Netlify, never committed here.
+# Do not add an SPA catch-all redirect: this app has server routes and OAuth.
