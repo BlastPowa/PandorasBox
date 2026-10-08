@@ -1,7 +1,10 @@
 # Cloudflare database transfer preparation
 
 Status: staging export/import tools prepared; production still uses Supabase.
-No Cloudflare database, paid plan, user-data upload or live switch was performed.
+A free D1 staging database was created on 8 October 2026 in the existing account:
+`pandorasbox-migration-staging`, ID `23defc2f-47ae-4449-98b8-28acb9659d89`,
+with a Western Europe location hint. It has no app/Worker binding or imported data.
+No paid plan, user-data upload or live switch was performed.
 The selected preparation targets D1 on the free plan; paid resources and upgrades
 are not authorized. Hyperdrive is an alternative when a separate
 PostgreSQL provider is chosen; it is a connector/cache, not database hosting.
@@ -54,11 +57,12 @@ Source managed-schema details also remain in the full PostgreSQL dump.
 
 ## Cloudflare staging import (after selecting capacity/account)
 
-Create a separate private D1 database named pandorasbox-migration-staging in the
-chosen account. Keep it unbound to public Workers. Using official Wrangler:
+The separate D1 database pandorasbox-migration-staging is created. Keep it unbound
+to public Workers. cloudflare/wrangler.toml pins the existing account and database.
+After authenticating official Wrangler to that same account:
 
-    npx wrangler d1 execute pandorasbox-migration-staging --remote --file=PATH_TO_STAGING_SQL
-    npx wrangler d1 execute pandorasbox-migration-staging --remote --command="SELECT table_name,count(*) FROM source_records GROUP BY table_name"
+    npx wrangler d1 execute pandorasbox-migration-staging --config=cloudflare/wrangler.toml --remote --file=PATH_TO_STAGING_SQL
+    npx wrangler d1 execute pandorasbox-migration-staging --config=cloudflare/wrangler.toml --remote --command="SELECT table_name,count(*) FROM source_records GROUP BY table_name"
 
 Compare counts with validation.json. A Wrangler import may have partially loaded
 data on failure: use a fresh empty staging database for each attempt, never merge

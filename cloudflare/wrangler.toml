@@ -1,0 +1,10 @@
+# Database tooling only. No Worker entrypoint or public routes are configured.
+# Authentication is supplied by Wrangler login, never by committed API keys.
+name = "pandorasbox-migration-tools"
+account_id = "d942439697795db6cc01b4324316e7bb"
+compatibility_date = "2026-10-08"
+
+[[d1_databases]]
+binding = "MIGRATION_DB"
+database_name = "pandorasbox-migration-staging"
+database_id = "23defc2f-47ae-4449-98b8-28acb9659d89"
