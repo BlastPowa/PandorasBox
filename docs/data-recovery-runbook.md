@@ -32,6 +32,10 @@ Before deleting data, changing schemas or switching databases:
 
     python web/scripts/recovery-backup.py
 
+For the selected Cloudflare D1 staging preparation, add `--portable-d1` to include
+a separate consistent JSON snapshot. See cloudflare-database-transfer.md. The
+original PostgreSQL backup remains included; no data is deleted or migrated live.
+
 Default output is outside Git: `%USERPROFILE%/PandorasBoxBackups/`.
 The script reads a full consistent PostgreSQL dump, including auth.users,
 identities, password hashes, public profile/library/review/message tables,

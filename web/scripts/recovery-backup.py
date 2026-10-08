@@ -92,7 +92,7 @@ def verify_archive(path):
         return manifest
 
 
-def database_export(config, directory):
+def database_export(config, directory, portable=False):
     url = urllib.parse.urlsplit(config.get("PBOX_DATABASE_URL", ""))
     if url.scheme not in ("postgres", "postgresql") or not url.hostname or not url.password or "YOUR-PASSWORD" in url.password:
         raise ValueError("Save PBOX_DATABASE_URL with password in web/.env.backup.local")
@@ -124,6 +124,32 @@ def database_export(config, directory):
     if "TABLE DATA auth users" not in toc:
         raise RuntimeError("Export is missing auth.users; refusing incomplete account backup")
     (directory / "database-contents.txt").write_text(toc, encoding="utf-8")
+    if portable:
+        psql = shutil.which("psql") or shutil.which(str(Path(config.get("PBOX_PG_BIN", "")) / "psql"))
+        if not psql:
+            raise ValueError("Portable export needs psql")
+        inventory = "select schemaname,tablename from pg_tables where schemaname in ('public','auth','storage') order by 1,2"
+        result = subprocess.run([psql, "-X", "-w", "-qAt", "-F", "\t", "-c", inventory],
+                                env=env, capture_output=True, timeout=60)
+        if result.returncode:
+            raise RuntimeError("Portable table inventory failed")
+        statements = ["BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;"]
+        for line in result.stdout.decode().splitlines():
+            schema, table = line.split("\t")
+            # Quote identifiers/literals rather than interpolating SQL names raw.
+            ident = '.'.join('"' + n.replace('"', '""') + '"' for n in (schema, table))
+            label = (schema + "." + table).replace("'", "''")
+            statements.append("select json_build_object('table','" + label +
+                              "','count',count(*)) from " + ident + ";")
+            statements.append("select json_build_object('table','" + label +
+                              "','row',row_to_json(t)::text) from " + ident + " t;")
+        statements.append("COMMIT;")
+        with (directory / "portable.jsonl").open("wb") as output:
+            result = subprocess.run([psql, "-X", "-w", "-qAt", "-v", "ON_ERROR_STOP=1", "-f", "-"],
+                                    input="\n".join(statements).encode(), env=env,
+                                    stdout=output, stderr=subprocess.PIPE, timeout=3600)
+        if result.returncode:
+            raise RuntimeError("Portable snapshot failed")
 
 
 def storage_export(config, directory):
@@ -177,6 +203,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path.home() / "PandorasBoxBackups")
     parser.add_argument("--verify", type=Path, help="Verify an encrypted backup without restoring it")
+    parser.add_argument("--portable-d1", action="store_true", help="Include read-only JSON snapshots for D1 staging")
     args = parser.parse_args()
     password = getpass.getpass("Backup encryption passphrase (store in your password manager): ")
     if len(password) < 16:
@@ -195,7 +222,7 @@ def main():
         payload = work / "payload"
         payload.mkdir()
         print("Exporting database read-only; this may take several minutes...")
-        database_export(config, payload)
+        database_export(config, payload, args.portable_d1)
         print("Exporting uploaded files...")
         object_count = storage_export(config, payload)
         manifest = {"project": PROJECT, "created_utc": datetime.now(timezone.utc).isoformat(),
